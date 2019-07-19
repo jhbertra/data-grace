@@ -47,7 +47,7 @@ export function maybeToArray<A>(m: Maybe<A>) : A[] {
 export function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
     return ms.reduce(
         (state, m) => [...state, ...maybeToArray(f(m))],
-        []);
+        <B[]>[]);
 }
 
 export function catMaybes<A>(ms: Maybe<A>[]): A[] {
@@ -69,9 +69,11 @@ export function apply<A, B>(f: Maybe<(a: A) => B>, m: Maybe<A>): Maybe<B> {
     switch (f.tag) {
         case "Nothing": return f;
         case "Just":
+            let ret : Maybe<B>
             switch (m.tag) {
                 case "Nothing": return m;
                 case "Just": return pure(f.value(m.value));
+                default: return m;
             }
     }
 }
@@ -121,7 +123,7 @@ export function lift4<A, B, C, D, E>(f: (a: A, b: B, c: C, d: D) => E): (a: Mayb
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
     return as.reduce(
         (mbs, a) => lift2((bs: B[], b: B) => [...bs, b])(mbs, f(a)),
-        pure([]));
+        pure(<B[]>[]));
 }
 
 export function mapM_<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<[]> {
@@ -131,7 +133,7 @@ export function mapM_<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<[]> {
 export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
     return as.reduce(
         (mbs, a) => flatMap(bs => map(b => [...bs, b], f(a)), mbs),
-        pure([]));
+        pure(<B[]>[]));
 }
 
 export function forM_<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<[]> {

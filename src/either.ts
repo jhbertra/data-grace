@@ -58,6 +58,7 @@ export function apply<A, B, C>(f: Either<A, (a: B) => C>, m: Either<A, B>): Eith
             switch (m.tag) {
                 case "Left": return m;
                 case "Right": return pure(f.value(m.value));
+                default: return m;
             }
     }
 }
