@@ -33,7 +33,10 @@ export function isNothing<A>(m:Maybe<A>) : m is MaybeNothing {
 }
 
 export function fromMaybe<A>(def: A, m:Maybe<A>) : A {
-    return maybe(def, id, m);
+    switch (m.tag) {
+        case "Just": return m.value;
+        case "Nothing": return def;
+    }
 }
 
 export function arrayToMaybe<A>(ts: A[]) : Maybe<A> {
@@ -41,17 +44,34 @@ export function arrayToMaybe<A>(ts: A[]) : Maybe<A> {
 }
 
 export function maybeToArray<A>(m: Maybe<A>) : A[] {
-    return maybe([], x => [x], m);
+    switch (m.tag) {
+        case "Just": return [m.value];
+        case "Nothing": return [];
+    }
 }
 
 export function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
-    return ms.reduce(
-        (state, m) => [...state, ...maybeToArray(f(m))],
-        <B[]>[]);
+    return ms
+        .map(f)
+        .reduce(
+            (state, b) => {
+                switch (b.tag) {
+                    case "Just": return [...state, b.value];
+                    case "Nothing": return state;
+                }
+            },
+            <B[]>[]);
 }
 
 export function catMaybes<A>(ms: Maybe<A>[]): A[] {
-    return mapMaybe(id, ms);
+    return ms.reduce(
+        (state, m) => {
+            switch (m.tag) {
+                case "Just": return [...state, m.value];
+                case "Nothing": return state;
+            }
+        },
+        <A[]>[]);
 }
 
 export function map<A, B>(f: (a: A) => B, m: Maybe<A>): Maybe<B> {
@@ -109,15 +129,18 @@ export function voidOut<A>(m: Maybe<A>) : Maybe<[]> {
 }
 
 export function lift2<A, B, C>(f: (a: A, b: B) => C): (a: Maybe<A>, b: Maybe<B>) => Maybe<C> {
-    return (e1, e2) => flatMap(a => map(b => f(a, b), e2), e1);
+    const fcurried = (a: A) => (b: B) => f(a, b);
+    return (e1, e2) => apply(map(fcurried, e1), e2);
 }
 
 export function lift3<A, B, C, D>(f: (a: A, b: B, c: C) => D): (a: Maybe<A>, b: Maybe<B>, c: Maybe<C>) => Maybe<D> {
-    return (e1, e2, e3) => flatMap(a => flatMap(b => map(c => f(a, b, c), e3), e2), e1);
+    const fcurried = (a: A) => (b: B) => (c: C) => f(a, b, c);
+    return (e1, e2, e3) => apply(apply(map(fcurried, e1), e2), e3);
 }
 
 export function lift4<A, B, C, D, E>(f: (a: A, b: B, c: C, d: D) => E): (a: Maybe<A>, b: Maybe<B>, c: Maybe<C>, d: Maybe<D>) => Maybe<E> {
-    return (e1, e2, e3, e4) => flatMap(a => flatMap(b => flatMap(c => map(d => f(a, b, c, d), e4), e3), e2), e1);
+    const fcurried = (a: A) => (b: B) => (c: C) => (d: D) => f(a, b, c, d);
+    return (e1, e2, e3, e4) => apply(apply(apply(map(fcurried, e1), e2), e3), e4);
 }
 
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
@@ -132,7 +155,7 @@ export function mapM_<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<[]> {
 
 export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
     return as.reduce(
-        (mbs, a) => flatMap(bs => map(b => [...bs, b], f(a)), mbs),
+        (mbs, a) => lift2((bs: B[], b: B) => [...bs, b])(mbs, f(a)),
         pure(<B[]>[]));
 }
 
@@ -140,8 +163,10 @@ export function forM_<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<[]> {
     return voidOut(forM(as, f));
 }
 
-export function sequence<A>(as: Maybe<A>[]): Maybe<A[]> {
-    return mapM(id, as);
+export function sequence<A>(mas: Maybe<A>[]): Maybe<A[]> {
+    return mas.reduce(
+        (mbs, ma) => lift2((as: A[], a: A) => [...as, a])(mbs, ma),
+        pure(<A[]>[]));
 }
 
 export function sequence_<A>(as: Maybe<A>[]): Maybe<[]> {

@@ -1,11 +1,25 @@
 export function zipWith<A, B, C>(f: (a: A, b: B) => C, as: A[], bs: B[]): C[] {
-    if (as.length === 0 || bs.length === 0) {
-        return [];
-    } else {
-        return [f(as[0], bs[0]), ...zipWith(f, as.slice(1), bs.slice(1))];
+    let results: C[] = []
+    let alen = as.length;
+    let blen = bs.length;
+
+    for (let i = 0; i < alen && i < blen; ++i) {
+        results.push(f(as[i], bs[i]));
     }
+
+    return results;
 }
 
 export function unzip<A, B>(abs: [A, B][]): [A[], B[]] {
-    return abs.reduce(([as, bs], [a, b]) => [[...as, a],[...bs, b]], <[A[], B[]]>[[],[]]);
+    let as: A[] = [];
+    let bs: B[] = [];
+    let len = abs.length;
+
+    for (let i = 0; i < len; ++i) {
+        const [a, b] = abs[i];
+        as.push(a);
+        bs.push(b);
+    }
+    
+    return [as, bs];
 }
