@@ -1,5 +1,8 @@
 import { unzip, zipWith } from "./array";
 import * as fc from "fast-check";
+import { Just } from "./maybe";
+import * as Maybe from "./maybe";
+
 
 describe("zipWith", () => {
     it("passes through two empty lists", () => {

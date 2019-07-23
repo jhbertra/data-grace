@@ -1,53 +1,75 @@
 import {unzip, zipWith} from "./array";
 import {constant, id} from "./prelude";
 
+type MaybeCaseScrutinizer<A, B> = {
+    just: (a: A) => B,
+    nothing: () => B
+}
+
+export interface IMaybe<A> {
+    readonly defaultWith: (a: A) => A,
+    readonly filter: (p: (a: A) => boolean) => Maybe<A>,
+    readonly flatMap: <B>(f: (a: A) => Maybe<B>) => Maybe<B>,
+    readonly map: <B>(f: (a: A) => B) => Maybe<B>,
+    readonly matchCase: <B>(cases: MaybeCaseScrutinizer<A, B>) => B,
+    readonly or: (other: () => Maybe<A>) => Maybe<A>,
+    readonly replace: <B>(m: Maybe<B>) => Maybe<B>,
+    readonly replacePure: <B>(b: B) => Maybe<B>,
+    readonly toArray: () => A[],
+    readonly voidOut: () => Maybe<[]>
+}
+
 type MaybeJust<A> = { tag: "Just"; value: A };
 type MaybeNothing = { tag: "Nothing" };
-export type Maybe<A> = MaybeJust<A> | MaybeNothing;
+export type Maybe<A> = (MaybeJust<A> | MaybeNothing) & IMaybe<A>;
 
 export function Just<A>(value: A): Maybe<A> {
-    return { tag: "Just", value };
+    return Object.freeze({ 
+        tag: "Just",
+        value,
+        defaultWith: constant(value),
+        filter: p => p(value) ? Just(value) : Nothing(),
+        flatMap: f => f(value),
+        map: f => Just(f(value)),
+        matchCase: ({just}) => just(value),
+        or: constant(Just(value)),
+        replace: id,
+        replacePure: Just,
+        toArray: () => [value],
+        voidOut: () => Just(<[]>[])
+    });
 }
 
 export function Nothing<A>() : Maybe<A> {
-    return { tag: "Nothing" };
+    return Object.freeze({
+        tag: "Nothing",
+        defaultWith: id,
+        filter: constant(Nothing()),
+        flatMap: constant(Nothing()),
+        map: constant(Nothing()),
+        matchCase: ({nothing}) => nothing(),
+        or: m2 => m2(),
+        replace: constant(Nothing()),
+        replacePure: constant(Nothing()),
+        toArray: () => [],
+        voidOut: () => Nothing<[]>()
+    });
 }
 
 export function toMaybe<A>(value?: A): Maybe<A> {
     return value === undefined || value === null ? Nothing() : Just(value);
 }
 
-export function maybe<A, B>(def: B, f: (x: A) => B, m: Maybe<A>) : B {
-    switch (m.tag) {
-        case "Just": return f(m.value);
-        case "Nothing": return def;
-    }
-}
-
-export function isJust<A>(m:Maybe<A>) : m is MaybeJust<A> {
+export function isJust<A>(m:Maybe<A>) : m is MaybeJust<A> & IMaybe<A> {
     return m.tag === "Just";
 }
 
-export function isNothing<A>(m:Maybe<A>) : m is MaybeNothing {
+export function isNothing<A>(m:Maybe<A>) : m is MaybeNothing & IMaybe<A> {
     return m.tag === "Nothing";
-}
-
-export function fromMaybe<A>(def: A, m:Maybe<A>) : A {
-    switch (m.tag) {
-        case "Just": return m.value;
-        case "Nothing": return def;
-    }
 }
 
 export function arrayToMaybe<A>(ts: A[]) : Maybe<A> {
     return ts.length === 0 ? Nothing() : Just(ts[0]);
-}
-
-export function maybeToArray<A>(m: Maybe<A>) : A[] {
-    switch (m.tag) {
-        case "Just": return [m.value];
-        case "Nothing": return [];
-    }
 }
 
 export function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
@@ -74,41 +96,19 @@ export function catMaybes<A>(ms: Maybe<A>[]): A[] {
         <A[]>[]);
 }
 
-export function map<A, B>(f: (a: A) => B, m: Maybe<A>): Maybe<B> {
-    switch (m.tag) {
-        case "Just": return Just(f(m.value));
-        case "Nothing": return m;
-    }
-}
-
 export function pure<A>(value: A): Maybe<A> {
     return Just(value);
 }
 
 export function apply<A, B>(f: Maybe<(a: A) => B>, m: Maybe<A>): Maybe<B> {
     switch (f.tag) {
-        case "Nothing": return f;
+        case "Nothing": return Nothing();
         case "Just":
-            let ret : Maybe<B>
             switch (m.tag) {
-                case "Nothing": return m;
-                case "Just": return pure(f.value(m.value));
+                case "Nothing": return Nothing();
+                case "Just": return Just(f.value(m.value));
                 default: return m;
             }
-    }
-}
-
-export function flatMap<A, B>(f: (a: A) => Maybe<B>, m: Maybe<A>): Maybe<B> {
-    switch (m.tag) {
-        case "Nothing": return m;
-        case "Just": return f(m.value);
-    }
-}
-
-export function or<A>(m1: Maybe<A>, m2: Maybe<A>): Maybe<A> {
-    switch (m1.tag) {
-        case "Nothing": return m1;
-        case "Just": return m2;
     }
 }
 
@@ -116,31 +116,19 @@ export function empty<A>(): Maybe<A> {
     return Nothing();
 }
 
-export function replacePure<A, B>(m: Maybe<A>, b: B) : Maybe<B> {
-    return map(constant(b), m);
-}
-
-export function replace<A, B>(m: Maybe<A>, b: Maybe<B>) : Maybe<B> {
-    return flatMap(constant(b), m);
-}
-
-export function voidOut<A>(m: Maybe<A>) : Maybe<[]> {
-    return replacePure(m, []);
-}
-
 export function lift2<A, B, C>(f: (a: A, b: B) => C): (a: Maybe<A>, b: Maybe<B>) => Maybe<C> {
     const fcurried = (a: A) => (b: B) => f(a, b);
-    return (e1, e2) => apply(map(fcurried, e1), e2);
+    return (e1, e2) => apply(e1.map(fcurried), e2);
 }
 
 export function lift3<A, B, C, D>(f: (a: A, b: B, c: C) => D): (a: Maybe<A>, b: Maybe<B>, c: Maybe<C>) => Maybe<D> {
     const fcurried = (a: A) => (b: B) => (c: C) => f(a, b, c);
-    return (e1, e2, e3) => apply(apply(map(fcurried, e1), e2), e3);
+    return (e1, e2, e3) => apply(apply(e1.map(fcurried), e2), e3);
 }
 
 export function lift4<A, B, C, D, E>(f: (a: A, b: B, c: C, d: D) => E): (a: Maybe<A>, b: Maybe<B>, c: Maybe<C>, d: Maybe<D>) => Maybe<E> {
     const fcurried = (a: A) => (b: B) => (c: C) => (d: D) => f(a, b, c, d);
-    return (e1, e2, e3, e4) => apply(apply(apply(map(fcurried, e1), e2), e3), e4);
+    return (e1, e2, e3, e4) => apply(apply(apply(e1.map(fcurried), e2), e3), e4);
 }
 
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
@@ -150,7 +138,7 @@ export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
 }
 
 export function mapM_<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<[]> {
-    return voidOut(mapM(f, as));
+    return mapM(f, as).voidOut();
 }
 
 export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
@@ -160,7 +148,7 @@ export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
 }
 
 export function forM_<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<[]> {
-    return voidOut(forM(as, f));
+    return forM(as, f).voidOut();
 }
 
 export function sequence<A>(mas: Maybe<A>[]): Maybe<A[]> {
@@ -170,19 +158,15 @@ export function sequence<A>(mas: Maybe<A>[]): Maybe<A[]> {
 }
 
 export function sequence_<A>(as: Maybe<A>[]): Maybe<[]> {
-    return voidOut(sequence(as));
+    return sequence(as).voidOut();
 }
 
 export function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
-    return flatMap(id, m);
-}
-
-export function filter<A>(p: (a: A) => boolean, m: Maybe<A>): Maybe<A> {
-    return flatMap(a => p(a) ? pure(a) : empty() , m);
+    return m.flatMap(id);
 }
 
 export function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {
-    return map(unzip, mapM(f, as));
+    return mapM(f, as).map(unzip);
 }
 
 export function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe<C[]> {
@@ -190,17 +174,17 @@ export function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[])
 }
 
 export function zipWithM_<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe<[]> {
-    return voidOut(zipWithM(f, as, bs));
+    return zipWithM(f, as, bs).voidOut();
 }
 
 export function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
     return as.reduce(
-        (state, a) => flatMap(b => f(b, a), state),
+        (state, a) => state.flatMap(b => f(b, a)),
         pure(seed));
 }
 
 export function reduceM_<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<[]> {
-    return voidOut(reduceM(f, seed, as));
+    return reduceM(f, seed, as).voidOut();
 }
 
 export function replicate<A>(n: number, m: Maybe<A>): Maybe<A[]> {
@@ -212,13 +196,13 @@ export function replicate<A>(n: number, m: Maybe<A>): Maybe<A[]> {
 }
 
 export function replicate_<A>(n: number, m: Maybe<A>): Maybe<[]> {
-    return voidOut(replicate(n, m));
+    return replicate(n, m).voidOut();
 }
 
-export function when<A>(b: boolean): Maybe<[]> {
+export function when(b: boolean): Maybe<[]> {
     return b ? pure([]) : empty();
 }
 
-export function unless<A>(b: boolean): Maybe<[]> {
+export function unless(b: boolean): Maybe<[]> {
     return when(!b);
 }
