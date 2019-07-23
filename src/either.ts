@@ -1,16 +1,60 @@
-import {constant, id} from "./prelude";
 import {unzip, zipWith} from "./array";
+import {constant, id} from "./prelude";
 
-type EitherLeft<T> = { tag: "Left"; value: T };
-type EitherRight<T> = { tag: "Right"; value: T  };
-export type Either<A, B> = EitherLeft<A> | EitherRight<B>;
-
-export function Left<A, B>(value: A): Either<A, B> {
-    return { tag: "Left", value };
+type EitherCaseScrutinizer<A, B, C> = {
+    left: (a: A) => C,
+    right: (b: B) => C
 }
 
-export function Right<A, B>(value: B): Either<A, B> {
-    return { tag: "Right", value };
+export interface IEither<A, B> {
+    readonly defaultLeftWith: (a: A) => A,
+    readonly defaultRightWith: (b: B) => B,
+    readonly flatMap: <C>(f: (b: B) => Either<A, C>) => Either<A, C>,
+    readonly map: <C>(f: (b: B) => C) => Either<A, C>,
+    readonly mapLeft: <C>(f: (a: A) => C) => Either<C, B>,
+    readonly matchCase: <C>(cases: EitherCaseScrutinizer<A, B, C>) => C,
+    readonly or: (other: () => Either<A, B>) => Either<A, B>,
+    readonly replace: <C>(m: Either<A, C>) => Either<A, C>,
+    readonly replacePure: <C>(c: C) => Either<A, C>,
+    readonly voidOut: () => Either<A, []>
+}
+
+type EitherLeft<A> = { tag: "Left", value: A };
+type EitherRight<B> = { tag: "Right",  value: B };
+export type Either<A, B> = (EitherLeft<A> | EitherRight<B>) & IEither<A, B>;
+
+export function Left<A, B>(value: A): Either<A, B> {
+    return Object.freeze({ 
+        tag: "Left",
+        value,
+        defaultLeftWith: constant(value),
+        defaultRightWith: id,
+        flatMap: constant(Left(value)),
+        map: constant(Left(value)),
+        mapLeft: f => Left(f(value)),
+        matchCase: ({left}) => left(value),
+        or: x => x(),
+        replace: constant(Left(value)),
+        replacePure: constant(Left(value)),
+        voidOut: () => Left<A, []>(value)
+    });
+}
+
+export function Right<A, B>(value: B) : Either<A, B> {
+    return Object.freeze({
+        tag: "Right",
+        value,
+        defaultLeftWith: id,
+        defaultRightWith: constant(value),
+        flatMap: f => f(value),
+        map: f => Right(f(value)),
+        mapLeft: constant(Right(value)),
+        matchCase: ({right}) => right(value),
+        or: constant(Right(value)),
+        replace: id,
+        replacePure: Right,
+        voidOut: () => Right<A, []>([])
+    });
 }
 
 export function either<A, B, C>(left: (x: A) => C, right: (x: B) => C, e: Either<A, B>) : C {
@@ -32,19 +76,12 @@ export function rights<A, B>(es: Either<A, B>[]): B[] {
         <B[]>[]);
 }
 
-export function isLeft<A, B>(m:Either<A, B>) : m is EitherLeft<A> {
+export function isLeft<A, B>(m:Either<A, B>) : m is EitherLeft<A> & IEither<A, B> {
     return m.tag === "Left";
 }
 
-export function isRight<A, B>(m:Either<A, B>) : m is EitherRight<B> {
+export function isRight<A, B>(m:Either<A, B>) : m is EitherRight<B> & IEither<A, B> {
     return m.tag === "Right";
-}
-
-export function map<A, B, C>(f: (a: B) => C, m: Either<A, B>): Either<A, C> {
-    switch (m.tag) {
-        case "Left": return m;
-        case "Right": return Right(f(m.value));
-    }
 }
 
 export function pure<A, B>(value: B): Either<A, B> {
@@ -53,45 +90,29 @@ export function pure<A, B>(value: B): Either<A, B> {
 
 export function apply<A, B, C>(f: Either<A, (a: B) => C>, m: Either<A, B>): Either<A, C> {
     switch (f.tag) {
-        case "Left": return f;
+        case "Left": return Left(f.value);
         case "Right":
             switch (m.tag) {
-                case "Left": return m;
+                case "Left": return Left(m.value);
                 case "Right": return pure(f.value(m.value));
                 default: return m;
             }
     }
 }
 
-export function flatMap<A, B, C>(f: (a: B) => Either<A, C>, m: Either<A, B>): Either<A, C> {
-    switch (m.tag) {
-        case "Left": return m;
-        case "Right": return f(m.value);
-    }
-}
-
-export function replacePure<A, B, C>(e: Either<A, B>, c: C) : Either<A, C> {
-    return map(constant(c), e);
-}
-
-export function replace<A, B, C>(e: Either<A, B>, c: Either<A, C>) : Either<A, C> {
-    return flatMap(constant(c), e);
-}
-
-export function voidOut<A, B>(e: Either<A, B>) : Either<A, []> {
-    return replacePure(e, []);
-}
-
 export function lift2<A, B, C, D>(f: (b: B, c: C) => D): (b: Either<A, B>, c: Either<A, C>) => Either<A, D> {
-    return (e1, e2) => flatMap(a => map(b => f(a, b), e2), e1);
+    const fcurried = (b: B) => (c: C) => f(b, c);
+    return (e1, e2) => apply(e1.map(fcurried), e2);
 }
 
 export function lift3<A, B, C, D, E>(f: (b: B, c: C, d: D) => E): (b: Either<A, B>, c: Either<A, C>, d: Either<A, D>) => Either<A, E> {
-    return (e1, e2, e3) => flatMap(a => flatMap(b => map(c => f(a, b, c), e3), e2), e1);
+    const fcurried = (b: B) => (c: C) => (d: D) => f(b, c, d);
+    return (e1, e2, e3) => apply(apply(e1.map(fcurried), e2), e3);
 }
 
 export function lift4<A, B, C, D, E, F>(f: (b: B, c: C, d: D, e: E) => F): (b: Either<A, B>, c: Either<A, C>, d: Either<A, D>, e: Either<A, E>) => Either<A, F> {
-    return (e1, e2, e3, e4) => flatMap(a => flatMap(b => flatMap(c => map(d => f(a, b, c, d), e4), e3), e2), e1);
+    const fcurried = (b: B) => (c: C) => (d: D) => (e: E) => f(b, c, d, e);
+    return (e1, e2, e3, e4) => apply(apply(apply(e1.map(fcurried), e2), e3), e4);
 }
 
 export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
@@ -101,17 +122,17 @@ export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A,
 }
 
 export function mapM_<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, []> {
-    return voidOut(mapM(f, bs));
+    return mapM(f, bs).voidOut();
 }
 
 export function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
     return bs.reduce(
-        (mbs, a) => flatMap(cs => map(b => [...cs, b], f(a)), mbs),
+        (mbs, a) => mbs.flatMap(cs => f(a).map(b => [...cs, b])),
         pure<A, C[]>([]));
 }
 
 export function forM_<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, []> {
-    return voidOut(forM(bs, f));
+    return forM(bs, f).voidOut();
 }
 
 export function sequence<A, B>(bs: Either<A, B>[]): Either<A, B[]> {
@@ -119,15 +140,15 @@ export function sequence<A, B>(bs: Either<A, B>[]): Either<A, B[]> {
 }
 
 export function sequence_<A, B>(bs: Either<A, B>[]): Either<A, []> {
-    return voidOut(sequence(bs));
+    return sequence(bs).voidOut();
 }
 
 export function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
-    return flatMap(id, m);
+    return m.flatMap(id);
 }
 
 export function mapAndUnzipWith<A, B, C, D>(f: (a: B) => Either<A, [C, D]>, bs: B[]): Either<A, [C[], D[]]> {
-    return map(unzip, mapM(f, bs));
+    return mapM(f, bs).map(unzip);
 }
 
 export function zipWithM<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], cs: C[]): Either<A, D[]> {
@@ -135,17 +156,17 @@ export function zipWithM<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], c
 }
 
 export function zipWithM_<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], cs: C[]): Either<A, []> {
-    return voidOut(zipWithM(f, bs, cs));
+    return zipWithM(f, bs, cs).voidOut();
 }
 
 export function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
     return bs.reduce(
-        (state, a) => flatMap(b => f(b, a), state),
+        (state, a) => state.flatMap(b => f(b, a)),
         pure<A, C>(seed));
 }
 
 export function reduceM_<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, []> {
-    return voidOut(reduceM(f, seed, bs));
+    return reduceM(f, seed, bs).voidOut();
 }
 
 export function replicate<A, B>(n: number, m: Either<A, B>): Either<A, B[]> {
@@ -157,7 +178,7 @@ export function replicate<A, B>(n: number, m: Either<A, B>): Either<A, B[]> {
 }
 
 export function replicate_<A, B>(n: number, m: Either<A, B>): Either<A, []> {
-    return voidOut(replicate(n, m));
+    return replicate(n, m).voidOut();
 }
 
 export function when<A>(b: boolean, e: Either<A, []>): Either<A, []> {
