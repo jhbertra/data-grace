@@ -1,11 +1,10 @@
 import {unzip, zipWith} from "./array";
-import {constant, id} from "./prelude";
+import {id, objectToEntries, objectFromEntries, constant} from "./prelude";
+import { Maybe, Nothing, Just } from "./maybe";
 
-type EitherCaseScrutinizer<A, B, C> = {
-    left: (a: A) => C,
-    right: (b: B) => C
-}
-
+/*
+ * Data Types
+ */
 export interface IEither<A, B> {
     readonly defaultLeftWith: (a: A) => A,
     readonly defaultRightWith: (b: B) => B,
@@ -19,60 +18,72 @@ export interface IEither<A, B> {
     readonly voidOut: () => Either<A, []>
 }
 
+type EitherCaseScrutinizer<A, B, C> = {
+    left: (a: A) => C,
+    right: (b: B) => C
+}
 type EitherLeft<A> = { tag: "Left", value: A };
 type EitherRight<B> = { tag: "Right",  value: B };
 export type Either<A, B> = (EitherLeft<A> | EitherRight<B>) & IEither<A, B>;
+export type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
+
+
+
+/*
+ * Constructors
+ */
 
 export function Left<A, B>(value: A): Either<A, B> {
-    return Object.freeze({ 
+    return <Either<A, B>>Object.freeze({ 
         tag: "Left",
         value,
         defaultLeftWith: constant(value),
         defaultRightWith: id,
-        flatMap: constant(Left(value)),
-        map: constant(Left(value)),
+        flatMap: _ => Left<A, B>(value),
+        map: _ => Left(value),
         mapLeft: f => Left(f(value)),
         matchCase: ({left}) => left(value),
         or: x => x(),
-        replace: constant(Left(value)),
-        replacePure: constant(Left(value)),
+        replace: _ => Left(value),
+        replacePure: _ => Left(value),
+        toString: () => `Left (${value})`,
         voidOut: () => Left<A, []>(value)
     });
 }
 
 export function Right<A, B>(value: B) : Either<A, B> {
-    return Object.freeze({
+    return <Either<A, B>>Object.freeze({
         tag: "Right",
         value,
         defaultLeftWith: id,
         defaultRightWith: constant(value),
         flatMap: f => f(value),
         map: f => Right(f(value)),
-        mapLeft: constant(Right(value)),
+        mapLeft: _ => Right(value),
         matchCase: ({right}) => right(value),
-        or: constant(Right(value)),
+        or: _ => Right(value),
         replace: id,
         replacePure: Right,
+        toString: () => `Right (${value})`,
         voidOut: () => Right<A, []>([])
     });
 }
 
-export function either<A, B, C>(left: (x: A) => C, right: (x: B) => C, e: Either<A, B>) : C {
-    switch (e.tag) {
-        case "Left": return left(e.value);
-        case "Right": return right(e.value);
-    }
-}
+
+
+/*
+ * Either Functions
+ */
 
 export function lefts<A, B>(es: Either<A, B>[]): A[] {
     return es.reduce(
-        (state, m) => [...state, ...either(x => [x], _ => [], m)],
+        (state, m) => [...state, ...m.matchCase({left: x => [x], right: () => []})],
         <A[]>[]);
 }
 
 export function rights<A, B>(es: Either<A, B>[]): B[] {
     return es.reduce(
-        (state, m) => [...state, ...either(_ => [], x => [x], m)],
+        (state, m) => [...state, ...m.matchCase({left: () => [], right: x => [x]})],
         <B[]>[]);
 }
 
@@ -84,67 +95,43 @@ export function isRight<A, B>(m:Either<A, B>) : m is EitherRight<B> & IEither<A,
     return m.tag === "Right";
 }
 
-export function pure<A, B>(value: B): Either<A, B> {
-    return Right(value);
+
+
+/*
+ * General lifting functions.
+ */
+
+export function liftF<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
+    return sequence(args).map(a => f.apply(undefined, <P>a));
 }
 
-export function apply<A, B, C>(f: Either<A, (a: B) => C>, m: Either<A, B>): Either<A, C> {
-    switch (f.tag) {
-        case "Left": return Left(f.value);
-        case "Right":
-            switch (m.tag) {
-                case "Left": return Left(m.value);
-                case "Right": return pure(f.value(m.value));
-                default: return m;
-            }
-    }
+export function liftO<A, T>(spec: MapEither<A, T>): Either<A, T> {
+    const maybeKvps = sequence(objectToEntries(spec).map(
+        ([key, value]) => value.map(x => <[keyof T, T[typeof key]]>[key, x])));
+
+    return maybeKvps.map(objectFromEntries);
 }
 
-export function lift2<A, B, C, D>(f: (b: B, c: C) => D): (b: Either<A, B>, c: Either<A, C>) => Either<A, D> {
-    const fcurried = (b: B) => (c: C) => f(b, c);
-    return (e1, e2) => apply(e1.map(fcurried), e2);
-}
 
-export function lift3<A, B, C, D, E>(f: (b: B, c: C, d: D) => E): (b: Either<A, B>, c: Either<A, C>, d: Either<A, D>) => Either<A, E> {
-    const fcurried = (b: B) => (c: C) => (d: D) => f(b, c, d);
-    return (e1, e2, e3) => apply(apply(e1.map(fcurried), e2), e3);
-}
 
-export function lift4<A, B, C, D, E, F>(f: (b: B, c: C, d: D, e: E) => F): (b: Either<A, B>, c: Either<A, C>, d: Either<A, D>, e: Either<A, E>) => Either<A, F> {
-    const fcurried = (b: B) => (c: C) => (d: D) => (e: E) => f(b, c, d, e);
-    return (e1, e2, e3, e4) => apply(apply(apply(e1.map(fcurried), e2), e3), e4);
-}
+/*
+ * Kliesli composition functions
+ */
 
 export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
     return bs.reduce(
-        (mcs, b) => lift2<A, C[], C, C[]>((cs, c) => [...cs, c])(mcs, f(b)),
-        pure<A, C[]>([]));
-}
-
-export function mapM_<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, []> {
-    return mapM(f, bs).voidOut();
+        (mcs, b) => mcs.flatMap(cs => f(b).map(c => [...cs, c])),
+        Right<A, C[]>([]));
 }
 
 export function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
     return bs.reduce(
-        (mbs, a) => mbs.flatMap(cs => f(a).map(b => [...cs, b])),
-        pure<A, C[]>([]));
-}
-
-export function forM_<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, []> {
-    return forM(bs, f).voidOut();
+        (mcs, b) => mcs.flatMap(cs => f(b).map(c => [...cs, c])),
+        Right<A, C[]>([]));
 }
 
 export function sequence<A, B>(bs: Either<A, B>[]): Either<A, B[]> {
     return mapM(id, bs);
-}
-
-export function sequence_<A, B>(bs: Either<A, B>[]): Either<A, []> {
-    return sequence(bs).voidOut();
-}
-
-export function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
-    return m.flatMap(id);
 }
 
 export function mapAndUnzipWith<A, B, C, D>(f: (a: B) => Either<A, [C, D]>, bs: B[]): Either<A, [C[], D[]]> {
@@ -155,36 +142,106 @@ export function zipWithM<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], c
     return sequence(zipWith(f, bs, cs));
 }
 
-export function zipWithM_<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], cs: C[]): Either<A, []> {
-    return zipWithM(f, bs, cs).voidOut();
-}
-
 export function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
     return bs.reduce(
         (state, a) => state.flatMap(b => f(b, a)),
-        pure<A, C>(seed));
+        Right<A, C>(seed));
 }
 
-export function reduceM_<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, []> {
-    return reduceM(f, seed, bs).voidOut();
-}
 
-export function replicate<A, B>(n: number, m: Either<A, B>): Either<A, B[]> {
-    const arr = [];
-    for (let i = 0; i < n; ++i) {
-        arr.push(m);
-    }
-    return sequence(arr);
-}
 
-export function replicate_<A, B>(n: number, m: Either<A, B>): Either<A, []> {
-    return replicate(n, m).voidOut();
+/*
+ * General monad functions
+ */
+
+export function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
+    return m.flatMap(id);
 }
 
 export function when<A>(b: boolean, e: Either<A, []>): Either<A, []> {
-    return b ? e : pure([]);
+    return b ? e : Right([]);
 }
 
 export function unless<A>(b: boolean, e: Either<A, []>): Either<A, []> {
     return when(!b, e);
+}
+
+
+
+/*
+ * Decoders
+ */
+
+export type DecodeError = [string, string];
+
+export function date(value: any): Either<DecodeError, Date> {
+    if (value instanceof Date) {
+        return Right(value);
+    } else {
+        const parsed = Date.parse(value);
+        return parsed === NaN
+            ? Left(["$", "Expected a date"])
+            : Right(new Date(parsed));
+    }
+}
+
+function prefixError(prefix: string, [childError, message]: DecodeError): DecodeError {
+    const suffix = childError === "$"
+        ? ""
+        : childError.startsWith("[")
+            ? childError
+            : `.${childError}`;
+
+    return [`${prefix}${suffix}`, message]
+}
+
+export function array<T>(convert: (_: any) => Either<DecodeError, T>, value: any): Either<DecodeError, T[]> {
+    return Array.isArray(value)
+        ? sequence(value.map((x, i) => convert(x).mapLeft(error => prefixError(`[${i}]`, error))))
+        : Left(["$", "Expected an array"]);
+}
+
+export function oneOf<T>(value: any, ...choices: T[]): Either<DecodeError, T> {
+    const found = choices.find(x => x === value);
+    return found
+        ? Right(found)
+        : Left(choices.length === 0
+            ? ["$", "There are no valid options to choose from"]
+            : ["$", `Valid options: ${choices.map(x => `"${x}"`).join(", ")}`]);
+}
+
+export function number(value: any): Either<DecodeError, number> {
+    return typeof(value) === "number" ? Right(value) : Left(["$", "Expected a number"]);
+}
+
+export function optional<T>(convert: (_: any) => Either<DecodeError, T>, value: any): Either<DecodeError, Maybe<T>> {
+    return value === null || value === undefined ? Right(Nothing()) : convert(value).map(Just);
+}
+
+export function object<T extends object>(convert: (_: object) => Either<DecodeError, T>, value: any): Either<DecodeError, T> {
+    return typeof(value) === "object" && value !== null ? convert(value) : Left(["$", "Expected an object"]);
+}
+
+export function property<T>(
+    obj: object,
+    name: string,
+    convert: (_: any) => Either<DecodeError, T>): Either<DecodeError, T> {
+    return obj.hasOwnProperty(name)
+        ? convert((<any>obj)[name]).mapLeft(error => prefixError(name, error))
+        : Left([name, "Required"]);
+}
+
+export function string(value: any): Either<DecodeError, string> {
+    return typeof(value) === "string" ? Right(value) : Left(["$", "Expected a string"]);
+}
+
+export function tuple<T extends any[]>(value: any, ...converters: { [K in keyof T]: (_: any) => Either<DecodeError, T[K]> }): Either<DecodeError, T> {
+    return Array.isArray(value)
+        ? value.length === converters.length
+            ? <Either<DecodeError, T>><unknown>zipWithM(
+                (x, [converter, i]) => converter(x).mapLeft(error => prefixError(`[${i}]`, error)),
+                value,
+                converters.map((x, i) => <[(_: any) => Either<DecodeError, T[keyof T]>, number]>[x, i]))
+            : Left(["$", `Expected an array of length ${converters.length}`])
+        : Left(["$", `Expected an array of length ${converters.length}`]);
 }

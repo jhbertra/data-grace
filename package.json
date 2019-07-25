@@ -1,5 +1,5 @@
 {
-  "name": "data-ts",
+  "name": "data-grace",
   "version": "1.0.0",
   "main": "index.js",
   "author": "Jamie Bertram <jhbertra@gmail.com>",
@@ -13,7 +13,6 @@
   },
   "typings": "lib/index.d.ts",
   "scripts": {
-    "prepare": "npm run build",
     "build": "tsc",
     "test": "jest"
   },
