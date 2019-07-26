@@ -1,6 +1,5 @@
 import {unzip, zipWith} from "./array";
 import {id, objectToEntries, objectFromEntries, constant} from "./prelude";
-import { Maybe, Nothing, Just } from "./maybe";
 
 /*
  * Data Types
@@ -102,7 +101,11 @@ export function isRight<A, B>(m:Either<A, B>) : m is EitherRight<B> & IEither<A,
  */
 
 export function liftF<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
-    return sequence(args).map(a => f.apply(undefined, <P>a));
+    const errors = lefts(args);
+
+    return errors.length === 0
+        ? Right(f.apply(undefined, <P>rights(args)))
+        : Left(errors[0]);
 }
 
 export function liftO<A, T>(spec: MapEither<A, T>): Either<A, T> {
@@ -120,14 +123,12 @@ export function liftO<A, T>(spec: MapEither<A, T>): Either<A, T> {
 
 export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
     return bs.reduce(
-        (mcs, b) => mcs.flatMap(cs => f(b).map(c => [...cs, c])),
+        (mcs, b) => liftF((cs, c) => [...cs, c], mcs, f(b)),
         Right<A, C[]>([]));
 }
 
 export function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
-    return bs.reduce(
-        (mcs, b) => mcs.flatMap(cs => f(b).map(c => [...cs, c])),
-        Right<A, C[]>([]));
+    return mapM(f, bs);
 }
 
 export function sequence<A, B>(bs: Either<A, B>[]): Either<A, B[]> {
@@ -164,84 +165,4 @@ export function when<A>(b: boolean, e: Either<A, []>): Either<A, []> {
 
 export function unless<A>(b: boolean, e: Either<A, []>): Either<A, []> {
     return when(!b, e);
-}
-
-
-
-/*
- * Decoders
- */
-
-export type DecodeError = [string, string];
-
-export function date(value: any): Either<DecodeError, Date> {
-    if (value instanceof Date) {
-        return Right(value);
-    } else {
-        const parsed = Date.parse(value);
-        return parsed === NaN
-            ? Left(["$", "Expected a date"])
-            : Right(new Date(parsed));
-    }
-}
-
-function prefixError(prefix: string, [childError, message]: DecodeError): DecodeError {
-    const suffix = childError === "$"
-        ? ""
-        : childError.startsWith("[")
-            ? childError
-            : `.${childError}`;
-
-    return [`${prefix}${suffix}`, message]
-}
-
-export function array<T>(convert: (_: any) => Either<DecodeError, T>, value: any): Either<DecodeError, T[]> {
-    return Array.isArray(value)
-        ? sequence(value.map((x, i) => convert(x).mapLeft(error => prefixError(`[${i}]`, error))))
-        : Left(["$", "Expected an array"]);
-}
-
-export function oneOf<T>(value: any, ...choices: T[]): Either<DecodeError, T> {
-    const found = choices.find(x => x === value);
-    return found
-        ? Right(found)
-        : Left(choices.length === 0
-            ? ["$", "There are no valid options to choose from"]
-            : ["$", `Valid options: ${choices.map(x => `"${x}"`).join(", ")}`]);
-}
-
-export function number(value: any): Either<DecodeError, number> {
-    return typeof(value) === "number" ? Right(value) : Left(["$", "Expected a number"]);
-}
-
-export function optional<T>(convert: (_: any) => Either<DecodeError, T>, value: any): Either<DecodeError, Maybe<T>> {
-    return value === null || value === undefined ? Right(Nothing()) : convert(value).map(Just);
-}
-
-export function object<T extends object>(convert: (_: object) => Either<DecodeError, T>, value: any): Either<DecodeError, T> {
-    return typeof(value) === "object" && value !== null ? convert(value) : Left(["$", "Expected an object"]);
-}
-
-export function property<T>(
-    obj: object,
-    name: string,
-    convert: (_: any) => Either<DecodeError, T>): Either<DecodeError, T> {
-    return obj.hasOwnProperty(name)
-        ? convert((<any>obj)[name]).mapLeft(error => prefixError(name, error))
-        : Left([name, "Required"]);
-}
-
-export function string(value: any): Either<DecodeError, string> {
-    return typeof(value) === "string" ? Right(value) : Left(["$", "Expected a string"]);
-}
-
-export function tuple<T extends any[]>(value: any, ...converters: { [K in keyof T]: (_: any) => Either<DecodeError, T[K]> }): Either<DecodeError, T> {
-    return Array.isArray(value)
-        ? value.length === converters.length
-            ? <Either<DecodeError, T>><unknown>zipWithM(
-                (x, [converter, i]) => converter(x).mapLeft(error => prefixError(`[${i}]`, error)),
-                value,
-                converters.map((x, i) => <[(_: any) => Either<DecodeError, T[keyof T]>, number]>[x, i]))
-            : Left(["$", `Expected an array of length ${converters.length}`])
-        : Left(["$", `Expected an array of length ${converters.length}`]);
 }

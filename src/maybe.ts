@@ -122,7 +122,11 @@ export function catMaybes<A>(ms: Maybe<A>[]): A[] {
  */
 
 export function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
-    return sequence(args).map(a => f.apply(undefined, <P>a));
+    const processedArgs = catMaybes(args);
+
+    return processedArgs.length === args.length
+        ? Just(f.apply(undefined, <P>processedArgs))
+        : Nothing();
 }
 
 export function liftO<T>(spec: MapMaybe<T>): Maybe<T> {
@@ -141,19 +145,15 @@ export function liftO<T>(spec: MapMaybe<T>): Maybe<T> {
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
     return as.reduce(
         (mbs, a) => liftF((bs, b) => [...bs, b], mbs, f(a)),
-        Just(<B[]>[]));
+        Just<B[]>([]));
 }
 
 export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
-    return as.reduce(
-        (mbs, a) => liftF((bs, b) => [...bs, b], mbs, f(a)),
-        Just(<B[]>[]));
+    return mapM(f, as);
 }
 
 export function sequence<A>(mas: Maybe<A>[]): Maybe<A[]> {
-    return mas.reduce(
-        (state, ma) => state.flatMap(as => ma.map(a => [...as, a])),
-        Just(<A[]>[]));
+    return mapM(id, mas);
 }
 
 export function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {
@@ -186,62 +186,4 @@ export function unless(b: boolean): Maybe<[]> {
 
 export function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
     return m.flatMap(id);
-}
-
-
-
-/*
- * Decoders
- */
-
-export function date(value: any): Maybe<Date> {
-    if (value instanceof Date) {
-        return Just(value);
-    } else {
-        const parsed = Date.parse(value);
-        return parsed === NaN
-            ? Nothing()
-            : Just(new Date(parsed));
-    }
-}
-
-export function array<T>(convert: (_: any) => Maybe<T>, value: any): Maybe<T[]> {
-    return Array.isArray(value) ? sequence(value.map(convert)) : Nothing();
-}
-
-export function oneOf<T>(value: any, ...choices: T[]): Maybe<T> {
-    return toMaybe(choices.find(x => x === value));
-}
-
-export function number(value: any): Maybe<number> {
-    return typeof(value) === "number" ? Just(value) : Nothing();
-}
-
-export function optional<T>(convert: (_: any) => Maybe<T>, value: any): Maybe<Maybe<T>> {
-    return value === null || value === undefined ? Just(Nothing()) : convert(value).map(Just);
-}
-
-export function object<T extends object>(convert: (_: any) => Maybe<T>, value: any): Maybe<T> {
-    return typeof(value) === "object" && value !== null ? convert(value) : Nothing();
-}
-
-export function property<T>(
-    obj: object,
-    name: string,
-    convert: (_: any) => Maybe<T>): Maybe<T> {
-    return obj.hasOwnProperty(name)
-        ? convert((<any>obj)[name])
-        : Nothing();
-}
-
-export function string(value: any): Maybe<string> {
-    return typeof(value) === "string" ? Just(value) : Nothing();
-}
-
-export function tuple<T extends any[]>(value: any, ...converters: { [K in keyof T]: (_: any) => Maybe<T[K]> }): Maybe<T> {
-    return Array.isArray(value)
-        ? value.length === converters.length
-            ? <Maybe<T>><unknown>zipWithM((x, converter) => converter(x), value, converters)
-            : Nothing()
-        : Nothing();
 }
