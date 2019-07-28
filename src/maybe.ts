@@ -1,9 +1,10 @@
 import {unzip, zipWith} from "./array";
 import {id, objectToEntries, objectFromEntries} from "./prelude";
 
-/*
- * Data Types
- */
+/*------------------------------
+  DATA TYPES
+  ------------------------------*/
+
 
 export interface IMaybe<A> {
     readonly defaultWith: (a: A) => A,
@@ -30,9 +31,9 @@ export type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
 
 
 
-/*
- * Constructors
- */
+/*------------------------------
+  CONSTRUCTORS
+  ------------------------------*/
 
 export function Just<A>(value: A): Maybe<A> {
     return Object.freeze({ 
@@ -71,9 +72,9 @@ export function Nothing<A>() : Maybe<A> {
 
 
 
-/*
- * Maybe Functions
- */
+/*------------------------------
+  MAYBE FUNCTIONS
+  ------------------------------*/
 
 export function toMaybe<A>(value?: A): Maybe<A> {
     return value === undefined || value === null ? Nothing() : Just(value);
@@ -117,9 +118,9 @@ export function catMaybes<A>(ms: Maybe<A>[]): A[] {
 
 
 
-/*
- * General lifting functions.
- */
+/*------------------------------
+  GENERAL LIFTING FUNCTIONS
+  ------------------------------*/
 
 export function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
     const processedArgs = catMaybes(args);
@@ -138,9 +139,9 @@ export function liftO<T>(spec: MapMaybe<T>): Maybe<T> {
 
 
 
-/*
- * Kliesli composition functions
- */
+/*------------------------------
+  KLIESLI COMPOSITION FUNCTIONS
+  ------------------------------*/
 
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
     return sequence(as.map(f));
@@ -170,9 +171,9 @@ export function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[])
 
 
 
-/*
- * General monad functions
- */
+/*------------------------------
+  GENERAL MONAD FUNCTIONS
+  ------------------------------*/
 
 export function when(b: boolean): Maybe<[]> {
     return b ? Just([]) : Nothing();

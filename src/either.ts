@@ -1,9 +1,10 @@
 import {unzip, zipWith} from "./array";
 import {id, objectToEntries, objectFromEntries, constant} from "./prelude";
 
-/*
- * Data Types
- */
+/*------------------------------
+  DATA TYPES
+  ------------------------------*/
+
 export interface IEither<A, B> {
     readonly defaultLeftWith: (a: A) => A,
     readonly defaultRightWith: (b: B) => B,
@@ -28,9 +29,9 @@ export type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
 
 
 
-/*
- * Constructors
- */
+/*------------------------------
+  CONSTRUCTORS
+  ------------------------------*/
 
 export function Left<A, B>(value: A): Either<A, B> {
     return <Either<A, B>>Object.freeze({ 
@@ -70,9 +71,9 @@ export function Right<A, B>(value: B) : Either<A, B> {
 
 
 
-/*
- * Either Functions
- */
+/*------------------------------
+  EITHER FUNCTIONS
+  ------------------------------*/
 
 export function lefts<A, B>(es: Either<A, B>[]): A[] {
     return es.reduce(
@@ -96,9 +97,9 @@ export function isRight<A, B>(m:Either<A, B>) : m is EitherRight<B> & IEither<A,
 
 
 
-/*
- * General lifting functions.
- */
+/*------------------------------
+  GENERAL LIFTING FUNCTIONS
+  ------------------------------*/
 
 export function liftF<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
     const errors = lefts(args);
@@ -117,9 +118,9 @@ export function liftO<A, T>(spec: MapEither<A, T>): Either<A, T> {
 
 
 
-/*
- * Kliesli composition functions
- */
+/*------------------------------
+  KLIESLI COMPOSITION FUNCTIONS
+  ------------------------------*/
 
 export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
     return sequence(bs.map(f));
@@ -149,9 +150,9 @@ export function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, b
 
 
 
-/*
- * General monad functions
- */
+/*------------------------------
+  GENERAL MONAD FUNCTIONS
+  ------------------------------*/
 
 export function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
     return m.flatMap(id);

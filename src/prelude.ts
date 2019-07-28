@@ -262,3 +262,7 @@ export function objectFromEntries<T>(entries: [keyof T, T[keyof T]][]): T {
     entries.forEach(([key, value]) => result[key] = value);
     return result;
 }
+
+export function absurd<T>(_: never): T {
+    throw "absurd";
+}

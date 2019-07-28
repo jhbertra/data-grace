@@ -2,9 +2,10 @@ import { id, objectToEntries } from "./prelude";
 import { Maybe } from "./maybe";
 import { zipWith } from "./array";
 
-/*
- * Data Types
- */
+/*------------------------------
+  DATA TYPES
+  ------------------------------*/
+
 export interface IEncoder<TOut, A> {
     readonly contramap: <B>(f: (b: B) => A) => Encoder<TOut, B>,
 }
@@ -14,9 +15,9 @@ export type MapEncoder<TOut, A> = { [K in keyof A]: Encoder<TOut, A[K]> };
 
 
 
-/*
- * Constructors
- */
+/*------------------------------
+  CONSTRUCTORS
+  ------------------------------*/
 
 export function Encoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
     return <Encoder<TOut, A>>Object.freeze({
@@ -27,9 +28,9 @@ export function Encoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
 
 
 
-/*
- * Encoders
- */
+/*------------------------------
+  GENERAL-PURPOSE ENCODERS
+  ------------------------------*/
 
 export const date: Encoder<any, Date> = Encoder(id);
 export const boolean: Encoder<any, boolean> = Encoder(id);
@@ -58,9 +59,9 @@ export function tuple<T extends any[]>(...converters: MapEncoder<any, T>): Encod
 
 
 
-/*
- * General lifting functions.
- */
+/*------------------------------
+  GENERAL LIFTING FUNCTIONS
+  ------------------------------*/
 
 export function liftO<T>(spec: MapEncoder<object, T>): Encoder<object, T> {
     return Encoder(obj => objectToEntries(spec)

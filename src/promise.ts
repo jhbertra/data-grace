@@ -1,16 +1,17 @@
 import {unzip, zipWith} from "./array";
 import {objectToEntries, objectFromEntries} from "./prelude";
 
-/*
- * Data Types
- */
+/*------------------------------
+  DATA TYPES
+  ------------------------------*/
+
 export type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
 
 
 
-/*
- * General lifting functions.
- */
+/*------------------------------
+  GENERAL LIFTING FUNCTIONS
+  ------------------------------*/
 
 export async function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
     return f.apply(undefined, <P>(await Promise.all(args)));
@@ -25,9 +26,9 @@ export async function liftO<T>(spec: MapPromise<T>): Promise<T> {
 
 
 
-/*
- * Kliesli composition functions
- */
+/*------------------------------
+  KLIESLI COMPOSITION FUNCTIONS
+  ------------------------------*/
 
 export function mapM<A, B>(f: (value: A) => Promise<B>, as: A[]): Promise<B[]> {
     return Promise.all(as.map(f));
@@ -53,9 +54,9 @@ export function reduceM<A, B>(f: (state: B, a: A) => Promise<B>, seed: B, as: A[
 
 
 
-/*
- * General monad functions
- */
+/*------------------------------
+  GENERAL MONAD FUNCTIONS
+  ------------------------------*/
 
 export function when(b: boolean, p: Promise<[]>): Promise<[]> {
     return b ? p : Promise.resolve([]);

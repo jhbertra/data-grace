@@ -13,6 +13,7 @@
   },
   "typings": "lib/index.d.ts",
   "scripts": {
+    "start": "yarn build && node lib/index.js",
     "build": "tsc",
     "test": "jest"
   },

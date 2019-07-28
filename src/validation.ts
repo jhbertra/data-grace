@@ -2,9 +2,10 @@ import {unzip, zipWith} from "./array";
 import {id, objectToEntries, objectFromEntries, constant} from "./prelude";
 import { Either, Right, Left } from "./either";
 
-/*
- * Data Types
- */
+/*------------------------------
+  DATA TYPES
+  ------------------------------*/
+
 export interface IValidation<A extends object, B> {
     readonly defaultWith: (b: B) => B,
     readonly map: <C>(f: (b: B) => C) => Validation<A, C>,
@@ -29,9 +30,9 @@ export type MapValidation<A extends object, B> = { [K in keyof B]: Validation<A,
 
 
 
-/*
- * Constructors
- */
+/*------------------------------
+  CONSTRUCTORS
+  ------------------------------*/
 
 export function Valid<A extends object, B>(value: B) : Validation<A, B> {
     return <Validation<A, B>>Object.freeze({
@@ -69,9 +70,9 @@ export function Invalid<A extends object, B>(failures: A): Validation<A, B> {
 
 
 
-/*
- * Validation Functions
- */
+/*------------------------------
+  VALIDATION FUNCTIONS
+  ------------------------------*/
 
 export function failures<A extends object, B>(es: Validation<A, B>[]): A[] {
     return es.reduce(
@@ -95,9 +96,9 @@ export function isValid<A extends object, B>(m:Validation<A, B>) : m is Validati
 
 
 
-/*
- * General lifting functions.
- */
+/*------------------------------
+  GENERAL LIFTING FUNCTIONS
+  ------------------------------*/
 
 export function liftF<A extends object, P extends any[], R>(f: (...args: P) => R, ...args: MapValidation<A, P>): Validation<A, R> {
     const errors = failures(args);
@@ -113,6 +114,12 @@ export function liftO<A extends object, T>(spec: MapValidation<A, T>): Validatio
 
     return maybeKvps.map(objectFromEntries);
 }
+
+
+
+/*------------------------------
+  KLIESLI COMPOSITION FUNCTIONS
+  ------------------------------*/
 
 export function mapM<A extends object, B, C>(f: (value: B) => Validation<A, C>, bs: B[]): Validation<A, C[]> {
     return sequence(bs.map(f));
