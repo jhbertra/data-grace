@@ -1,9 +1,11 @@
+// tslint:disable: ban-types
+
 export function id<T>(t: T): T {
     return t;
 }
 
 export function constant<T1, T2>(t: T1): (_: T2) => T1 {
-    return _ => t;
+    return (_) => t;
 }
 
 export function pipe<A, B>(
@@ -78,43 +80,42 @@ export function pipe(
     k?: Function,
     l?: Function,
     m?: Function,
-    n?: Function): unknown
-{
+    n?: Function): unknown {
     switch (arguments.length) {
         case 1:
-            return f
+            return f;
         case 2:
             return function(this: unknown) {
-              return g!(f.apply(this, arguments))
-            }
+              return g!(f.apply(this, arguments));
+            };
         case 3:
             return function(this: unknown) {
-              return h!(g!(f.apply(this, arguments)))
-            }
+              return h!(g!(f.apply(this, arguments)));
+            };
         case 4:
             return function(this: unknown) {
-              return i!(h!(g!(f.apply(this, arguments))))
-            }
+              return i!(h!(g!(f.apply(this, arguments))));
+            };
         case 5:
             return function(this: unknown) {
-              return j!(i!(h!(g!(f.apply(this, arguments)))))
-            }
+              return j!(i!(h!(g!(f.apply(this, arguments)))));
+            };
         case 6:
             return function(this: unknown) {
-              return k!(j!(i!(h!(g!(f.apply(this, arguments))))))
-            }
+              return k!(j!(i!(h!(g!(f.apply(this, arguments))))));
+            };
         case 7:
             return function(this: unknown) {
-              return l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))))
-            }
+              return l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))));
+            };
         case 8:
             return function(this: unknown) {
-              return m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments))))))))
-            }
+              return m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments))))))));
+            };
         case 9:
             return function(this: unknown) {
-              return n!(m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))))))
-            }
+              return n!(m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))))));
+            };
     }
 }
 
@@ -200,8 +201,7 @@ export function pipeWith(
     k?: Function,
     l?: Function,
     m?: Function,
-    n?: Function): unknown
-{
+    n?: Function): unknown {
     switch (arguments.length - 1) {
         case 1:
             return f(a);
@@ -240,29 +240,32 @@ type Curry<P extends any[], R> =
         : R;
 
 export function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
-  return <Curry<P, R>><unknown>curryImpl(f, f.length);
+  return curryImpl(f, f.length) as unknown as Curry<P, R>;
 }
 
-function curryImpl(f: Function, arity: number) : Function {
+// tslint:disable-next-line: ban-types
+function curryImpl(f: Function, arity: number): Function {
     return arity === 1
       ? f
       : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
 }
 
-export function objectToEntries<T>(value: T): [keyof T, T[keyof T]][] {
-    const entries: [keyof T, T[keyof T]][] = [];
+export function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]]> {
+    const entries: Array<[keyof T, T[keyof T]]> = [];
     for (const key in value) {
-        entries.push([key, value[key]]);
+        if (value.hasOwnProperty(key)) {
+            entries.push([key, value[key]]);
+        }
     }
     return entries;
 }
 
-export function objectFromEntries<T>(entries: [keyof T, T[keyof T]][]): T {
-    const result = <T>{};
+export function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
+    const result =  {} as T;
     entries.forEach(([key, value]) => result[key] = value);
     return result;
 }
 
 export function absurd<T>(_: never): T {
-    throw "absurd";
+    throw new Error("absurd");
 }

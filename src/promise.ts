@@ -1,5 +1,5 @@
 import {unzip, zipWith} from "./array";
-import {objectToEntries, objectFromEntries} from "./prelude";
+import {objectFromEntries, objectToEntries} from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -7,24 +7,20 @@ import {objectToEntries, objectFromEntries} from "./prelude";
 
 export type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
 
-
-
 /*------------------------------
   GENERAL LIFTING FUNCTIONS
   ------------------------------*/
 
 export async function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
-    return f.apply(undefined, <P>(await Promise.all(args)));
+    return f.apply(undefined,  (await Promise.all(args)) as P);
 }
 
-export async function liftO<T>(spec: MapPromise<T>): Promise<T> {
-    const maybeKvps = Promise.all(objectToEntries(spec).map(
-        ([key, value]) => value.then(x => <[keyof T, T[typeof key]]>[key, x])));
+export async function liftO<T extends object>(spec: MapPromise<T>): Promise<T> {
+    const kvpsPromise = Promise.all(objectToEntries(spec).map(
+        ([key, value]) => value.then((x) =>  [key, x] as [keyof T, T[typeof key]])));
 
-    return objectFromEntries(await maybeKvps);
+    return objectFromEntries(await kvpsPromise);
 }
-
-
 
 /*------------------------------
   KLIESLI COMPOSITION FUNCTIONS
@@ -48,11 +44,9 @@ export function zipWithM<A, B, C>(f: (a: A, b: B) => Promise<C>, as: A[], bs: B[
 
 export function reduceM<A, B>(f: (state: B, a: A) => Promise<B>, seed: B, as: A[]): Promise<B> {
     return as.reduce(
-        (state, a) => state.then(b => f(b, a)),
+        (state, a) => state.then((b) => f(b, a)),
         Promise.resolve(seed));
 }
-
-
 
 /*------------------------------
   GENERAL MONAD FUNCTIONS
