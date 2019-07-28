@@ -1,5 +1,5 @@
 export type Void = never;
 
-export function absurd<T>(a: Void): T {
+export function absurd<T>(_: Void): T {
     throw "absurd";
 }

@@ -143,9 +143,7 @@ export function liftO<T>(spec: MapMaybe<T>): Maybe<T> {
  */
 
 export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
-    return as.reduce(
-        (mbs, a) => liftF((bs, b) => [...bs, b], mbs, f(a)),
-        Just<B[]>([]));
+    return sequence(as.map(f));
 }
 
 export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
@@ -153,7 +151,7 @@ export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
 }
 
 export function sequence<A>(mas: Maybe<A>[]): Maybe<A[]> {
-    return mapM(id, mas);
+    return liftF((...as: A[]) => as, ...mas);
 }
 
 export function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {

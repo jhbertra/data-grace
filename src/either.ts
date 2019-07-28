@@ -122,17 +122,15 @@ export function liftO<A, T>(spec: MapEither<A, T>): Either<A, T> {
  */
 
 export function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
-    return bs.reduce(
-        (mcs, b) => liftF((cs, c) => [...cs, c], mcs, f(b)),
-        Right<A, C[]>([]));
+    return sequence(bs.map(f));
 }
 
 export function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
     return mapM(f, bs);
 }
 
-export function sequence<A, B>(bs: Either<A, B>[]): Either<A, B[]> {
-    return mapM(id, bs);
+export function sequence<A, B>(ebs: Either<A, B>[]): Either<A, B[]> {
+    return liftF((...bs: B[]) => bs, ...ebs);
 }
 
 export function mapAndUnzipWith<A, B, C, D>(f: (a: B) => Either<A, [C, D]>, bs: B[]): Either<A, [C[], D[]]> {
