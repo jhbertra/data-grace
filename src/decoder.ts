@@ -1,3 +1,28 @@
+export {
+    IDecoder,
+    DecodeError,
+    Decoder,
+    MapDecoder,
+    array,
+    boolean,
+    date,
+    forM,
+    liftF,
+    liftO,
+    makeDecoder,
+    mapAndUnzipWith,
+    mapM,
+    number,
+    object,
+    oneOf,
+    optional,
+    property,
+    sequence,
+    string,
+    tuple,
+    zipWithM,
+};
+
 import { unzip, zipWith } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
 import { id, objectFromEntries, objectToEntries } from "./prelude";
@@ -9,43 +34,64 @@ import * as V from "./validation";
   ------------------------------*/
 
 /**
- * The public methods exposed by the {@link Decoder} type.
+ * The public methods exposed by the @see Decoder type.
  */
-export interface IDecoder<TIn, A> {
-    readonly map: <B>(f: (c: A) => B) => Decoder<TIn, B>;
-    readonly or: (other: () => Decoder<TIn, A>) => Decoder<TIn, A>;
-    readonly replace: <B>(m: Decoder<TIn, B>) => Decoder<TIn, B>;
-    readonly replacePure: <B>(c: B) => Decoder<TIn, B>;
-    readonly voidOut: () => Decoder<TIn, []>;
+interface IDecoder<TIn, A> {
+
+    /**
+     * Apply a transformation to all data produced by this @see Decoder.
+     */
+    map<B>(f: (c: A) => B): Decoder<TIn, B>;
+
+    /**
+     * Make a @see Decoder that first tries to run this @see Decoder,
+     * falling back on another if it fails.
+     */
+    or(other: Decoder<TIn, A>): Decoder<TIn, A>;
+
+    /**
+     * Replace all successfully decoded values with a new decoder.
+     */
+    replace<B>(m: Decoder<TIn, B>): Decoder<TIn, B>;
+
+    /**
+     * Replace all successfully decoded values with a new value.
+     */
+    replacePure<B>(c: B): Decoder<TIn, B>;
+
+    /**
+     * Discard any output this @see Decoder produces.
+     */
+    voidOut(): Decoder<TIn, []>;
 }
 
 /**
  * A dictionary of data paths to error messages.
  */
 // tslint:disable-next-line: interface-over-type-literal
-export type DecodeError = { [id: string]: string };
+type DecodeError = { [id: string]: string };
 
 /**
  * A decoder is a conversion function that converts from a raw data format
  * to a more abstract one. The conversion may fail.
  */
-export type Decoder<TIn, A> = { decode: (input: TIn) => Validation<DecodeError, A> } & IDecoder<TIn, A>;
+type Decoder<TIn, A> = { decode: (input: TIn) => Validation<DecodeError, A> } & IDecoder<TIn, A>;
 
 /**
- * A type transformer that homomorphically maps the {@link Decoder}
+ * A type transformer that homomorphically maps the @see Decoder
  * onto the types of A.
  *
  * @example
  *
  *      // Map the fields of an object
  *      type Foo = { bar: number, baz: string };
- *      type FooDecoders = MapDecoder<string, Foo>;
  *
  *      // Write a type test
  *      type PropEquality =
- *          FooDecoders extends { bar: Decoder<string, number>, baz: Decoder<string, string> }
+ *          MapDecoder<string, Foo> extends { bar: Decoder<string, number>, baz: Decoder<string, string> }
  *              ? any
  *              : never;
+ *
  *      // witness the proof of the proposition (compiles)
  *      const proof : PropEquality = "witness"
  *
@@ -53,14 +99,14 @@ export type Decoder<TIn, A> = { decode: (input: TIn) => Validation<DecodeError, 
  *
  *      // Map the items of an array
  *      type Foo = string[];
- *      type FooDecoders = MapDecoder<string, Foo>;
  *
  *      // Write a type test
- *      type PropEquality = FooDecoders extends Decoder<string, string>[] ? any : never;
- *      // Witness the proof of the proposition (compiles)
+ *      type PropEquality = MapDecoder<string, Foo> extends Decoder<string, string>[] ? any : never;
+ *
+ *       // Witness the proof of the proposition (compiles)
  *      const proof : PropEquality = "witness"
  */
-export type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
+type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
 
 /*------------------------------
   CONSTRUCTORS
@@ -69,14 +115,14 @@ export type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
 /**
  * Creates a Decoder that runs the given decoding function.
  */
-export function Decoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): Decoder<TIn, A> {
+function makeDecoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): Decoder<TIn, A> {
     return Object.freeze({
         decode,
-        map: (f) => Decoder((x) => decode(x).map(f)),
-        or: (d) => Decoder((x) => decode(x).or(() => d().decode(x))),
-        replace: (d) => Decoder((x) => decode(x).replace(d.decode(x))),
-        replacePure: (f) => Decoder((x) => decode(x).replacePure(f)),
-        voidOut: () => Decoder<TIn, []>((x) => decode(x).voidOut()),
+        map: (f) => makeDecoder((x) => decode(x).map(f)),
+        or: (d) => makeDecoder((x) => decode(x).or(() => d.decode(x))),
+        replace: (d) => makeDecoder((x) => decode(x).replace(d.decode(x))),
+        replacePure: (f) => makeDecoder((x) => decode(x).replacePure(f)),
+        voidOut: () => makeDecoder<TIn, []>((x) => decode(x).voidOut()),
     }) as Decoder<TIn, A>;
 }
 
@@ -107,7 +153,7 @@ function prefixError(prefix: string, error: DecodeError): DecodeError {
  *      date.decode("2019-07-26"); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
  *      date.decode(Date.parse("2019-07-26")); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
  */
-export const date: Decoder<any, Date> = Decoder((value: any) => {
+const date: Decoder<any, Date> = makeDecoder((value: any) => {
     if (value instanceof Date) {
         return V.Valid(value);
     } else {
@@ -127,7 +173,7 @@ export const date: Decoder<any, Date> = Decoder((value: any) => {
  *      boolean.decode("true"); // Invalid ({"$": "Expected a boolean"})
  */
 // tslint:disable-next-line: variable-name
-export const boolean: Decoder<any, boolean> = Decoder(
+const boolean: Decoder<any, boolean> = makeDecoder(
     (value: any) => typeof (value) === "boolean"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a boolean" } as DecodeError));
@@ -141,7 +187,7 @@ export const boolean: Decoder<any, boolean> = Decoder(
  *      number.decode("1"); // Invalid ({"$": "Expected a number"})
  */
 // tslint:disable-next-line: variable-name
-export const number: Decoder<any, number> = Decoder(
+const number: Decoder<any, number> = makeDecoder(
     (value: any) => typeof (value) === "number"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a number" } as DecodeError));
@@ -155,7 +201,7 @@ export const number: Decoder<any, number> = Decoder(
  *      string.decode("foo"); // Valid ("foo")
  */
 // tslint:disable-next-line: variable-name
-export const string: Decoder<any, string> = Decoder(
+const string: Decoder<any, string> = makeDecoder(
     (value: any) => typeof (value) === "string"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a string" } as DecodeError));
@@ -169,8 +215,8 @@ export const string: Decoder<any, string> = Decoder(
  *      array(string).decode([true, "foo"]); // Invalid ({"[0]": "Expected a string"})
  *      array(string).decode(["foo"]); // Valid (["foo"])
  */
-export function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
-    return Decoder((value) => Array.isArray(value)
+function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
+    return makeDecoder((value) => Array.isArray(value)
         ? V.sequence(value.map((x, i) => convert.decode(x).mapError((error) => prefixError(`[${i}]`, error))))
         : V.Invalid({ $: "Expected an array" } as DecodeError));
 }
@@ -184,8 +230,8 @@ export function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
  *      oneOf("foo", "bar").decode("bar"); // Valid ("bar")
  *      oneOf("foo", "bar").decode("baz"); // Invalid ({"$": "Valid options: foo | bar"})
  */
-export function oneOf<T>(...choices: T[]): Decoder<any, T> {
-    return Decoder((value) => {
+function oneOf<T>(...choices: T[]): Decoder<any, T> {
+    return makeDecoder((value) => {
         const found = choices.find((x) => x === value);
         return found
             ? V.Valid(found)
@@ -205,8 +251,8 @@ export function oneOf<T>(...choices: T[]): Decoder<any, T> {
  *      optional(string).decode("foo"); // Valid (Just (foo))
  *      optional(string).decode(true); // Invalid ({"$": "Expected a string"})
  */
-export function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
-    return Decoder(
+function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
+    return makeDecoder(
         (value) => value === null || value === undefined ? V.Valid(Nothing()) : convert.decode(value).map(Just));
 }
 
@@ -227,8 +273,8 @@ export function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
  *      object(fooDecoder).decode("foo"); // Invalid ({"$": "Expected an object"})
  */
 
-export function object<T extends object>(convert: Decoder<object, T>): Decoder<object, T> {
-    return Decoder(
+function object<T extends object>(convert: Decoder<object, T>): Decoder<object, T> {
+    return makeDecoder(
         (value) => typeof (value) === "object" && value !== null
             ? convert.decode(value)
             : V.Invalid({ $: "Expected an object" } as DecodeError));
@@ -243,10 +289,10 @@ export function object<T extends object>(convert: Decoder<object, T>): Decoder<o
  *      property("bar": string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
  *      property("bar": string).decode({ bar: "foo"}); // Valid ("foo")
  */
-export function property<T>(
+function property<T>(
     name: string,
     convert: Decoder<any, T>): Decoder<object, T> {
-    return Decoder((obj) => obj.hasOwnProperty(name)
+    return makeDecoder((obj) => obj.hasOwnProperty(name)
         ? convert.decode((obj as any)[name]).mapError((error) => prefixError(name, error))
         : V.Invalid({ [name]: "Required" } as DecodeError));
 }
@@ -261,8 +307,8 @@ export function property<T>(
  *      tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
  */
 
-export function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<any, T[K]> }): Decoder<any, T> {
-    return Decoder((value) => Array.isArray(value)
+function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<any, T[K]> }): Decoder<any, T> {
+    return makeDecoder((value) => Array.isArray(value)
         ? value.length === converters.length
             ? V.zipWithM(
                 (x, [converter, i]) => converter.decode(x).mapError((error) => prefixError(`[${i}]`, error)),
@@ -295,7 +341,7 @@ export function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<
  *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: true }); // Valid (asdf true)
  *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: 0 }); // Invalid ({"answer": "Expected a boolean"})
  */
-export function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
+function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
     return sequence(args).map((a) => f.apply(undefined, a as P));
 }
 
@@ -318,7 +364,7 @@ export function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: Ma
  *      fooDecoder.decode({ bar: "eek", baz: false });
  *      fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-export function liftO<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
+function liftO<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
     const maybeKvps = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
@@ -334,14 +380,14 @@ export function liftO<T extends object>(spec: MapDecoder<object, T>): Decoder<ob
  * @param f A function that produces a new decoder for each input
  * @param as A set of inputs to map over
  */
-export function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn, B[]> {
-    return Decoder((x) => V.mapM((a) => f(a).decode(x), as));
+function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn, B[]> {
+    return makeDecoder((x) => V.mapM((a) => f(a).decode(x), as));
 }
 
 /**
  * @see mapM with its arguments reversed.
  */
-export function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn, B[]> {
+function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn, B[]> {
     return mapM(f, as);
 }
 
@@ -349,7 +395,7 @@ export function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Deco
  * Runs a sequence of decoders and aggregates their results.
  * @param das A sequence of decoders to run.
  */
-export function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
+function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
     return mapM(id, das);
 }
 
@@ -358,7 +404,7 @@ export function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]>
  * @param f A decomposition function
  * @param as An array of inputs
  */
-export function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>, as: A[]): Decoder<TIn, [B[], C[]]> {
+function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>, as: A[]): Decoder<TIn, [B[], C[]]> {
     return mapM(f, as).map(unzip);
 }
 
@@ -369,6 +415,6 @@ export function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>,
  * @param as The first set of inputs
  * @param bs The second set of inputs
  */
-export function zipWithM<TIn, A, B, C>(f: (a: A, b: B) => Decoder<TIn, C>, as: A[], bs: B[]): Decoder<TIn, C[]> {
+function zipWithM<TIn, A, B, C>(f: (a: A, b: B) => Decoder<TIn, C>, as: A[], bs: B[]): Decoder<TIn, C[]> {
     return sequence(zipWith(f, as, bs));
 }

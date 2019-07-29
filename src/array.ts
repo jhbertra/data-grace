@@ -1,29 +1,14 @@
-/**
- * Map a function over the elements of two arrays in order and return
- * array containing the combined results.
- *
- * @param f a merge function that combines the elements of the two argument arrays
- * @param as the first array to zip
- * @param bs the second array to zip
- */
-export function zipWith<A, B, C>(f: (a: A, b: B) => C, as: A[], bs: B[]): C[] {
-    const results: C[] = [];
-    const alen = as.length;
-    const blen = bs.length;
-
-    for (let i = 0; i < alen && i < blen; ++i) {
-        results.push(f(as[i], bs[i]));
-    }
-
-    return results;
-}
+export {
+    unzip,
+    zipWith,
+};
 
 /**
  * Take a list of tuples and transform it into a tuple of lists.
  *
  * @param abs the array to unzip
  */
-export function unzip<A, B>(abs: Array<[A, B]>): [A[], B[]] {
+function unzip<A, B>(abs: Array<[A, B]>): [A[], B[]] {
     const as: A[] = [];
     const bs: B[] = [];
     const len = abs.length;
@@ -35,4 +20,24 @@ export function unzip<A, B>(abs: Array<[A, B]>): [A[], B[]] {
     }
 
     return [as, bs];
+}
+
+/**
+ * Map a function over the elements of two arrays in order and return
+ * array containing the combined results.
+ *
+ * @param f a merge function that combines the elements of the two argument arrays
+ * @param as the first array to zip
+ * @param bs the second array to zip
+ */
+function zipWith<A, B, C>(f: (a: A, b: B) => C, as: A[], bs: B[]): C[] {
+    const results: C[] = [];
+    const alen = as.length;
+    const blen = bs.length;
+
+    for (let i = 0; i < alen && i < blen; ++i) {
+        results.push(f(as[i], bs[i]));
+    }
+
+    return results;
 }

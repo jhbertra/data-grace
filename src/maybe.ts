@@ -1,44 +1,258 @@
-import {unzip, zipWith} from "./array";
-import {id, objectFromEntries, objectToEntries} from "./prelude";
+export {
+    IMaybe,
+    Maybe,
+    MapMaybe,
+    Just,
+    Nothing,
+    arrayToMaybe,
+    catMaybes,
+    forM,
+    join,
+    liftF,
+    liftO,
+    mapAndUnzipWith,
+    mapM,
+    mapMaybe,
+    reduceM,
+    sequence,
+    toMaybe,
+    unless,
+    when,
+    zipWithM,
+};
+
+import { unzip, zipWith } from "./array";
+import { id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
   ------------------------------*/
 
-export interface IMaybe<A> {
-    readonly defaultWith: (a: A) => A;
-    readonly filter: (p: (a: A) => boolean) => Maybe<A>;
-    readonly flatMap: <B>(f: (a: A) => Maybe<B>) => Maybe<B>;
-    readonly map: <B>(f: (a: A) => B) => Maybe<B>;
-    readonly matchCase: <B>(cases: MaybeCaseScrutinizer<A, B>) => B;
-    readonly or: (other: () => Maybe<A>) => Maybe<A>;
-    readonly replace: <B>(m: Maybe<B>) => Maybe<B>;
-    readonly replacePure: <B>(b: B) => Maybe<B>;
-    readonly toArray: () => A[];
-    readonly toString: () => string;
-    readonly voidOut: () => Maybe<[]>;
+/**
+ * The public methods exposed by the @see Maybe type.
+ */
+interface IMaybe<A> {
+
+    /**
+     * Extract the value of this @see Maybe if it has one, or default to a.
+     *
+     * @example
+     *
+     *      Just("foo").defaultWith("bar"); // "foo"
+     *      Nothing().defaultWith("bar"); // "bar"
+     */
+    defaultWith(a: A): A;
+
+    /**
+     * Remove unwwanted values from this @see Maybe with a predicate.
+     *
+     * @example
+     *
+     *      Just("foo").filter(x => x === "foo"); // Just (foo)
+     *      Just("bar").filter(x => x === "foo"); // Nothing
+     *      Nothing().filter(x => x === "foo"); // Nothing
+     */
+    filter(p: (a: A) => boolean): Maybe<A>;
+
+    /**
+     * Chain a calculation that may also resolve to a nothing value
+     * on the value contained by this @see Maybe
+     *
+     * @example
+     *
+     *      Just("foo").flatMap(x => Just(`${x}bar`)); // Just (foobar)
+     *      Just("foo").flatMap(x => Nothing()); // Nothing
+     *      Nothing().flatMap(x => Just(`${x}bar`)); // Nothing
+     *      Nothing().flatMap(x => Nothing()); // Nothing
+     */
+    flatMap<B>(f: (a: A) => Maybe<B>): Maybe<B>;
+
+    /**
+     * A type guard which determines if this @see Maybe is a @see Just
+     *
+     * @example
+     *
+     *      const result = Just("foo");
+     *      if (result.isJust()) {
+     *          result.value; // "foo";
+     *      }
+     */
+    isJust(): this is MaybeJust<A>;
+
+    /**
+     * A type guard which determines if this @see Maybe is a @see Nothing
+     *
+     * @example
+     *
+     *      const result = Nothing();
+     *      if (result.isNothing()) {
+     *          result.value; // undefined / compiler error.
+     *      }
+     */
+    isNothing(): this is MaybeNothing;
+
+    /**
+     * Transform the value contained by this @see Maybe
+     *
+     * @example
+     *
+     *      Just("foo").map(x => `${x}bar`); // Just (foobar)
+     *      Nothing().map(x => `${x}bar`); // Nothing
+     */
+    map<B>(f: (a: A) => B): Maybe<B>;
+
+    /**
+     * Run a callback based on the case of the @see Either
+     *
+     * @example
+     *
+     *      Just("foo").matchCase({
+     *          just: x => x.toUpperCase(),
+     *          nothing: () => "got nothing"); // "FOO"
+     *
+     *      Nothing().matchCase({
+     *          just: x => x.toUpperCase(),
+     *          nothing: () => "got nothing"); // "got nothing"
+     */
+    matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
+
+    /**
+     * Pick this @Maybe if it has a value otherwise pick the other.
+     *
+     * @example
+     *
+     *     Just("bob").or(() => Just("sue")).toString(); // "Just (bob)"
+     *     Nothing().or(() => Just("sue")).toString(); // "Just (sue)"
+     *     Nothing().or(() => Nothing()).toString(); // "Nothing"
+     */
+    or(other: () => Maybe<A>): Maybe<A>;
+
+    /**
+     * Replace the value in this @see Maybe with another @see Maybe.
+     *
+     * @example
+     *
+     *     Just("bob").replace(Just("sue")).toString(); // "Just (sue)"
+     *     Just("bob").replace(Nothing()).toString(); // "Nothing"
+     *     Nothing().replace(Just("sue")).toString(); // "Nothing"
+     *     Nothing().replace(Nothing()).toString(); // "Nothing"
+     */
+    replace<B>(m: Maybe<B>): Maybe<B>;
+
+    /**
+     * Replace the value in this @see Maybe with a new value.
+     *
+     * @example
+     *
+     *     Just("bob").replace(42).toString(); // "Just (42)"
+     *     Nothing().replace(42).toString(); // "Nothing"
+     */
+    replacePure<B>(b: B): Maybe<B>;
+
+    /**
+     * Convert this @see Maybe to an array with either one or
+     * zero elements.
+     *
+     * @example
+     *
+     *     Just("bob").toArray(); // [42]
+     *     Nothing().toArray(); // []
+     */
+    toArray(): A[];
+
+    /**
+     * Pretty-print this @see Maybe
+     */
+    toString(): string;
+
+    /**
+     * Discard any value contained by this @see Maybe
+     */
+    voidOut(): Maybe<[]>;
+
 }
 
+/**
+ * Defines the set of functions required to scrutinize the cases of a @see Maybe.
+ */
 type MaybeCaseScrutinizer<A, B> = {
+    /**
+     * Callback which is called in the case a @see Maybe has a value.
+     */
     just: (a: A) => B,
+
+    /**
+     * Callback which is called in the case a @see Maybe has no value.
+     */
     nothing: () => B,
 };
+
+/**
+ * The type of an object constructed using the @see Just case.
+ */
 type MaybeJust<A> = { tag: "Just"; value: A };
+
+/**
+ * The type of an object constructed using the @see Nothing case.
+ */
 type MaybeNothing = { tag: "Nothing" };
-export type Maybe<A> = (MaybeJust<A> | MaybeNothing) & IMaybe<A>;
-export type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
+
+/**
+ * A data type that represents an optional / nullable value.
+ * It can either have a value of "just A", or "nothing".
+ */
+type Maybe<A> = (MaybeJust<A> | MaybeNothing) & IMaybe<A>;
+
+/**
+ * A type transformer that homomorphically maps the @see Maybe type
+ * onto the types of A.
+ *
+ * @example
+ *
+ *      // Map the fields of an object
+ *      type Foo = { bar: number, baz: string };
+ *
+ *      // Write a type test that proposes type equality
+ *      type PropEquality =
+ *          MapMaybe<Foo> extends { bar: Maybe<number>, baz: Maybe<string> }
+ *              ? any
+ *              : never;
+ *
+ *      // witness the proof of the proposition (compiles)
+ *      const proof : PropEquality = "witness"
+ *
+ * @example
+ *
+ *      // Map the items of an array
+ *      type Foo = string[];
+ *
+ *      // Write a type test
+ *      type PropEquality =
+ *          MapMaybe<Foo> extends Maybe<string>[]
+ *              ? any
+ *              : never;
+ *
+ *      // Witness the proof of the proposition (compiles)
+ *      const proof : PropEquality = "witness"
+ */
+type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
 
 /*------------------------------
   CONSTRUCTORS
   ------------------------------*/
 
-export function Just<A>(value: A): Maybe<A> {
+/**
+ * Constructs a new @see Maybe that contains a given value.
+ */
+function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
         defaultWith: (_) => value,
         filter: (p) => p(value) ? Just(value) : Nothing(),
         flatMap: (f) => f(value),
+        isJust: () => true,
+        isNothing: () => false,
         map: (f) => Just(f(value)),
-        matchCase: ({just}) => just(value),
+        matchCase: ({ just }) => just(value),
         or: (_) => Just(value),
         replace: id,
         replacePure: Just,
@@ -46,17 +260,22 @@ export function Just<A>(value: A): Maybe<A> {
         toArray: () => [value],
         toString: () => `Just (${value})`,
         value,
-        voidOut: () => Just( [] as []),
+        voidOut: () => Just([] as []),
     });
 }
 
-export function Nothing<A>(): Maybe<A> {
-    return  Object.freeze({
+/**
+ * Constructs a new @see Maybe that contains no value.
+ */
+function Nothing<A>(): Maybe<A> {
+    return Object.freeze({
         defaultWith: id,
         filter: (_) => Nothing(),
         flatMap: (_) => Nothing(),
+        isJust: () => false,
+        isNothing: () => true,
         map: (_) => Nothing(),
-        matchCase: ({nothing}) => nothing(),
+        matchCase: ({ nothing }) => nothing(),
         or: (m2) => m2(),
         replace: (_) => Nothing(),
         replacePure: (_) => Nothing(),
@@ -71,23 +290,34 @@ export function Nothing<A>(): Maybe<A> {
   MAYBE FUNCTIONS
   ------------------------------*/
 
-export function toMaybe<A>(value?: A): Maybe<A> {
-    return value === undefined || value === null ? Nothing() : Just(value);
+/**
+ * Creates a new @see Maybe from an optional
+ * value, either returning a @see Just or a
+ * @see Nothing depending if the value is
+ * defined or not.
+ */
+function toMaybe<A>(value?: A): Maybe<A> {
+    return value == null ? Nothing() : Just(value);
 }
 
-export function isJust<A>(m: Maybe<A>): m is MaybeJust<A> & IMaybe<A> {
-    return m.tag === "Just";
+/**
+ * Creates a new @see Maybe that either contains
+ * the first element of arr if it exists, or
+ * nothing.
+ */
+function arrayToMaybe<A>(arr: A[]): Maybe<A> {
+    return arr.length === 0 ? Nothing() : Just(arr[0]);
 }
 
-export function isNothing<A>(m: Maybe<A>): m is MaybeNothing & IMaybe<A> {
-    return m.tag === "Nothing";
-}
-
-export function arrayToMaybe<A>(ts: A[]): Maybe<A> {
-    return ts.length === 0 ? Nothing() : Just(ts[0]);
-}
-
-export function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
+/**
+ * Analog of @see Array.prototype.map which allows the mapping
+ * function to discard values.
+ *
+ * @example
+ *
+ *      mapMaybes(f, arr) === catMaybes(arr.map(f));
+ */
+function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
     return ms
         .map(f)
         .reduce(
@@ -97,10 +327,17 @@ export function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
                     case "Nothing": return state;
                 }
             },
-             [] as B[]);
+            [] as B[]);
 }
 
-export function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
+/**
+ * Returns a list of all values found in the input list.
+ *
+ * @example
+ *
+ *      catMaybes([Just("foo"), Nothing(), Just("bar")]); // ["foo", "bar"]
+ */
+function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
     return ms.reduce(
         (state, m) => {
             switch (m.tag) {
@@ -108,24 +345,67 @@ export function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
                 case "Nothing": return state;
             }
         },
-         [] as A[]);
+        [] as A[]);
 }
 
 /*------------------------------
   GENERAL LIFTING FUNCTIONS
   ------------------------------*/
 
-export function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
+/**
+ * Composes a Maybe by applying a function to each argument
+ * if they all have values
+ *
+ * @example
+ *
+ *      function answerTrueFalse(question: string, answer: boolean): string {
+ *          return `${question} ${answer}`;
+ *      }
+ *
+ *      liftF(answerTrueFalse, Nothing(), Nothing()).toString(); // "Nothing"
+ *      liftF(answerTrueFalse, Just("The meaning of life is 42."), Nothing()).toString(); // "Nothing"
+ *      // "Just (The meaning of life is 42. true)"
+ *      liftF(answerTrueFalse, Just("The meaning of life is 42."), Just(true)).toString();
+ */
+function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
     const processedArgs = catMaybes(args);
 
     return processedArgs.length === args.length
-        ? Just(f.apply(undefined,  processedArgs as P))
+        ? Just(f.apply(undefined, processedArgs as P))
         : Nothing();
 }
 
-export function liftO<T extends object>(spec: MapMaybe<T>): Maybe<T> {
+/**
+ * Composes a @see Maybe by constructing an object out of
+ * multiple @see Maybes. If all the components have a value,
+ * the result will also have a value, otherwise nothing will be
+ * returned.
+ *
+ * @example
+ *
+ *      type Foo = { bar: string, baz: Maybe<boolean> };
+ *
+ *      // Nothing
+ *      liftO<Foo>({
+ *          bar: Nothing(),
+ *          baz: Nothing()
+ *      });
+ *
+ *      // Nothing
+ *      liftO<Foo>({
+ *          bar: Just("BAR"),
+ *          baz: Nothing()
+ *      });
+ *
+ *      // Just ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
+ *      liftO<Foo>({
+ *          bar: Just("BAR"),
+ *          baz: Just(Just("baz"))
+ *      });
+ */
+function liftO<T extends object>(spec: MapMaybe<T>): Maybe<T> {
     const maybeKvps = sequence(objectToEntries(spec).map(
-        ([key, value]) => value.map((x) =>  [key, x] as [keyof T, T[typeof key]])));
+        ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
     return maybeKvps.map(objectFromEntries);
 }
@@ -134,27 +414,61 @@ export function liftO<T extends object>(spec: MapMaybe<T>): Maybe<T> {
   KLIESLI COMPOSITION FUNCTIONS
   ------------------------------*/
 
-export function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
+/**
+ * Maps a function over an array of inputs and produces a @see Maybe for each,
+ * then aggregates the results inside of a @see Maybe.
+ */
+function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
     return sequence(as.map(f));
 }
 
-export function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
+/**
+ * @see mapM with its arguments reversed.
+ */
+function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
     return mapM(f, as);
 }
 
-export function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
+/**
+ * Aggregate a sequence of @see Maybes and combine their results.
+ */
+function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
     return liftF((...as: A[]) => as, ...mas);
 }
 
-export function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {
+/**
+ * Maps a decomposition of parts over an array of inputs.
+ * @param f A decomposition function
+ * @param as An array of inputs
+ */
+function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {
     return mapM(f, as).map(unzip);
 }
 
-export function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe<C[]> {
+/**
+ * Reads two input arrays in-order and produces a @see Maybe for each pair,
+ * then aggregates the results.
+ */
+function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe<C[]> {
     return sequence(zipWith(f, as, bs));
 }
 
-export function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
+/**
+ * Reduce an initial state over an array of inputs, with an optional result calculated
+ * over each step.
+ *
+ * @example
+ *
+ *      function nothingIfNotSequential([first, ...ns]: number[]): Maybe<number[]> {
+ *          return reduceM(
+ *              ([...x, prev], next) => next - prev === 1
+ *                  ? Just([...x, prev, next])
+ *                  : Nothing(),
+ *              [first],
+ *              ns);
+ *      }
+ */
+function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
     return as.reduce(
         (state, a) => state.flatMap((b) => f(b, a)),
         Just(seed));
@@ -164,14 +478,35 @@ export function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[])
   GENERAL MONAD FUNCTIONS
   ------------------------------*/
 
-export function when(b: boolean): Maybe<[]> {
+/**
+ * Create a @see Maybe that has a value when a condition is
+ * true. Slightly more optimal when the condition
+ * and value are both known ahead of time. Often useful for
+ * ensuring a chain of computations only happens when some condition
+ * is known upfront.
+ *
+ * @example
+ *
+ *      const censoredFileContents = when(hasPermission).replacePure(fileContents);
+ *
+ *      // Produces the same result, but is slightly less efficient due to the need
+ *      // to create a closure.
+ *      const censoredFileContents = Just(fileContents).filter(() => hasPermission);
+ */
+function when(b: boolean): Maybe<[]> {
     return b ? Just([]) : Nothing();
 }
 
-export function unless(b: boolean): Maybe<[]> {
+/**
+ * Create a @see Maybe that has a value when a condition is false.
+ */
+function unless(b: boolean): Maybe<[]> {
     return when(!b);
 }
 
-export function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
+/**
+ * Flatten a nested structure.
+ */
+function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
     return m.flatMap(id);
 }

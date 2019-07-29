@@ -1,3 +1,20 @@
+export {
+    ICodec,
+    MapCodec,
+    Codec,
+    array,
+    boolean,
+    date,
+    makeCodec,
+    number,
+    object,
+    oneOf,
+    optional,
+    property,
+    string,
+    tuple,
+};
+
 import { Decoder } from "./decoder";
 import * as D from "./decoder";
 import { Encoder } from "./encoder";
@@ -10,13 +27,27 @@ import { Validation } from "./validation";
   DATA TYPES
   ------------------------------*/
 
- /**
-  * The public methods exposed by the {@link Codec} type.
-  */
-export interface ICodec<TRaw, A> {
-    readonly invmap: <B>(f: (a: A) => B, g: (b: B) => A) => Codec<TRaw, B>;
-    readonly decode: (raw: TRaw) => Validation<D.DecodeError, A>;
-    readonly encode: (a: A) => TRaw;
+/**
+ * The public methods exposed by the {@link Codec} type.
+ */
+interface ICodec<TRaw, A> {
+
+    /**
+     * Map invariantly over the rich data format of the codec.
+     * The bidirectional mapping requires that any transformation must
+     * be "undoable".
+     */
+    invmap<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
+
+    /**
+     * Decode raw data into a rich format.
+     */
+    decode(raw: TRaw): Validation<D.DecodeError, A>;
+
+    /**
+     * Encode rich data as raw data.
+     */
+    encode(a: A): TRaw;
 }
 
 /**
@@ -34,7 +65,7 @@ export interface ICodec<TRaw, A> {
  *      codec.decode(codec.encode(decodedData)) === decodedData // structural, not referential equality
  *      codec.encode(codec.decode(rawData)) === rawData
  */
-export type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A> } & ICodec<TRaw, A>;
+type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A> } & ICodec<TRaw, A>;
 
 /**
  * A type transformer that homomorphically maps the {@link Codec}
@@ -44,10 +75,13 @@ export type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw,
  *
  *      // Map the fields of an object
  *      type Foo = { bar: number, baz: string };
- *      type FooCodecs = MapCodec<string, Foo>;
  *
  *      // Write a type test
- *      type PropEquality = FooCodecs extends { bar: Codec<string, number>, baz: Codec<string, string> } ? any : never;
+ *      type PropEquality =
+ *          MapCodec<string, Foo> extends { bar: Codec<string, number>, baz: Codec<string, string> }
+ *              ? any
+ *              : never;
+ *
  *      // witness the proof of the proposition (compiles)
  *      const proof : PropEquality = "witness"
  *
@@ -55,14 +89,17 @@ export type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw,
  *
  *      // Map the items of an array
  *      type Foo = string[];
- *      type FooCodecs = MapCodec<string, Foo>;
  *
  *      // Write a type test
- *      type PropEquality = FooCodecs extends Codec<string, string>[] ? any : never;
+ *      type PropEquality =
+ *          MapCodec<string, Foo> extends Codec<string, string>[]
+ *              ? any
+ *              : never;
+ *
  *      // Witness the proof of the proposition (compiles)
  *      const proof : PropEquality = "witness"
  */
-export type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
+type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 
 /*------------------------------
   CONSTRUCTORS
@@ -71,13 +108,13 @@ export type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 /**
  * Creates a new codec that uses the give decoder / encoder pair.
  */
-export function Codec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>): Codec<TRaw, A> {
-    return  Object.freeze({
+function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>): Codec<TRaw, A> {
+    return Object.freeze({
         decode: decoder.decode,
         decoder,
         encode: encoder.encode,
         encoder,
-        invmap: (f, g) => Codec(decoder.map(f), encoder.contramap(g)),
+        invmap: (f, g) => makeCodec(decoder.map(f), encoder.contramap(g)),
     }) as Codec<TRaw, A>;
 }
 
@@ -96,7 +133,7 @@ export function Codec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw,
  *
  *      date.encode(Date.parse("2019-07-26")); // Fri Jul 26 2019 00:00:00 GMT-0000 (UTC)
  */
-export const date: Codec<unknown, Date> = Codec(D.date, E.date);
+const date: Codec<unknown, Date> = makeCodec(D.date, E.date);
 
 /**
  * Conversion between unknown data and booleans.
@@ -109,7 +146,7 @@ export const date: Codec<unknown, Date> = Codec(D.date, E.date);
  *      boolean.encode(false); // false
  */
 // tslint:disable-next-line: variable-name
-export const boolean: Codec<unknown, boolean> = Codec(D.boolean, E.boolean);
+const boolean: Codec<unknown, boolean> = makeCodec(D.boolean, E.boolean);
 
 /**
  * Conversion between unknown data and numbers.
@@ -122,7 +159,7 @@ export const boolean: Codec<unknown, boolean> = Codec(D.boolean, E.boolean);
  *      number.encode(2); // 2
  */
 // tslint:disable-next-line: variable-name
-export const number: Codec<unknown, number> = Codec(D.number, E.number);
+const number: Codec<unknown, number> = makeCodec(D.number, E.number);
 
 /**
  * Conversion between unknown data and strings.
@@ -135,7 +172,7 @@ export const number: Codec<unknown, number> = Codec(D.number, E.number);
  *      string.encode("bar"); // "bar"
  */
 // tslint:disable-next-line: variable-name
-export const string: Codec<unknown, string> = Codec(D.string, E.string);
+const string: Codec<unknown, string> = makeCodec(D.string, E.string);
 
 /**
  * Conversion between unknown data and arrays.
@@ -148,8 +185,8 @@ export const string: Codec<unknown, string> = Codec(D.string, E.string);
  *
  *      array(string).encode(["bar"]); // ["bar"]
  */
-export function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
-    return Codec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
+function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
+    return makeCodec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
 }
 
 /**
@@ -165,8 +202,8 @@ export function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
  *      optional(string).encode(Nothing()); // undefined
  *      optional(string).encode(Just("foo")); // "foo"
  */
-export function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
-    return Codec(D.optional(innerCodec.decoder), E.optional(innerCodec.encoder));
+function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
+    return makeCodec(D.optional(innerCodec.decoder), E.optional(innerCodec.encoder));
 }
 
 /**
@@ -180,8 +217,8 @@ export function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe
  *
  *      oneOf("foo", "bar").encode("bar"); // "bar"
  */
-export function oneOf<T>(...choices: T[]): Codec<unknown, T> {
-    return Codec(D.oneOf(...choices), Encoder(id));
+function oneOf<T>(...choices: T[]): Codec<unknown, T> {
+    return makeCodec(D.oneOf(...choices), E.makeEncoder(id));
 }
 
 /**
@@ -202,8 +239,8 @@ export function oneOf<T>(...choices: T[]): Codec<unknown, T> {
  *
  *      oneOf("foo", "bar").encode("bar"); // "bar"
  */
-export function object<T extends object>(convert: Codec<object, T>): Codec<object, T> {
-    return Codec(D.object(convert.decoder), E.object(convert.encoder));
+function object<T extends object>(convert: Codec<object, T>): Codec<object, T> {
+    return makeCodec(D.object(convert.decoder), E.object(convert.encoder));
 }
 
 /**
@@ -217,8 +254,8 @@ export function object<T extends object>(convert: Codec<object, T>): Codec<objec
  *
  *      property("bar": string).encode("foo"); // Valid ({ bar: "foo" })
  */
-export function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T> {
-    return Codec(D.property(name, convert.decoder), E.property(name, convert.encoder));
+function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T> {
+    return makeCodec(D.property(name, convert.decoder), E.property(name, convert.encoder));
 }
 
 /**
@@ -232,8 +269,8 @@ export function property<T>(name: string, convert: Codec<unknown, T>): Codec<obj
  *
  *      tuple(string, number).encode(["foo", 1]); // ["foo", 1]
  */
-export function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> {
-    return  Codec(D.tuple(...converters.map((x) => x.decoder)), E.tuple(...converters.map((x) => x.encoder))) as any;
+function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> {
+    return makeCodec(D.tuple(...converters.map((x) => x.decoder)), E.tuple(...converters.map((x) => x.encoder))) as any;
 }
 
 /*------------------------------
@@ -260,7 +297,7 @@ export function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<a
  *      fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
 export function liftO<T extends object>(spec: MapCodec<object, T>): Codec<object, T> {
-    return Codec(
-        D.liftO(objectFromEntries( objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
-        E.liftO(objectFromEntries( objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));
+    return makeCodec(
+        D.liftO(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
+        E.liftO(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));
 }

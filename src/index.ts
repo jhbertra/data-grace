@@ -1,4 +1,4 @@
-import * as D from "./decoder";
+import * as C from "./codec";
 import { Maybe } from "./maybe";
 
 type Frequency = "SemiMonthly" | "Monthly";
@@ -10,18 +10,18 @@ type Employee = {
     salaries: Array<[Date, Salary]>,
 };
 
-const salaryDecoder = D.liftO<Salary>({
-    amount: D.property("amount", D.number),
-    frequency: D.property("frequency", D.oneOf("SemiMonthly", "Monthly")),
+const salaryDecoder = C.liftO<Salary>({
+    amount: C.property("amount", C.number),
+    frequency: C.property("frequency", C.oneOf("SemiMonthly", "Monthly")),
 });
 
-const salaryRecordDecoder = D.tuple(D.date, D.object(salaryDecoder));
+const salaryRecordDecoder = C.tuple(C.date, C.object(salaryDecoder));
 
-const employeeDecoder = D.liftO<Employee>({
-    firstName: D.property("firstName", D.string),
-    lastName: D.property("lastName", D.string),
-    middleName: D.property("middleName", D.optional(D.string)),
-    salaries: D.property("salaries", D.array(salaryRecordDecoder)),
+const employeeDecoder = C.liftO<Employee>({
+    firstName: C.property("firstName", C.string),
+    lastName: C.property("lastName", C.string),
+    middleName: C.property("middleName", C.optional(C.string)),
+    salaries: C.property("salaries", C.array(salaryRecordDecoder)),
 });
 
 const result = employeeDecoder.decode({
