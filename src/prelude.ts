@@ -1,39 +1,57 @@
+export {
+    absurd,
+    constant,
+    curry,
+    id,
+    objectFromEntries,
+    objectToEntries,
+    pipe,
+    pipeWith,
+};
+
 // tslint:disable: ban-types
 
-export function id<T>(t: T): T {
+/**
+ * A function which returns its parameter unchanged.
+ */
+function id<T>(t: T): T {
     return t;
 }
 
-export function constant<T1, T2>(t: T1): (_: T2) => T1 {
+/**
+ * Builds a function that always returns the initially
+ * supplied value no matter what.
+ */
+function constant<T1, T2>(t: T1): (_: T2) => T1 {
     return (_) => t;
 }
 
-export function pipe<A, B>(
+function pipe<A, B>(
     f: (a: A) => B): (a: A) => B;
 
-export function pipe<A, B, C>(
+function pipe<A, B, C>(
     f: (a: A) => B,
     g: (b: B) => C): (a: A) => C;
 
-export function pipe<A, B, C, D>(
+function pipe<A, B, C, D>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D): (a: A) => D;
 
-export function pipe<A, B, C, D, E>(
+function pipe<A, B, C, D, E>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
     i: (d: D) => E): (a: A) => E;
 
-export function pipe<A, B, C, D, E, F>(
+function pipe<A, B, C, D, E, F>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
     i: (d: D) => E,
     j: (e: E) => F): (a: A) => F;
 
-export function pipe<A, B, C, D, E, F, G>(
+function pipe<A, B, C, D, E, F, G>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
@@ -41,7 +59,7 @@ export function pipe<A, B, C, D, E, F, G>(
     j: (e: E) => F,
     k: (f: F) => G): (a: A) => G;
 
-export function pipe<A, B, C, D, E, F, G, H>(
+function pipe<A, B, C, D, E, F, G, H>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
@@ -50,7 +68,7 @@ export function pipe<A, B, C, D, E, F, G, H>(
     k: (f: F) => G,
     l: (g: G) => H): (a: A) => H;
 
-export function pipe<A, B, C, D, E, F, G, H, I>(
+function pipe<A, B, C, D, E, F, G, H, I>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
@@ -60,7 +78,7 @@ export function pipe<A, B, C, D, E, F, G, H, I>(
     l: (g: G) => H,
     m: (h: H) => I): (a: A) => I;
 
-export function pipe<A, B, C, D, E, F, G, H, I, J>(
+function pipe<A, B, C, D, E, F, G, H, I, J>(
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
@@ -71,7 +89,10 @@ export function pipe<A, B, C, D, E, F, G, H, I, J>(
     m: (h: H) => I,
     n: (i: I) => J): (a: A) => J;
 
-export function pipe(
+/**
+ * Compose functions left-to-right
+ */
+function pipe(
     f: Function,
     g?: Function,
     h?: Function,
@@ -119,29 +140,29 @@ export function pipe(
     }
 }
 
-export function pipeWith<A, B>(
+function pipeWith<A, B>(
     a: A,
     f: (a: A) => B): B;
 
-export function pipeWith<A, B, C>(
+function pipeWith<A, B, C>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C): C;
 
-export function pipeWith<A, B, C, D>(
+function pipeWith<A, B, C, D>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D): D;
 
-export function pipeWith<A, B, C, D, E>(
+function pipeWith<A, B, C, D, E>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
     h: (c: C) => D,
     i: (d: D) => E): E;
 
-export function pipeWith<A, B, C, D, E, F>(
+function pipeWith<A, B, C, D, E, F>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
@@ -149,7 +170,7 @@ export function pipeWith<A, B, C, D, E, F>(
     i: (d: D) => E,
     j: (e: E) => F): F;
 
-export function pipeWith<A, B, C, D, E, F, G>(
+function pipeWith<A, B, C, D, E, F, G>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
@@ -158,7 +179,7 @@ export function pipeWith<A, B, C, D, E, F, G>(
     j: (e: E) => F,
     k: (f: F) => G): G;
 
-export function pipeWith<A, B, C, D, E, F, G, H>(
+function pipeWith<A, B, C, D, E, F, G, H>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
@@ -168,7 +189,7 @@ export function pipeWith<A, B, C, D, E, F, G, H>(
     k: (f: F) => G,
     l: (g: G) => H): H;
 
-export function pipeWith<A, B, C, D, E, F, G, H, I>(
+function pipeWith<A, B, C, D, E, F, G, H, I>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
@@ -179,7 +200,7 @@ export function pipeWith<A, B, C, D, E, F, G, H, I>(
     l: (g: G) => H,
     m: (h: H) => I): I;
 
-export function pipeWith<A, B, C, D, E, F, G, H, I, J>(
+function pipeWith<A, B, C, D, E, F, G, H, I, J>(
     a: A,
     f: (a: A) => B,
     g: (b: B) => C,
@@ -191,7 +212,10 @@ export function pipeWith<A, B, C, D, E, F, G, H, I, J>(
     m: (h: H) => I,
     n: (i: I) => J): J;
 
-export function pipeWith(
+/**
+ * Compose functions left-to-right and supply an initial value
+ */
+function pipeWith(
     a: unknown,
     f: Function,
     g?: Function,
@@ -239,7 +263,10 @@ type Curry<P extends any[], R> =
         ? Curry<Tail<P>, R>
         : R;
 
-export function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
+/**
+ * Take any function and produced a curried version.
+ */
+function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
   return curryImpl(f, f.length) as unknown as Curry<P, R>;
 }
 
@@ -250,7 +277,10 @@ function curryImpl(f: Function, arity: number): Function {
       : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
 }
 
-export function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]]> {
+/**
+ * Convert an object to an array of key-value pairs.
+ */
+function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]]> {
     const entries: Array<[keyof T, T[keyof T]]> = [];
     for (const key in value) {
         if (value.hasOwnProperty(key)) {
@@ -260,12 +290,19 @@ export function objectToEntries<T extends object>(value: T): Array<[keyof T, T[k
     return entries;
 }
 
-export function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
+/**
+ * Convert an array of key-value pairs to an object.
+ */
+function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
     const result =  {} as T;
     entries.forEach(([key, value]) => result[key] = value);
     return result;
 }
 
-export function absurd<T>(_: never): T {
+/**
+ * A function which can never be called. Can be useful for
+ * demonstrating absurd or impossible scenarios to the compiler.
+ */
+function absurd<T>(_: never): T {
     throw new Error("absurd");
 }
