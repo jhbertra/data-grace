@@ -329,22 +329,46 @@ export function liftO<T extends object>(spec: MapDecoder<object, T>): Decoder<ob
   KLIESLI-COMPOSITION FUNCTIONS
   ------------------------------*/
 
+/**
+ * Maps a function over an array of inputs and produces a decoder for each.
+ * @param f A function that produces a new decoder for each input
+ * @param as A set of inputs to map over
+ */
 export function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn, B[]> {
     return Decoder((x) => V.mapM((a) => f(a).decode(x), as));
 }
 
+/**
+ * @see mapM with its arguments reversed.
+ */
 export function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn, B[]> {
     return mapM(f, as);
 }
 
+/**
+ * Runs a sequence of decoders and aggregates their results.
+ * @param das A sequence of decoders to run.
+ */
 export function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
     return mapM(id, das);
 }
 
+/**
+ * Maps a decomposition of parts over an array of inputs.
+ * @param f A decomposition function
+ * @param as An array of inputs
+ */
 export function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>, as: A[]): Decoder<TIn, [B[], C[]]> {
     return mapM(f, as).map(unzip);
 }
 
+/**
+ * Reads two input arrays in-order and produces a decoder for each pair,
+ * then aggregates the results.
+ * @param f A function that merges two inputs into a decoder
+ * @param as The first set of inputs
+ * @param bs The second set of inputs
+ */
 export function zipWithM<TIn, A, B, C>(f: (a: A, b: B) => Decoder<TIn, C>, as: A[], bs: B[]): Decoder<TIn, C[]> {
     return sequence(zipWith(f, as, bs));
 }
