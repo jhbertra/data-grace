@@ -8,8 +8,8 @@ export {
     catMaybes,
     forM,
     join,
-    liftF,
-    liftO,
+    lift,
+    build,
     mapAndUnzipWith,
     mapM,
     mapMaybe,
@@ -362,12 +362,12 @@ function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
  *          return `${question} ${answer}`;
  *      }
  *
- *      liftF(answerTrueFalse, Nothing(), Nothing()).toString(); // "Nothing"
- *      liftF(answerTrueFalse, Just("The meaning of life is 42."), Nothing()).toString(); // "Nothing"
+ *      lift(answerTrueFalse, Nothing(), Nothing()).toString(); // "Nothing"
+ *      lift(answerTrueFalse, Just("The meaning of life is 42."), Nothing()).toString(); // "Nothing"
  *      // "Just (The meaning of life is 42. true)"
- *      liftF(answerTrueFalse, Just("The meaning of life is 42."), Just(true)).toString();
+ *      lift(answerTrueFalse, Just("The meaning of life is 42."), Just(true)).toString();
  */
-function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
+function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
     const processedArgs = catMaybes(args);
 
     return processedArgs.length === args.length
@@ -386,24 +386,24 @@ function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): 
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
  *      // Nothing
- *      liftO<Foo>({
+ *      build<Foo>({
  *          bar: Nothing(),
  *          baz: Nothing()
  *      });
  *
  *      // Nothing
- *      liftO<Foo>({
+ *      build<Foo>({
  *          bar: Just("BAR"),
  *          baz: Nothing()
  *      });
  *
  *      // Just ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
- *      liftO<Foo>({
+ *      build<Foo>({
  *          bar: Just("BAR"),
  *          baz: Just(Just("baz"))
  *      });
  */
-function liftO<T extends object>(spec: MapMaybe<T>): Maybe<T> {
+function build<T extends object>(spec: MapMaybe<T>): Maybe<T> {
     const maybeKvps = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
@@ -433,7 +433,7 @@ function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
  * Aggregate a sequence of @see Maybes and combine their results.
  */
 function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
-    return liftF((...as: A[]) => as, ...mas);
+    return lift((...as: A[]) => as, ...mas);
 }
 
 /**

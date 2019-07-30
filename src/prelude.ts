@@ -1,4 +1,5 @@
 export {
+    Equals,
     absurd,
     constant,
     curry,
@@ -7,9 +8,23 @@ export {
     objectToEntries,
     pipe,
     pipeWith,
+    prove,
+    simplify,
 };
 
 // tslint:disable: ban-types
+
+/**
+ * A type which proposes equality between two types.
+ * If the proposition is true, it can be assigned a
+ * value of any type.
+ */
+type Equals<A, B> = A extends B ? B extends A ? any : never : never;
+
+/**
+ * Proves a proposition of type equality.
+ */
+function prove<A extends Equals<any, any>>(witness: A) { return; }
 
 /**
  * A function which returns its parameter unchanged.
@@ -305,4 +320,8 @@ function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]
  */
 function absurd<T>(_: never): T {
     throw new Error("absurd");
+}
+
+function simplify(x: any): any {
+    return JSON.parse(JSON.stringify(x));
 }
