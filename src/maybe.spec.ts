@@ -2,6 +2,7 @@ import * as fc from "fast-check";
 import { unzip, zipWith } from "./array";
 import * as M from "./maybe";
 import { constant, Equals, prove, simplify } from "./prelude";
+import { assert } from "fast-check";
 
 /*------------------------------
   TYPE TESTS
@@ -354,6 +355,28 @@ describe("zipWithM", () => {
 });
 
 describe("IMaybe", () => {
+    it("obeys the left identity monad law", () => {
+        const k = (s: string) => M.Just(s).filter((x) => x.length < 4).map((x) => x.length);
+        fc.assert(fc.property(fc.string(), (s) => {
+            expect(simplify(M.Just(s).flatMap(k))).toEqual(simplify(k(s)));
+        }));
+    });
+
+    it("obeys the right identity monad law", () => {
+        fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing()), fc.string().map(M.Just)), (m) => {
+            expect(simplify(m.flatMap(M.Just))).toEqual(simplify(m));
+        }));
+    });
+
+    it("obeys the right monad associativity law", () => {
+        const k = (s: string) => M.Just(s).filter((x) => x.length < 4).map((x) => x.length);
+        const h = (n: number) => M.Just(n).filter((x) => x % 2 === 0).map((x) => x.toString());
+
+        fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing<string>()), fc.string().map(M.Just)), (m) => {
+            expect(simplify(m.flatMap((x) => k(x).flatMap(h)))).toEqual(simplify(m.flatMap(k).flatMap(h)));
+        }));
+    });
+
     describe("defaultWith", () => {
         it("Returns payload when present", () => {
             fc.assert(fc.property(fc.string(), (s) => { expect(M.Just(s).defaultWith("foo")).toEqual(s); }));
@@ -384,25 +407,143 @@ describe("IMaybe", () => {
         });
     });
 
-    it("obeys the left identity monad law", () => {
-        const k = (s: string) => M.Just(s).filter((x) => x.length < 4).map((x) => x.length);
-        fc.assert(fc.property(fc.string(), (s) => {
-            expect(simplify(M.Just(s).flatMap(k))).toEqual(simplify(k(s)));
-        }));
+    describe("flatMap", () => {
+        it("Passes the payload to the callback", () => {
+            fc.assert(fc.property(fc.string(), (s) => { M.Just(s).flatMap((x) => M.Just(expect(x).toEqual(s))); }));
+        });
+        it("Returns the value returned by the callback", () => {
+            const k = (s: string) => M.Just(s).filter((x) => x.length < 5);
+            fc.assert(fc.property(fc.string(), (s) => {
+                expect(simplify(M.Just(s).flatMap(k))).toEqual(simplify(k(s)));
+            }));
+        });
+        it("Skips the callback on empty", () => {
+            const k = (s: string) => M.Just(s).filter((x) => x.length < 5);
+            expect(simplify(M.Nothing<string>().flatMap(k))).toEqual(simplify(M.Nothing()));
+        });
     });
 
-    it("obeys the right identity monad law", () => {
-        fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing()), fc.string().map(M.Just)), (m) => {
-            expect(simplify(m.flatMap(M.Just))).toEqual(simplify(m));
-        }));
+    describe("isJust", () => {
+        it("Returns true for Just(s)", () => {
+            fc.assert(fc.property(fc.string(), (s) => {
+                expect(simplify(M.Just(s).isJust())).toEqual(true);
+            }));
+        });
+        it("Returns false for Nothing()", () => {
+            expect(simplify(M.Nothing().isJust())).toEqual(false);
+        });
     });
 
-    it("obeys the right monad associativity law", () => {
-        const k = (s: string) => M.Just(s).filter((x) => x.length < 4).map((x) => x.length);
-        const h = (n: number) => M.Just(n).filter((x) => x % 2 === 0).map((x) => x.toString());
+    describe("isNothing", () => {
+        it("Returns false for Just(s)", () => {
+            fc.assert(fc.property(fc.string(), (s) => {
+                expect(simplify(M.Just(s).isNothing())).toEqual(false);
+            }));
+        });
+        it("Returns true for Nothing()", () => {
+            expect(simplify(M.Nothing().isNothing())).toEqual(true);
+        });
+    });
 
-        fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing<string>()), fc.string().map(M.Just)), (m) => {
-            expect(simplify(m.flatMap((x) => k(x).flatMap(h)))).toEqual(simplify(m.flatMap(k).flatMap(h)));
-        }));
+    describe("map", () => {
+        it("Passes the payload to the callback", () => {
+            fc.assert(fc.property(fc.string(), (s) => { M.Just(s).map((x) => expect(x).toEqual(s)); }));
+        });
+        it("Wraps the value returned by the callback", () => {
+            const k = (s: string) => s.length;
+            fc.assert(fc.property(fc.string(), (s) => {
+                expect(simplify(M.Just(s).map(k))).toEqual(simplify(M.Just(k(s))));
+            }));
+        });
+        it("Skips the callback on empty", () => {
+            const k = (s: string) => s.length;
+            expect(simplify(M.Nothing<string>().map(k))).toEqual(simplify(M.Nothing()));
+        });
+    });
+
+    describe("matchCase", () => {
+        it("Passes the payload to the correct callback", () => {
+            M.Just("foo").matchCase({
+                just: (x) => expect(x).toEqual("foo"),
+                nothing: () => fail("Not expected to be called"),
+            });
+            M.Nothing().matchCase({
+                just: () => fail("Not expected to be called"),
+                nothing: () => undefined,
+            });
+        });
+        it("returns the correct value when a value is provided", () => {
+            fc.assert(fc.property(fc.string(), (s) => {
+                expect(M.Just(s).matchCase({ just: (x) => x.length, nothing: () => s.length - 1 }))
+                    .toEqual(s.length);
+            }));
+        });
+        it("returns the correct value when no value is provided", () => {
+            expect(M.Nothing().matchCase({ just: () => 1, nothing: () => 0 }))
+                .toEqual(0);
+        });
+    });
+
+    describe("or", () => {
+        it("Picks the first if non empty", () => {
+            expect(simplify(M.Just("foo").or(() => M.Just("bar")))).toEqual(simplify(M.Just("foo")));
+        });
+        it("Picks the second if first empty", () => {
+            expect(simplify(M.Nothing().or(() => M.Just("bar")))).toEqual(simplify(M.Just("bar")));
+        });
+        it("Picks nothing if both empty", () => {
+            expect(simplify(M.Nothing().or(() => M.Nothing()))).toEqual(simplify(M.Nothing()));
+        });
+    });
+
+    describe("replace", () => {
+        it("Returns something if both are non-empty", () => {
+            expect(simplify(M.Just("foo").replace(M.Just("bar")))).toEqual(simplify(M.Just("bar")));
+        });
+        it("Returns nothing if the second is empty", () => {
+            expect(simplify(M.Just("foo").replace(M.Nothing()))).toEqual(simplify(M.Nothing()));
+        });
+        it("Returns nothing if the first is empty", () => {
+            expect(simplify(M.Nothing().replace(M.Just("bar")))).toEqual(simplify(M.Nothing()));
+        });
+        it("Returns nothing if both are empty", () => {
+            expect(simplify(M.Nothing().replace(M.Nothing()))).toEqual(simplify(M.Nothing()));
+        });
+    });
+
+    describe("replacePure", () => {
+        it("Replaces value if non-empty", () => {
+            expect(simplify(M.Just("foo").replacePure(2))).toEqual(simplify(M.Just(2)));
+        });
+        it("Returns nothing if empty", () => {
+            expect(simplify(M.Nothing().replacePure(2))).toEqual(simplify(M.Nothing()));
+        });
+    });
+
+    describe("toArray", () => {
+        it("Returns singleton array if non-empty", () => {
+            expect(M.Just("foo").toArray()).toEqual(["foo"]);
+        });
+        it("Returns empty array if empty", () => {
+            expect(M.Nothing().toArray()).toEqual([]);
+        });
+    });
+
+    describe("toString", () => {
+        it("Renders Nothing as Nothing", () => {
+            expect(M.Nothing().toString()).toEqual("Nothing");
+        });
+        it("Renders Just(s) as Just (s)", () => {
+            expect(M.Just("foo").toString()).toEqual("Just (foo)");
+        });
+    });
+
+    describe("voidOut", () => {
+        it("Returns Nothing for Nothing", () => {
+            expect(simplify(M.Nothing().voidOut())).toEqual(simplify(M.Nothing()));
+        });
+        it("Renders Just(s) as Just (s)", () => {
+            expect(simplify(M.Just("foo").voidOut())).toEqual(simplify(M.Just([])));
+        });
     });
 });
