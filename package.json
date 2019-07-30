@@ -15,6 +15,7 @@
   "typings": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "cover": "jest --coverage",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "start": "yarn build && node lib/index.js",
     "test": "jest"

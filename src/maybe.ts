@@ -206,34 +206,6 @@ type Maybe<A> = (MaybeJust<A> | MaybeNothing) & IMaybe<A>;
 /**
  * A type transformer that homomorphically maps the @see Maybe type
  * onto the types of A.
- *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test that proposes type equality
- *      type PropEquality =
- *          MapMaybe<Foo> extends { bar: Maybe<number>, baz: Maybe<string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapMaybe<Foo> extends Maybe<string>[]
- *              ? any
- *              : never;
- *
- *      // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
  */
 type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
 
