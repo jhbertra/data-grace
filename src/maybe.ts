@@ -197,12 +197,12 @@ interface IMaybeJust<A> {
     /**
      * Data used to identify the type.
      */
-    tag: "Just";
+    readonly tag: "Just";
 
     /**
      * The payload of this [[Maybe]]
      */
-    value: A;
+    readonly value: A;
 }
 
 /**
@@ -212,7 +212,7 @@ interface IMaybeNothing {
     /**
      * Data used to identify the type.
      */
-    tag: "Nothing";
+    readonly tag: "Nothing";
 }
 
 /**

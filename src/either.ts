@@ -1,5 +1,7 @@
 export {
     IEither,
+    IEitherLeft,
+    IEitherRight,
     Either,
     MapEither,
     Left,
@@ -76,7 +78,7 @@ interface IEither<A, B> {
      *          result.value; // "error";
      *      }
      */
-    isLeft(): this is EitherLeft<A>;
+    isLeft(): this is IEitherLeft<A>;
 
     /**
      * A type guard which determines if this @see Either is a @see Right
@@ -88,7 +90,7 @@ interface IEither<A, B> {
      *          result.value; // "Bob";
      *      }
      */
-    isRight(): this is EitherRight<A>;
+    isRight(): this is IEitherRight<A>;
 
     /**
      * Modify the data in the @see Right case.
@@ -123,7 +125,7 @@ interface IEither<A, B> {
      *          left: x => x ? "Yes" : "No",
      *          right: x => x.toUpperCase()); // "No"
      */
-    matchCase<C>(cases: EitherCaseScrutinizer<A, B, C>): C;
+    matchCase<C>(cases: IEitherCaseScrutinizer<A, B, C>): C;
 
     /**
      * Pick this @see Either if it is @see Right otherwise pick the other.
@@ -193,27 +195,27 @@ interface IEither<A, B> {
 /**
  * Defines the set of functions required to scrutinize the cases of an @see Either.
  */
-type EitherCaseScrutinizer<A, B, C> = {
+interface IEitherCaseScrutinizer<A, B, C> {
     /**
      * Callback which is called in the case of a @see Left.
      */
-    left: (a: A) => C,
+    left(a: A): C;
 
     /**
      * Callback which is called in the case of a @see Right.
      */
-    right: (b: B) => C,
-};
+    right(b: B): C;
+}
 
 /**
  * The type of an object constructed using the @see Left case.
  */
-type EitherLeft<A> = { tag: "Left", value: A };
+interface IEitherLeft<A> { readonly tag: "Left"; readonly value: A; }
 
 /**
  * The type of an object constructed using the @see Right case.
  */
-type EitherRight<B> = { tag: "Right", value: B };
+interface IEitherRight<B> { readonly tag: "Right"; readonly value: B; }
 
 /**
  * A data type that represents a binary choice - it can be inhabited
@@ -224,7 +226,7 @@ type EitherRight<B> = { tag: "Right", value: B };
  * answer, and error results are constructed with the @see Left case
  * constructor.
  */
-type Either<A, B> = (EitherLeft<A> | EitherRight<B>) & IEither<A, B>;
+type Either<A, B> = (IEitherLeft<A> | IEitherRight<B>) & IEither<A, B>;
 
 /**
  * A type transformer that homomorphically maps the @see Either type

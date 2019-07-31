@@ -1,5 +1,7 @@
 export {
     IValidation,
+    IValidationInvalid,
+    IValidationValid,
     Validation,
     MapValidation,
     Valid,
@@ -49,7 +51,7 @@ interface IValidation<A extends object | any[], B> {
      *          result.failure; // { failure: "error" };
      *      }
      */
-    isInvalid(): this is ValidationInvalid<A>;
+    isInvalid(): this is IValidationInvalid<A>;
 
     /**
      * A type guard which determines if this @see Validation is a @see Valid
@@ -61,7 +63,7 @@ interface IValidation<A extends object | any[], B> {
      *          result.value; // "Bob";
      *      }
      */
-    isValid(): this is ValidationValid<B>;
+    isValid(): this is IValidationValid<B>;
 
     /**
      * Modify the data in the @see Valid case.
@@ -96,7 +98,7 @@ interface IValidation<A extends object | any[], B> {
      *          invalid: x => x.length > 0 ? "Yes" : "No",
      *          valid: x => x.toUpperCase()); // "No"
      */
-    matchCase<C>(cases: ValidationCaseScrutinizer<A, B, C>): C;
+    matchCase<C>(cases: IValidationCaseScrutinizer<A, B, C>): C;
 
     /**
      * Pick this @see Validation if it is @see Valid otherwise pick the other.
@@ -168,27 +170,27 @@ interface IValidation<A extends object | any[], B> {
 /**
  * Defines the set of functions required to scrutinize the cases of a @see Validation.
  */
-type ValidationCaseScrutinizer<A extends object | any[], B, C> = {
+interface IValidationCaseScrutinizer<A extends object | any[], B, C> {
     /**
      * Callback which is called in the case of @see Invalid.
      */
-    invalid: (a: A) => C,
+    invalid: (a: A) => C;
 
     /**
      * Callback which is called in the case of @see Valid.
      */
-    valid: (b: B) => C,
-};
+    valid: (b: B) => C;
+}
 
 /**
  * The type of an object constructed using the @see Invalid case.
  */
-type ValidationInvalid<A extends object | any[]> = { tag: "Invalid", failure: A };
+interface IValidationInvalid<A extends object | any[]> { readonly tag: "Invalid"; readonly failure: A; }
 
 /**
  * The type of an object constructed using the @see Valid case.
  */
-type ValidationValid<B> = { tag: "Valid",  value: B };
+interface IValidationValid<B> { readonly tag: "Valid";  readonly value: B; }
 
 /**
  * A data type that represents a calculation which can fail. The primary
@@ -197,7 +199,7 @@ type ValidationValid<B> = { tag: "Valid",  value: B };
  * way that failures will accumulate, and as a consequence it is not possible
  * to do sequential validation with flatMap like one would do with @see Either.
  */
-type Validation<A extends object | any[], B> = (ValidationInvalid<A> | ValidationValid<B>) & IValidation<A, B>;
+type Validation<A extends object | any[], B> = (IValidationInvalid<A> | IValidationValid<B>) & IValidation<A, B>;
 
 /**
  * A type transformer that homomorphically maps the @see Validation type

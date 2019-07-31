@@ -2,7 +2,6 @@ import * as fc from "fast-check";
 import { unzip, zipWith } from "./array";
 import * as M from "./maybe";
 import { constant, Equals, prove, simplify } from "./prelude";
-import { assert } from "fast-check";
 
 /*------------------------------
   TYPE TESTS
@@ -37,7 +36,12 @@ describe("arrayToMaybe", () => {
 });
 
 describe("build", () => {
-    type Foo = { bar: number, baz: boolean, qux: string };
+    interface IFoo {
+        bar: number;
+        baz: boolean;
+        qux: string;
+    }
+
     it("equals construct + wrap when all components have value", () => {
         fc.assert(
             fc.property(
@@ -45,7 +49,7 @@ describe("build", () => {
                 fc.boolean(),
                 fc.string(),
                 (bar: number, baz: boolean, qux: string) => {
-                    expect(simplify(M.build<Foo>({
+                    expect(simplify(M.build<IFoo>({
                         bar: M.Just(bar),
                         baz: M.Just(baz),
                         qux: M.Just(qux),
@@ -69,7 +73,7 @@ describe("build", () => {
                             ? M.Nothing()
                             : M.Just(value);
                     }
-                    expect(simplify(M.build<Foo>({
+                    expect(simplify(M.build<IFoo>({
                         bar: getComponent(0, bar),
                         baz: getComponent(1, baz),
                         qux: getComponent(2, qux),
