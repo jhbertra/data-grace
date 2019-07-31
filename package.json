@@ -6,6 +6,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^24.0.15",
+    "coveralls": "^3.0.5",
     "fast-check": "^1.16.0",
     "jest": "^24.8.0",
     "ts-jest": "^24.0.2",
@@ -18,9 +19,8 @@
     "build": "tsc",
     "cover": "jest --coverage",
     "docs": "typedoc",
-    "lint": "tslint -c tslint.json 'src/**/*.ts'",
-    "start": "yarn build && node lib/index.js",
-    "test": "yarn build && yarn lint && yarn cover"
+    "lint": "yarn build && tslint -c tslint.json 'src/**/*.ts'",
+    "test": "yarn lint && jest"
   },
   "files": [
     "lib"
