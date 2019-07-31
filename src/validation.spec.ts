@@ -1,10 +1,9 @@
 import * as fc from "fast-check";
 import { unzip, zipWith } from "./array";
+import { Left, Right } from "./either";
 import { Just, Nothing } from "./maybe";
 import { Equals, prove, simplify } from "./prelude";
 import * as V from "./validation";
-import { statement } from "@babel/template";
-import { Right, Left } from "./either";
 
 /*------------------------------
   TYPE TESTS

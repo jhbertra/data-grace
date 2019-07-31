@@ -1,5 +1,6 @@
 export {
     IValidation,
+    IValidationCaseScrutinizer,
     IValidationInvalid,
     IValidationValid,
     Validation,
@@ -250,7 +251,12 @@ function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
         mapError(f) { return Invalid(f(failure)); },
         matchCase({invalid}) { return invalid(failure); },
         or(x) { return x(); },
-        replace(x) { return lift((_, x1) => x1, this, x); },
+        replace(x) {
+            return build<A, { a: B, b: typeof x extends Validation<A, infer C> ? C : never }>({
+                a: this,
+                b: x,
+            });
+        },
         replacePure() { return this; },
         tag: "Invalid",
         toArray() { return []; },

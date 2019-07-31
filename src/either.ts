@@ -1,5 +1,6 @@
 export {
     IEither,
+    IEitherCaseScrutinizer,
     IEitherLeft,
     IEitherRight,
     Either,
