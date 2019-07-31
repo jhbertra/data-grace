@@ -9,8 +9,8 @@ export {
     forM,
     join,
     lefts,
-    liftF,
-    liftO,
+    lift,
+    build,
     mapAndUnzipWith,
     mapM,
     reduceM,
@@ -210,12 +210,18 @@ interface IEitherCaseScrutinizer<A, B, C> {
 /**
  * The type of an object constructed using the @see Left case.
  */
-interface IEitherLeft<A> { readonly tag: "Left"; readonly value: A; }
+interface IEitherLeft<A> {
+    readonly tag: "Left";
+    readonly value: A;
+}
 
 /**
  * The type of an object constructed using the @see Right case.
  */
-interface IEitherRight<B> { readonly tag: "Right"; readonly value: B; }
+interface IEitherRight<B> {
+    readonly tag: "Right";
+    readonly value: B;
+}
 
 /**
  * A data type that represents a binary choice - it can be inhabited
@@ -231,34 +237,6 @@ type Either<A, B> = (IEitherLeft<A> | IEitherRight<B>) & IEither<A, B>;
 /**
  * A type transformer that homomorphically maps the @see Either type
  * onto the types of A.
- *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test that proposes type equality
- *      type PropEquality =
- *          MapEither<string, Foo> extends { bar: Either<string, number>, baz: Either<string, string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapEither<string, Foo> extends Either<string, string>[]
- *              ? any
- *              : never;
- *
- *      // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
  */
 type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
 
@@ -274,21 +252,21 @@ function Left<A, B>(value: A): Either<A, B> {
     return Object.freeze({
         defaultLeftWith: constant(value),
         defaultRightWith: id,
-        flatMap: (_) => Left(value),
-        isLeft: () => true,
-        isRight: () => false,
-        map: (_) => Left(value),
-        mapLeft: (f) => Left(f(value)),
-        matchCase: ({ left }) => left(value),
-        or: (x) => x(),
-        replace: (_) => Left(value),
-        replacePure: (_) => Left(value),
+        flatMap() { return this; },
+        isLeft() { return true; },
+        isRight() { return false; },
+        map() { return this; },
+        mapLeft(f) { return Left(f(value)); },
+        matchCase({ left }) { return left(value); },
+        or(x) { return x(); },
+        replace() { return this; },
+        replacePure() { return this; },
         tag: "Left",
-        toArray: () => [],
-        toMaybe: () => Nothing<B>(),
-        toString: () => `Left (${value})`,
+        toArray() { return []; },
+        toMaybe() { return Nothing<B>(); },
+        toString() { return `Left (${value})`; },
         value,
-        voidOut: () => Left<A, []>(value),
+        voidOut() { return Left<A, []>(value); },
     }) as Either<A, B>;
 }
 
@@ -300,21 +278,21 @@ function Right<A, B>(value: B): Either<A, B> {
     return Object.freeze({
         defaultLeftWith: id,
         defaultRightWith: constant(value),
-        flatMap: (f) => f(value),
-        isLeft: () => false,
-        isRight: () => true,
-        map: (f) => Right(f(value)),
-        mapLeft: (_) => Right(value),
-        matchCase: ({ right }) => right(value),
-        or: (_) => Right(value),
+        flatMap(f) { return f(value); },
+        isLeft() { return false; },
+        isRight() { return true; },
+        map(f) { return Right(f(value)); },
+        mapLeft() { return this; },
+        matchCase({ right }) { return right(value); },
+        or() { return this; },
         replace: id,
         replacePure: Right,
         tag: "Right",
-        toArray: () => [value],
-        toMaybe: () => Just(value),
-        toString: () => `Right (${value})`,
+        toArray() { return [value]; },
+        toMaybe() { return Just(value); },
+        toString() { return `Right (${value})`; },
         value,
-        voidOut: () => Right<A, []>([]),
+        voidOut() { return Right<A, []>([]); },
     }) as Either<A, B>;
 }
 
@@ -358,7 +336,9 @@ function rights<A, B>(es: Array<Either<A, B>>): B[] {
  *
  * In order to satisfy the consistency of results between
  *
- * liftF(f, e1, e2) == e1.flatMap(v1 => e2.map(v2 => f(v1, v2)));
+ * ```ts
+ * lift(f, e1, e2) == e1.flatMap(v1 => e2.map(v2 => f(v1, v2)));
+ * ```
  *
  * The first failure will be returned. For a similar structure that
  * aggregates failures, @see Validation which does not provide and implementaion of @see flatMap
@@ -369,12 +349,12 @@ function rights<A, B>(es: Array<Either<A, B>>): B[] {
  *          return `${question} ${answer}`;
  *      }
  *
- *      liftF(answerTrueFalse, Left("error1"), Left("error2")).toString(); // "Left (error2)"
- *      liftF(answerTrueFalse, Right("The meaning of life is 42."), Left("error2")).toString(); // "Left (error2)"
+ *      lift(answerTrueFalse, Left("error1"), Left("error2")).toString(); // "Left (error2)"
+ *      lift(answerTrueFalse, Right("The meaning of life is 42."), Left("error2")).toString(); // "Left (error2)"
  *      // "Right (The meaning of life is 42. true)"
- *      liftF(answerTrueFalse, Right("The meaning of life is 42."), Right(true)).toString();
+ *      lift(answerTrueFalse, Right("The meaning of life is 42."), Right(true)).toString();
  */
-function liftF<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
+function lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
     const errors = lefts(args);
 
     return errors.length === 0
@@ -393,24 +373,24 @@ function liftF<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
  *      // Left (invalid bar)
- *      liftO<string, Foo>({
+ *      build<string, Foo>({
  *          bar: Left("invalid bar"),
  *          baz: Left("invalid baz")
  *      });
  *
  *      // Left (invalid baz)
- *      liftO<string, Foo>({
+ *      build<string, Foo>({
  *          bar: Right("BAR"),
  *          baz: Left("invalid baz")
  *      });
  *
  *      // Right ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
- *      liftO<string, Foo>({
+ *      build<string, Foo>({
  *          bar: Right("BAR"),
  *          baz: Right(Just("baz"))
  *      });
  */
-function liftO<A, T extends object>(spec: MapEither<A, T>): Either<A, T> {
+function build<A, T extends object>(spec: MapEither<A, T>): Either<A, T> {
     const maybeKvps = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
@@ -440,7 +420,7 @@ function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
  * Aggregate a sequence of @see Eithers and combine their results.
  */
 function sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
-    return liftF((...bs: B[]) => bs, ...ebs);
+    return lift((...bs: B[]) => bs, ...ebs);
 }
 
 /**

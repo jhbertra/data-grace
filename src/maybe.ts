@@ -236,21 +236,21 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
  */
 function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
-        defaultWith: (_) => value,
-        filter: (p) => p(value) ? Just(value) : Nothing(),
-        flatMap: (f) => f(value),
-        isJust: () => true,
-        isNothing: () => false,
-        map: (f) => Just(f(value)),
-        matchCase: ({ just }) => just(value),
-        or: (_) => Just(value),
+        defaultWith() { return value; },
+        filter(p) { return p(value) ? this : Nothing(); },
+        flatMap(f) { return f(value); },
+        isJust() { return true; },
+        isNothing() { return false; },
+        map(f) { return Just(f(value)); },
+        matchCase({ just }) { return just(value); },
+        or() { return this; },
         replace: id,
         replacePure: Just,
         tag: "Just",
-        toArray: () => [value],
-        toString: () => `Just (${value})`,
+        toArray() { return [value]; },
+        toString() { return `Just (${value})`; },
         value,
-        voidOut: () => Just([] as []),
+        voidOut() { return Just([] as []); },
     });
 }
 
@@ -260,19 +260,19 @@ function Just<A>(value: A): Maybe<A> {
 function Nothing<A>(): Maybe<A> {
     return Object.freeze({
         defaultWith: id,
-        filter: (_) => Nothing(),
-        flatMap: (_) => Nothing(),
-        isJust: () => false,
-        isNothing: () => true,
-        map: (_) => Nothing(),
-        matchCase: ({ nothing }) => nothing(),
-        or: (m2) => m2(),
-        replace: (_) => Nothing(),
-        replacePure: (_) => Nothing(),
+        filter() { return this; },
+        flatMap() { return this; },
+        isJust() { return false; },
+        isNothing() { return true; },
+        map() { return this; },
+        matchCase({ nothing }) { return nothing(); },
+        or(m2) { return m2(); },
+        replace() { return this; },
+        replacePure() { return this; },
         tag: "Nothing",
-        toArray: () => [],
-        toString: () => `Nothing`,
-        voidOut: () => Nothing<[]>(),
+        toArray() { return []; },
+        toString() { return `Nothing`; },
+        voidOut() { return Nothing<[]>(); },
     }) as Maybe<A>;
 }
 
