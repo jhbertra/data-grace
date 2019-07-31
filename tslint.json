@@ -4,9 +4,6 @@
         "tslint:recommended"
     ],
     "jsRules": {},
-    "rules": {
-        "interface-over-type-literal": false,
-        "jsdoc-format": true
-    },
+    "rules": {},
     "rulesDirectory": []
 }

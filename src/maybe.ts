@@ -1,5 +1,8 @@
 export {
     IMaybe,
+    IMaybeCaseScrutinizer,
+    IMaybeJust,
+    IMaybeNothing,
     Maybe,
     MapMaybe,
     Just,
@@ -77,7 +80,7 @@ interface IMaybe<A> {
      *          result.value; // "foo";
      *      }
      */
-    isJust(): this is MaybeJust<A>;
+    isJust(): this is IMaybeJust<A>;
 
     /**
      * A type guard which determines if this @see Maybe is a @see Nothing
@@ -89,7 +92,7 @@ interface IMaybe<A> {
      *          result.value; // undefined / compiler error.
      *      }
      */
-    isNothing(): this is MaybeNothing;
+    isNothing(): this is IMaybeNothing;
 
     /**
      * Transform the value contained by this @see Maybe
@@ -114,7 +117,7 @@ interface IMaybe<A> {
      *          just: x => x.toUpperCase(),
      *          nothing: () => "got nothing"); // "got nothing"
      */
-    matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
+    matchCase<B>(cases: IMaybeCaseScrutinizer<A, B>): B;
 
     /**
      * Pick this @Maybe if it has a value otherwise pick the other.
@@ -175,33 +178,48 @@ interface IMaybe<A> {
 /**
  * Defines the set of functions required to scrutinize the cases of a @see Maybe.
  */
-type MaybeCaseScrutinizer<A, B> = {
+interface IMaybeCaseScrutinizer<A, B> {
     /**
      * Callback which is called in the case a @see Maybe has a value.
      */
-    just: (a: A) => B,
+    just(a: A): B;
 
     /**
      * Callback which is called in the case a @see Maybe has no value.
      */
-    nothing: () => B,
-};
+    nothing(): B;
+}
 
 /**
  * The type of an object constructed using the @see Just case.
  */
-type MaybeJust<A> = { tag: "Just"; value: A };
+interface IMaybeJust<A> {
+    /**
+     * Data used to identify the type.
+     */
+    tag: "Just";
+
+    /**
+     * The payload of this [[Maybe]]
+     */
+    value: A;
+}
 
 /**
  * The type of an object constructed using the @see Nothing case.
  */
-type MaybeNothing = { tag: "Nothing" };
+interface IMaybeNothing {
+    /**
+     * Data used to identify the type.
+     */
+    tag: "Nothing";
+}
 
 /**
  * A data type that represents an optional / nullable value.
  * It can either have a value of "just A", or "nothing".
  */
-type Maybe<A> = (MaybeJust<A> | MaybeNothing) & IMaybe<A>;
+type Maybe<A> = (IMaybeJust<A> | IMaybeNothing) & IMaybe<A>;
 
 /**
  * A type transformer that homomorphically maps the @see Maybe type
