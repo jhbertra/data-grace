@@ -6,10 +6,10 @@ export {
     MapValidation,
     Valid,
     Invalid,
+    build,
     failures,
     forM,
-    liftF,
-    liftO,
+    lift,
     mapAndUnzipWith,
     mapM,
     sequence,
@@ -204,34 +204,6 @@ type Validation<A extends object | any[], B> = (IValidationInvalid<A> | IValidat
 /**
  * A type transformer that homomorphically maps the @see Validation type
  * onto the types of A.
- *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test that proposes type equality
- *      type PropEquality =
- *          MapValidation<any[], Foo> extends { bar: Validation<any[], number>, baz: Validation<any[], string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapValidation<any[], Foo> extends Validation<any[], string>[]
- *              ? any
- *              : never;
- *
- *      // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
  */
 type MapValidation<A extends object | any[], B> = { [K in keyof B]: Validation<A, B[K]> };
 
@@ -246,21 +218,21 @@ type MapValidation<A extends object | any[], B> = { [K in keyof B]: Validation<A
 function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
     return  Object.freeze({
         defaultWith: constant(value),
-        isInvalid: () => false,
-        isValid: () => true,
-        map: (f) => Valid(f(value)),
-        mapError: (_) => Valid(value),
-        matchCase: ({valid}) => valid(value),
-        or: (_) => Valid(value),
+        isInvalid() { return false; },
+        isValid() { return true; },
+        map(f) { return Valid(f(value)); },
+        mapError() { return this; },
+        matchCase({valid}) { return valid(value); },
+        or() { return this; },
         replace: id,
         replacePure: Valid,
         tag: "Valid",
-        toArray: () => [value],
-        toEither: () => Right<A, B>(value),
-        toMaybe: () => Just<B>(value),
-        toString: () => `Valid (${value})`,
+        toArray() { return [value]; },
+        toEither() { return Right<A, B>(value); },
+        toMaybe() { return Just<B>(value); },
+        toString() { return `Valid (${value})`; },
         value,
-        voidOut: () => Valid<A, []>([]),
+        voidOut() { return Valid<A, []>([]); },
     }) as Validation<A, B>;
 }
 
@@ -272,20 +244,20 @@ function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
     return  Object.freeze({
         defaultWith: id,
         failure,
-        isInvalid: () => true,
-        isValid: () => false,
-        map: (_) => Invalid(failure),
-        mapError: (f) => Invalid(f(failure)),
-        matchCase: ({invalid}) => invalid(failure),
-        or: (x) => x(),
-        replace(x) { return liftF((_, x1) => x1, this, x); },
-        replacePure: (_) => Invalid(failure),
+        isInvalid() { return true; },
+        isValid() { return false; },
+        map() { return this; },
+        mapError(f) { return Invalid(f(failure)); },
+        matchCase({invalid}) { return invalid(failure); },
+        or(x) { return x(); },
+        replace(x) { return lift((_, x1) => x1, this, x); },
+        replacePure() { return this; },
         tag: "Invalid",
-        toArray: () => [],
-        toEither: () => Left<A, B>(failure),
-        toMaybe: () => Nothing<B>(),
-        toString: () => `Invalid (${failure})`,
-        voidOut: () => Invalid<A, []>(failure),
+        toArray() { return []; },
+        toEither() { return Left<A, B>(failure); },
+        toMaybe() { return Nothing<B>(); },
+        toString() { return `Invalid (${failure})`; },
+        voidOut() { return Invalid<A, []>(failure); },
     }) as Validation<A, B>;
 }
 
@@ -325,13 +297,13 @@ function successful<A extends object | any[], B>(es: Array<Validation<A, B>>): B
  *          return `${question} ${answer}`;
  *      }
  *
- *      liftF(answerTrueFalse, Invalid(["error1"]), Invalid(["error2"])).toString(); // "Invalid (["error1", "error2"])"
+ *      lift(answerTrueFalse, Invalid(["error1"]), Invalid(["error2"])).toString(); // "Invalid (["error1", "error2"])"
  *      // "Invalid (["error2"])"
- *      liftF(answerTrueFalse, Valid("The meaning of life is 42."), Invalid(["error2"])).toString();
+ *      lift(answerTrueFalse, Valid("The meaning of life is 42."), Invalid(["error2"])).toString();
  *      // "Valid (The meaning of life is 42. true)"
- *      liftF(answerTrueFalse, Valid("The meaning of life is 42."), Valid(true)).toString();
+ *      lift(answerTrueFalse, Valid("The meaning of life is 42."), Valid(true)).toString();
  */
-function liftF<A extends object | any[], P extends any[], R>(
+function lift<A extends object | any[], P extends any[], R>(
     f: (...args: P) => R,
     ...args: MapValidation<A, P>): Validation<A, R> {
     const errors = failures(args);
@@ -354,24 +326,24 @@ function liftF<A extends object | any[], P extends any[], R>(
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
  *      // Left ({ bar: "invalid", baz: "invalid" })
- *      liftO<object, Foo>({
+ *      build<object, Foo>({
  *          bar: Invalid({ bar: "invalid" }),
  *          baz: Invalid({ baz: "invalid" })
  *      });
  *
  *      // Left ({ baz: "invalid" })
- *      liftO<object, Foo>({
+ *      build<object, Foo>({
  *          bar: Valid("BAR"),
  *          baz: Invalid({ baz: "invalid" })
  *      });
  *
  *      // Valid ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
- *      liftO<object, Foo>({
+ *      build<object, Foo>({
  *          bar: Valid("BAR"),
  *          baz: Valid(Just("baz"))
  *      });
  */
-function liftO<A extends object | any[], T extends object>(spec: MapValidation<A, T>): Validation<A, T> {
+function build<A extends object | any[], T extends object>(spec: MapValidation<A, T>): Validation<A, T> {
     const kvpValidation = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) =>  [key, x] as [keyof T, T[typeof key]])));
 
@@ -401,7 +373,7 @@ function forM<A extends object | any[], B, C>(bs: B[], f: (value: B) => Validati
  * Aggregate a sequence of @see Validations and combine their results or failures.
  */
 function sequence<A extends object | any[], B>(vbs: Array<Validation<A, B>>): Validation<A, B[]> {
-    return liftF((...bs: B[]) => bs, ...vbs);
+    return lift((...bs: B[]) => bs, ...vbs);
 }
 
 /**
