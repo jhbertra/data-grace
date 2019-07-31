@@ -20,7 +20,7 @@
     "docs": "typedoc",
     "lint": "tslint -c tslint.json 'src/**/*.ts'",
     "start": "yarn build && node lib/index.js",
-    "test": "jest"
+    "test": "yarn build && yarn lint && yarn cover"
   },
   "files": [
     "lib"
