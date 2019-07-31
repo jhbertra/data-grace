@@ -5,7 +5,7 @@ export {
     array,
     boolean,
     date,
-    liftO,
+    build,
     makeEncoder,
     number,
     object,
@@ -128,7 +128,7 @@ function optional<T>(convert: Encoder<any, T>): Encoder<any, Maybe<T>> {
 /**
  * Encode an object with the given converter.
  */
-function object<T extends object>(convert: Encoder<object, T>): Encoder<object, T> {
+function object<T extends object>(convert: Encoder<object, T>): Encoder<any, T> {
     return convert;
 }
 
@@ -159,14 +159,14 @@ function tuple<T extends any[]>(...converters: MapEncoder<any, T>): Encoder<any,
  *
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
- *      const fooEncoder: Encoder<object, Foo> = liftO<Foo>({
+ *      const fooEncoder: Encoder<object, Foo> = build<Foo>({
  *          bar: property("bar", string),
  *          baz: property("baz", optional(boolean))
  *      });
  *
  *      fooEncoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-function liftO<T>(spec: MapEncoder<object, T>): Encoder<object, T> {
+function build<T>(spec: MapEncoder<object, T>): Encoder<object, T> {
     return makeEncoder((obj) => objectToEntries(spec)
         .map(([key, convert]) => convert.encode(obj[key]))
         .reduce((a, b) => ({ ...a, ...b }), {}));

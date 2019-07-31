@@ -2,8 +2,8 @@ export {
     MapPromise,
     forM,
     join,
-    liftF,
-    liftO,
+    lift,
+    build,
     mapAndUnzipWith,
     mapM,
     zipWithM,
@@ -58,7 +58,7 @@ type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
  * Creates a promise which calls a function if and when all its arguments
  * are resolved.
  */
-async function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
+async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
     return f.apply(undefined,  (await Promise.all(args)) as P);
 }
 
@@ -66,7 +66,7 @@ async function liftF<P extends any[], R>(f: (...args: P) => R, ...args: MapPromi
  * Creates a promise which constructs an object if and when all its components
  * are resolved.
  */
-async function liftO<T extends object>(spec: MapPromise<T>): Promise<T> {
+async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
     const kvpsPromise = Promise.all(objectToEntries(spec).map(
         ([key, value]) => value.then((x) =>  [key, x] as [keyof T, T[typeof key]])));
 

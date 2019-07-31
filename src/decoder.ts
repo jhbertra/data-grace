@@ -5,10 +5,13 @@ export {
     MapDecoder,
     array,
     boolean,
+    constant,
+    constantFailure,
     date,
     forM,
-    liftF,
-    liftO,
+    id,
+    lift,
+    build,
     makeDecoder,
     mapAndUnzipWith,
     mapM,
@@ -25,7 +28,7 @@ export {
 
 import { unzip, zipWith } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
-import { id, objectFromEntries, objectToEntries } from "./prelude";
+import { id as preludeId, objectFromEntries, objectToEntries } from "./prelude";
 import { Validation } from "./validation";
 import * as V from "./validation";
 
@@ -118,11 +121,11 @@ type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
 function makeDecoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): Decoder<TIn, A> {
     return Object.freeze({
         decode,
-        map: (f) => makeDecoder((x) => decode(x).map(f)),
-        or: (d) => makeDecoder((x) => decode(x).or(() => d.decode(x))),
-        replace: (d) => makeDecoder((x) => decode(x).replace(d.decode(x))),
-        replacePure: (f) => makeDecoder((x) => decode(x).replacePure(f)),
-        voidOut: () => makeDecoder<TIn, []>((x) => decode(x).voidOut()),
+        map(f) { return makeDecoder((x) => decode(x).map(f)); },
+        or(d) { return makeDecoder((x) => decode(x).or(() => d.decode(x))); },
+        replace(d) { return makeDecoder((x) => decode(x).replace(d.decode(x))); },
+        replacePure(f) { return makeDecoder((x) => decode(x).replacePure(f)); },
+        voidOut() { return makeDecoder<TIn, []>((x) => decode(x).voidOut()); },
     }) as Decoder<TIn, A>;
 }
 
@@ -145,6 +148,25 @@ function prefixError(prefix: string, error: DecodeError): DecodeError {
 }
 
 /**
+ * Always returns t as a valid result.
+ */
+function constant<T>(t: T): Decoder<any, T> {
+    return makeDecoder(() => V.Valid(t));
+}
+
+/**
+ * Always decodes the input.
+ */
+const id: Decoder<any, any> = makeDecoder(V.Valid);
+
+/**
+ * Always returns t as a failed result.
+ */
+function constantFailure<T>(failure: DecodeError): Decoder<any, T> {
+    return makeDecoder(() => V.Invalid(failure));
+}
+
+/**
  * Conversion from unknown data to dates.
  *
  * @example
@@ -156,11 +178,13 @@ function prefixError(prefix: string, error: DecodeError): DecodeError {
 const date: Decoder<any, Date> = makeDecoder((value: any) => {
     if (value instanceof Date) {
         return V.Valid(value);
-    } else {
+    } else if (typeof(value) === "string" && value.match(/^[0-9\w]+$/) == null) {
         const parsed = Date.parse(value);
         return Number.isNaN(parsed)
             ? V.Invalid({ $: "Expected a date" } as DecodeError)
             : V.Valid(new Date(parsed));
+    } else {
+        return V.Invalid({ $: "Expected a date" } as DecodeError);
     }
 });
 
@@ -230,14 +254,13 @@ function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
  *      oneOf("foo", "bar").decode("bar"); // Valid ("bar")
  *      oneOf("foo", "bar").decode("baz"); // Invalid ({"$": "Valid options: foo | bar"})
  */
-function oneOf<T>(...choices: T[]): Decoder<any, T> {
+function oneOf<T>(firstChoice: T, ...choices: T[]): Decoder<any, T> {
+    choices = [firstChoice, ...choices];
     return makeDecoder((value) => {
         const found = choices.find((x) => x === value);
         return found
             ? V.Valid(found)
-            : V.Invalid(choices.length === 0
-                ? { $: "There are no valid options to choose from" } as DecodeError
-                : { $: `Valid options: ${choices.join(" | ")}` } as DecodeError);
+            : V.Invalid({ $: `Valid options: ${choices.join(" | ")}` } as DecodeError);
     });
 }
 
@@ -263,7 +286,7 @@ function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
  *
  *      type Foo = { bar: string };
  *
- *      const fooDecoder = liftO<Foo>({
+ *      const fooDecoder = build<Foo>({
  *          bar: property("bar": string)
  *      });
  *
@@ -273,7 +296,7 @@ function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
  *      object(fooDecoder).decode("foo"); // Invalid ({"$": "Expected an object"})
  */
 
-function object<T extends object>(convert: Decoder<object, T>): Decoder<object, T> {
+function object<T extends object>(convert: Decoder<object, T>): Decoder<any, T> {
     return makeDecoder(
         (value) => typeof (value) === "object" && value !== null
             ? convert.decode(value)
@@ -285,16 +308,16 @@ function object<T extends object>(convert: Decoder<object, T>): Decoder<object, 
  *
  * @example
  *
- *      property("bar": string).decode({}); // Invalid ({"bar", "Required"})
- *      property("bar": string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
- *      property("bar": string).decode({ bar: "foo"}); // Valid ("foo")
+ *      property("bar", string).decode({}); // Invalid ({"bar", "Expected a string"})
+ *      property("bar", string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
+ *      property("bar", string).decode({ bar: "foo"}); // Valid ("foo")
  */
 function property<T>(
     name: string,
     convert: Decoder<any, T>): Decoder<object, T> {
-    return makeDecoder((obj) => obj.hasOwnProperty(name)
-        ? convert.decode((obj as any)[name]).mapError((error) => prefixError(name, error))
-        : V.Invalid({ [name]: "Required" } as DecodeError));
+    return makeDecoder((obj) => convert
+        .decode((obj as any)[name])
+        .mapError((error) => prefixError(name, error)));
 }
 
 /**
@@ -333,7 +356,7 @@ function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<any, T[
  *          return `${question} ${answer}`;
  *      }
  *
- *      const decodeAnswerTrueFalse: Decoder<object, string> = liftF(
+ *      const decodeAnswerTrueFalse: Decoder<object, string> = lift(
  *          answerTrueFalse,
  *          property("question", string),
  *          property("answer", boolean))
@@ -341,7 +364,7 @@ function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<any, T[
  *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: true }); // Valid (asdf true)
  *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: 0 }); // Invalid ({"answer": "Expected a boolean"})
  */
-function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
+function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
     return sequence(args).map((a) => f.apply(undefined, a as P));
 }
 
@@ -354,7 +377,7 @@ function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecode
  *
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
- *      const fooDecoder: Decoder<object, Foo> = liftO<Foo>({
+ *      const fooDecoder: Decoder<object, Foo> = build<Foo>({
  *          bar: property("bar", string),
  *          baz: property("baz", optional(boolean))
  *      });
@@ -364,7 +387,7 @@ function liftF<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecode
  *      fooDecoder.decode({ bar: "eek", baz: false });
  *      fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-function liftO<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
+function build<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
     const maybeKvps = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
@@ -396,7 +419,7 @@ function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn
  * @param das A sequence of decoders to run.
  */
 function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
-    return mapM(id, das);
+    return mapM(preludeId, das);
 }
 
 /**

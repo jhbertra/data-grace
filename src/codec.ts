@@ -217,8 +217,8 @@ function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
  *
  *      oneOf("foo", "bar").encode("bar"); // "bar"
  */
-function oneOf<T>(...choices: T[]): Codec<unknown, T> {
-    return makeCodec(D.oneOf(...choices), E.makeEncoder(id));
+function oneOf<T>(firstChoice: T, ...choices: T[]): Codec<unknown, T> {
+    return makeCodec(D.oneOf(firstChoice, ...choices), E.makeEncoder(id));
 }
 
 /**
@@ -228,7 +228,7 @@ function oneOf<T>(...choices: T[]): Codec<unknown, T> {
  *
  *      type Foo = { bar: string };
  *
- *      const fooCodec = liftO<Foo>({
+ *      const fooCodec = build<Foo>({
  *          bar: property("bar": string)
  *      });
  *
@@ -239,7 +239,7 @@ function oneOf<T>(...choices: T[]): Codec<unknown, T> {
  *
  *      oneOf("foo", "bar").encode("bar"); // "bar"
  */
-function object<T extends object>(convert: Codec<object, T>): Codec<object, T> {
+function object<T extends object>(convert: Codec<any, T>): Codec<any, T> {
     return makeCodec(D.object(convert.decoder), E.object(convert.encoder));
 }
 
@@ -286,7 +286,7 @@ function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> 
  *
  *      type Foo = { bar: string, baz: Maybe<boolean> };
  *
- *      const fooCodec: Codec<object, Foo> = liftO<Foo>({
+ *      const fooCodec: Codec<object, Foo> = build<Foo>({
  *          bar: property("bar", string),
  *          baz: property("baz", optional(boolean))
  *      });
@@ -296,8 +296,8 @@ function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> 
  *      fooCodec.decode({ bar: "eek", baz: false });
  *      fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-export function liftO<T extends object>(spec: MapCodec<object, T>): Codec<object, T> {
+export function build<T extends object>(spec: MapCodec<object, T>): Codec<object, T> {
     return makeCodec(
-        D.liftO(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
-        E.liftO(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));
+        D.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
+        E.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));
 }

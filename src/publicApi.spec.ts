@@ -53,105 +53,6 @@ prove<Equals<typeof array.zipWith, <A, B, C>(f: (a: A, b: B) => C, as: A[], bs: 
 prove<Equals<typeof array, { unzip: typeof array.unzip, zipWith: typeof array.zipWith }>>(requireMinor("array API"));
 
 /*------------------------------
-  MAYBE API
-  ------------------------------*/
-
-prove<Equals<typeof maybe.Just, <A>(value: A) => maybe.Maybe<A>>>(requireMajor("maybe.Just"));
-prove<Equals<typeof maybe.Nothing, <A>() => maybe.Maybe<A>>>(requireMajor("maybe.Nothing"));
-prove<Equals<typeof maybe.arrayToMaybe, <A>(as: A[]) => maybe.Maybe<A>>>(requireMajor("maybe.arrayToMaybe"));
-prove<Equals<typeof maybe.build, <T extends object>(spec: maybe.MapMaybe<T>) => maybe.Maybe<T>>>(requireMajor("maybe.build"));
-prove<Equals<typeof maybe.catMaybes, <A>(ms: Array<maybe.Maybe<A>>) => A[]>>(requireMajor("maybe.catMaybes"));
-prove<Equals<typeof maybe.forM, <A, B>(as: A[], f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B[]>>>(requireMajor("maybe.forM"));
-prove<Equals<typeof maybe.join, <A>(_: maybe.Maybe<maybe.Maybe<A>>) => maybe.Maybe<A>>>(requireMajor("maybe.join"));
-prove<Equals<typeof maybe.lift, <P extends any[], R>(f: (...args: P) => R, ...args: maybe.MapMaybe<P>) => maybe.Maybe<R>>>(requireMajor("maybe.lift"));
-prove<Equals<typeof maybe.mapAndUnzipWith, <A, B, C>(f: (a: A) => maybe.Maybe<[B, C]>, as: A[]) => maybe.Maybe<[B[], C[]]>>>(requireMajor("maybe.mapAndUnzipWith"));
-prove<Equals<typeof maybe.mapM, <A, B>(f: (a: A) => maybe.Maybe<B>, as: A[]) => maybe.Maybe<B[]>>>(requireMajor("maybe.mapM"));
-prove<Equals<typeof maybe.mapMaybe, <A, B>(f: (value: A) => maybe.Maybe<B>, ms: A[]) => B[]>>(requireMajor("maybe.mapMaybe"));
-prove<Equals<typeof maybe.reduceM, <A, B>(f: (state: B, a: A) => maybe.Maybe<B>, seed: B, as: A[]) => maybe.Maybe<B>>>(requireMajor("maybe.reduceM"));
-prove<Equals<typeof maybe.sequence, <A>(mas: Array<maybe.Maybe<A>>) => maybe.Maybe<A[]>>>(requireMajor("maybe.sequence"));
-prove<Equals<typeof maybe.toMaybe, <A>(value?: A) => maybe.Maybe<A>>>(requireMajor("maybe.toMaybe"));
-prove<Equals<typeof maybe.unless, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.unless"));
-prove<Equals<typeof maybe.when, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.when"));
-prove<Equals<typeof maybe.zipWithM, <A, B, C>(f: (a: A, b: B) => maybe.Maybe<C>, as: A[], bs: B[]) => maybe.Maybe<C[]>>>(requireMajor("maybe.zipWithM"));
-prove<Equals<
-  typeof maybe,
-  {
-    Just: typeof maybe.Just,
-    Nothing: typeof maybe.Nothing,
-    arrayToMaybe: typeof maybe.arrayToMaybe,
-    catMaybes: typeof maybe.catMaybes,
-    forM: typeof maybe.forM,
-    join: typeof maybe.join,
-    lift: typeof maybe.lift,
-    build: typeof maybe.build,
-    mapAndUnzipWith: typeof maybe.mapAndUnzipWith,
-    mapM: typeof maybe.mapM,
-    mapMaybe: typeof maybe.mapMaybe,
-    reduceM: typeof maybe.reduceM,
-    sequence: typeof maybe.sequence,
-    toMaybe: typeof maybe.toMaybe,
-    unless: typeof maybe.unless,
-    when: typeof maybe.when,
-    zipWithM: typeof maybe.zipWithM,
-  }
->>(requireMinor("maybe API"));
-
-(function validateIMaybe<A>() {
-  const imaybe: maybe.IMaybe<A> = undefined as any;
-  prove<Equals<typeof imaybe.defaultWith, (value: A) => A>>(requireMajor("maybe.IMaybe.defaultWith"));
-  prove<Equals<typeof imaybe.filter, (p: (a: A) => boolean) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.filter"));
-  prove<Equals<typeof imaybe.flatMap, <B>(f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.flatMap"));
-  prove<Equals<typeof imaybe.isJust, () => boolean>>(requireMajor("maybe.IMaybe.isJust"));
-  prove<Equals<typeof imaybe.isNothing, () => boolean>>(requireMajor("maybe.IMaybe.isNothing"));
-  prove<Equals<typeof imaybe.map, <B>(f: (a: A) => B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.map"));
-  prove<Equals<typeof imaybe.matchCase, <B>(cases: maybe.IMaybeCaseScrutinizer<A, B>) => B>>(requireMajor("maybe.IMaybe.matchCase"));
-  prove<Equals<typeof imaybe.or, (other: () => maybe.Maybe<A>) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.or"));
-  prove<Equals<typeof imaybe.replace, <B>(m: maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replace"));
-  prove<Equals<typeof imaybe.replacePure, <B>(b: B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replacePure"));
-  prove<Equals<typeof imaybe.toArray, () => A[]>>(requireMajor("maybe.IMaybe.toArray"));
-  prove<Equals<typeof imaybe.toString, () => string>>(requireMajor("maybe.IMaybe.toString"));
-  prove<Equals<typeof imaybe.voidOut, () => maybe.Maybe<[]>>>(requireMajor("maybe.IMaybe.voidOut"));
-  prove<Equals<
-    typeof imaybe,
-    {
-      defaultWith: typeof imaybe.defaultWith,
-      filter: typeof imaybe.filter,
-      flatMap: typeof imaybe.flatMap,
-      isJust: typeof imaybe.isJust,
-      isNothing: typeof imaybe.isNothing,
-      map: typeof imaybe.map,
-      matchCase: typeof imaybe.matchCase,
-      or: typeof imaybe.or,
-      replace: typeof imaybe.replace,
-      replacePure: typeof imaybe.replacePure,
-      toArray: typeof imaybe.toArray,
-      toString: typeof imaybe.toString,
-      voidOut: typeof imaybe.voidOut,
-    }
-  >>(requireMinor("maybe.IMaybe"));
-}());
-
-const imaybejust: maybe.IMaybeJust<string> = undefined as any;
-prove<Equals<typeof imaybejust.tag, "Just">>(requireMajor("maybe.IMaybeJust.tag"));
-prove<Equals<typeof imaybejust.value, string>>(requireMajor("maybe.IMaybeJust.value"));
-prove<Equals<
-  typeof imaybejust,
-  {
-    tag: typeof imaybejust.tag;
-    value: typeof imaybejust.value;
-  }
->>(requireMinor("maybe.IMaybeJust"));
-
-const imaybenothing: maybe.IMaybeNothing = undefined as any;
-prove<Equals<typeof imaybenothing.tag, "Nothing">>(requireMajor("maybe.IMaybeNothing.tag"));
-prove<Equals<
-  typeof imaybenothing,
-  {
-    tag: typeof imaybenothing.tag;
-  }
->>(requireMinor("maybe.IMaybeNothing"));
-
-/*------------------------------
   EITHER API
   ------------------------------*/
 
@@ -251,6 +152,105 @@ prove<Equals<
     value: typeof ieitherright.value;
   }
 >>(requireMinor("either.IEitherRight"));
+
+/*------------------------------
+  MAYBE API
+  ------------------------------*/
+
+prove<Equals<typeof maybe.Just, <A>(value: A) => maybe.Maybe<A>>>(requireMajor("maybe.Just"));
+prove<Equals<typeof maybe.Nothing, <A>() => maybe.Maybe<A>>>(requireMajor("maybe.Nothing"));
+prove<Equals<typeof maybe.arrayToMaybe, <A>(as: A[]) => maybe.Maybe<A>>>(requireMajor("maybe.arrayToMaybe"));
+prove<Equals<typeof maybe.build, <T extends object>(spec: maybe.MapMaybe<T>) => maybe.Maybe<T>>>(requireMajor("maybe.build"));
+prove<Equals<typeof maybe.catMaybes, <A>(ms: Array<maybe.Maybe<A>>) => A[]>>(requireMajor("maybe.catMaybes"));
+prove<Equals<typeof maybe.forM, <A, B>(as: A[], f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B[]>>>(requireMajor("maybe.forM"));
+prove<Equals<typeof maybe.join, <A>(_: maybe.Maybe<maybe.Maybe<A>>) => maybe.Maybe<A>>>(requireMajor("maybe.join"));
+prove<Equals<typeof maybe.lift, <P extends any[], R>(f: (...args: P) => R, ...args: maybe.MapMaybe<P>) => maybe.Maybe<R>>>(requireMajor("maybe.lift"));
+prove<Equals<typeof maybe.mapAndUnzipWith, <A, B, C>(f: (a: A) => maybe.Maybe<[B, C]>, as: A[]) => maybe.Maybe<[B[], C[]]>>>(requireMajor("maybe.mapAndUnzipWith"));
+prove<Equals<typeof maybe.mapM, <A, B>(f: (a: A) => maybe.Maybe<B>, as: A[]) => maybe.Maybe<B[]>>>(requireMajor("maybe.mapM"));
+prove<Equals<typeof maybe.mapMaybe, <A, B>(f: (value: A) => maybe.Maybe<B>, ms: A[]) => B[]>>(requireMajor("maybe.mapMaybe"));
+prove<Equals<typeof maybe.reduceM, <A, B>(f: (state: B, a: A) => maybe.Maybe<B>, seed: B, as: A[]) => maybe.Maybe<B>>>(requireMajor("maybe.reduceM"));
+prove<Equals<typeof maybe.sequence, <A>(mas: Array<maybe.Maybe<A>>) => maybe.Maybe<A[]>>>(requireMajor("maybe.sequence"));
+prove<Equals<typeof maybe.toMaybe, <A>(value?: A) => maybe.Maybe<A>>>(requireMajor("maybe.toMaybe"));
+prove<Equals<typeof maybe.unless, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.unless"));
+prove<Equals<typeof maybe.when, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.when"));
+prove<Equals<typeof maybe.zipWithM, <A, B, C>(f: (a: A, b: B) => maybe.Maybe<C>, as: A[], bs: B[]) => maybe.Maybe<C[]>>>(requireMajor("maybe.zipWithM"));
+prove<Equals<
+  typeof maybe,
+  {
+    Just: typeof maybe.Just,
+    Nothing: typeof maybe.Nothing,
+    arrayToMaybe: typeof maybe.arrayToMaybe,
+    catMaybes: typeof maybe.catMaybes,
+    forM: typeof maybe.forM,
+    join: typeof maybe.join,
+    lift: typeof maybe.lift,
+    build: typeof maybe.build,
+    mapAndUnzipWith: typeof maybe.mapAndUnzipWith,
+    mapM: typeof maybe.mapM,
+    mapMaybe: typeof maybe.mapMaybe,
+    reduceM: typeof maybe.reduceM,
+    sequence: typeof maybe.sequence,
+    toMaybe: typeof maybe.toMaybe,
+    unless: typeof maybe.unless,
+    when: typeof maybe.when,
+    zipWithM: typeof maybe.zipWithM,
+  }
+>>(requireMinor("maybe API"));
+
+(function validateIMaybe<A>() {
+  const imaybe: maybe.IMaybe<A> = undefined as any;
+  prove<Equals<typeof imaybe.defaultWith, (value: A) => A>>(requireMajor("maybe.IMaybe.defaultWith"));
+  prove<Equals<typeof imaybe.filter, (p: (a: A) => boolean) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.filter"));
+  prove<Equals<typeof imaybe.flatMap, <B>(f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.flatMap"));
+  prove<Equals<typeof imaybe.isJust, () => boolean>>(requireMajor("maybe.IMaybe.isJust"));
+  prove<Equals<typeof imaybe.isNothing, () => boolean>>(requireMajor("maybe.IMaybe.isNothing"));
+  prove<Equals<typeof imaybe.map, <B>(f: (a: A) => B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.map"));
+  prove<Equals<typeof imaybe.matchCase, <B>(cases: maybe.IMaybeCaseScrutinizer<A, B>) => B>>(requireMajor("maybe.IMaybe.matchCase"));
+  prove<Equals<typeof imaybe.or, (other: () => maybe.Maybe<A>) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.or"));
+  prove<Equals<typeof imaybe.replace, <B>(m: maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replace"));
+  prove<Equals<typeof imaybe.replacePure, <B>(b: B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replacePure"));
+  prove<Equals<typeof imaybe.toArray, () => A[]>>(requireMajor("maybe.IMaybe.toArray"));
+  prove<Equals<typeof imaybe.toString, () => string>>(requireMajor("maybe.IMaybe.toString"));
+  prove<Equals<typeof imaybe.voidOut, () => maybe.Maybe<[]>>>(requireMajor("maybe.IMaybe.voidOut"));
+  prove<Equals<
+    typeof imaybe,
+    {
+      defaultWith: typeof imaybe.defaultWith,
+      filter: typeof imaybe.filter,
+      flatMap: typeof imaybe.flatMap,
+      isJust: typeof imaybe.isJust,
+      isNothing: typeof imaybe.isNothing,
+      map: typeof imaybe.map,
+      matchCase: typeof imaybe.matchCase,
+      or: typeof imaybe.or,
+      replace: typeof imaybe.replace,
+      replacePure: typeof imaybe.replacePure,
+      toArray: typeof imaybe.toArray,
+      toString: typeof imaybe.toString,
+      voidOut: typeof imaybe.voidOut,
+    }
+  >>(requireMinor("maybe.IMaybe"));
+}());
+
+const imaybejust: maybe.IMaybeJust<string> = undefined as any;
+prove<Equals<typeof imaybejust.tag, "Just">>(requireMajor("maybe.IMaybeJust.tag"));
+prove<Equals<typeof imaybejust.value, string>>(requireMajor("maybe.IMaybeJust.value"));
+prove<Equals<
+  typeof imaybejust,
+  {
+    tag: typeof imaybejust.tag;
+    value: typeof imaybejust.value;
+  }
+>>(requireMinor("maybe.IMaybeJust"));
+
+const imaybenothing: maybe.IMaybeNothing = undefined as any;
+prove<Equals<typeof imaybenothing.tag, "Nothing">>(requireMajor("maybe.IMaybeNothing.tag"));
+prove<Equals<
+  typeof imaybenothing,
+  {
+    tag: typeof imaybenothing.tag;
+  }
+>>(requireMinor("maybe.IMaybeNothing"));
 
 /*------------------------------
   VALIDATION API
