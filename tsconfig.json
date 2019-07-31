@@ -5,7 +5,8 @@
     "declaration": true,
     "outDir": "lib",
     "strict": true,
-    "removeComments": true
+    "removeComments": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*"

@@ -1,5 +1,6 @@
 {
     "exclude": "**/*+(index|.spec).ts",
     "mode": "modules",
-    "out": "docs"
+    "out": "docs",
+    "theme": "minimal"
 }
