@@ -7,8 +7,6 @@ export {
     date,
     makeCodec,
     number,
-    object,
-    oneOf,
     optional,
     property,
     string,
@@ -204,43 +202,6 @@ function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
  */
 function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
     return makeCodec(D.optional(innerCodec.decoder), E.optional(innerCodec.encoder));
-}
-
-/**
- * Conversion between unknown data and a finite set of values.
- *
- * @example
- *
- *      oneOf(only("foo"), only("bar")).decode("foo"); // Valid ("foo")
- *      oneOf(only("foo"), only("bar")).decode("bar"); // Valid ("bar")
- *      oneOf(only("foo"), only("bar")).decode("baz"); // Invalid ({"$": "Expected bar"})
- *
- *      oneOf("foo", "bar").encode("bar"); // "bar"
- */
-function oneOf<T>(firstChoice: Codec<unknown, T>, ...choices: Array<Codec<unknown, T>>): Codec<unknown, T> {
-    return makeCodec(D.oneOf(firstChoice.decoder, ...choices.map((x) => x.decoder)), E.makeEncoder(id));
-}
-
-/**
- * Conversion between general objects and specific object types.
- *
- * @example
- *
- *      type Foo = { bar: string };
- *
- *      const fooCodec = build<Foo>({
- *          bar: property("bar": string)
- *      });
- *
- *      object(fooCodec).decode({ bar: "foo" }); // Valid ({ bar: "foo" })
- *      object(fooCodec).decode({ bar: true }); // Invalid ({"bar", "Expected a string"})
- *      object(fooCodec).decode({ qux: "foo" }); // Invalid ({"bar", "Required"]]
- *      object(fooCodec).decode("foo"); // Invalid ({"$": "Expected an object"})
- *
- *      oneOf("foo", "bar").encode("bar"); // "bar"
- */
-function object<T extends object>(convert: Codec<any, T>): Codec<any, T> {
-    return makeCodec(D.object(convert.decoder), E.object(convert.encoder));
 }
 
 /**

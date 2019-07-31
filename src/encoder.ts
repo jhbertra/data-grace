@@ -8,7 +8,6 @@ export {
     build,
     makeEncoder,
     number,
-    object,
     optional,
     property,
     string,
@@ -100,13 +99,6 @@ function array<T>(convert: Encoder<any, T>): Encoder<any, T[]> {
  */
 function optional<T>(convert: Encoder<any, T>): Encoder<any, Maybe<T>> {
     return makeEncoder((x) => x.matchCase({ just: convert.encode, nothing: () => undefined }));
-}
-
-/**
- * Encode an object with the given converter.
- */
-function object<T extends object>(convert: Encoder<object, T>): Encoder<any, T> {
-    return convert;
 }
 
 /**

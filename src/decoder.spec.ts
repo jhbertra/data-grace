@@ -429,36 +429,6 @@ describe("optional", () => {
     });
 });
 
-describe("object", () => {
-    it("fails if decoder fails", () => {
-        fc.assert(
-            fc.property(
-                fc.object(),
-                (input) => {
-                    expect(simplify(D.object(D.constantFailure({ $: "Fail" }) as any).decode(input)))
-                        .toEqual(simplify(Invalid({ $: "Fail" })));
-                }));
-    });
-    it("succeeds if decoder succeeds", () => {
-        fc.assert(
-            fc.property(
-                fc.object(),
-                (input) => {
-                    expect(simplify(D.object(D.id).decode(input)))
-                        .toEqual(simplify(Valid(input)));
-                }));
-    });
-    it("fails invalid input", () => {
-        fc.assert(
-            fc.property(
-                fc.anything().filter((x) => typeof (x) !== "object" || x === null),
-                (input) => {
-                    expect(simplify(D.object(D.id).decode(input)))
-                        .toEqual(simplify(Invalid({ $: "Expected an object" })));
-                }));
-    });
-});
-
 describe("property", () => {
     it("fails if decoder fails", () => {
         fc.assert(

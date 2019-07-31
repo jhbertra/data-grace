@@ -16,7 +16,6 @@ export {
     mapAndUnzipWith,
     mapM,
     number,
-    object,
     oneOf,
     only,
     optional,
@@ -287,30 +286,6 @@ function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
 }
 
 /**
- * Conversion from general objects to specific object types.
- *
- * @example
- *
- *      type Foo = { bar: string };
- *
- *      const fooDecoder = build<Foo>({
- *          bar: property("bar": string)
- *      });
- *
- *      object(fooDecoder).decode({ bar: "foo" }); // Valid ({ bar: "foo" })
- *      object(fooDecoder).decode({ bar: true }); // Invalid ({"bar", "Expected a string"})
- *      object(fooDecoder).decode({ qux: "foo" }); // Invalid ({"bar", "Required"]]
- *      object(fooDecoder).decode("foo"); // Invalid ({"$": "Expected an object"})
- */
-
-function object<T extends object>(convert: Decoder<object, T>): Decoder<any, T> {
-    return makeDecoder(
-        (value) => typeof (value) === "object" && value !== null
-            ? convert.decode(value)
-            : V.Invalid({ $: "Expected an object" } as DecodeError));
-}
-
-/**
  * Decodes properties of an object.
  *
  * @example
@@ -395,10 +370,10 @@ function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder
  *      fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
 function build<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
-    const maybeKvps = sequence(objectToEntries(spec).map(
+    const kvpsDecoder = sequence(objectToEntries(spec).map(
         ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
-    return maybeKvps.map(objectFromEntries);
+    return kvpsDecoder.map(objectFromEntries);
 }
 
 /*------------------------------

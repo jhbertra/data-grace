@@ -99,12 +99,6 @@ describe("optional", () => {
     });
 });
 
-describe("object", () => {
-    it("runs the object encoder", () => {
-        expect(E.object(E.makeEncoder<object, object>(id)).encode({})).toEqual({});
-    });
-});
-
 describe("property", () => {
     it("writes the value as an object property", () => {
         fc.assert(
