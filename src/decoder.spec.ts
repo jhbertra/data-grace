@@ -377,19 +377,25 @@ describe("oneOf", () => {
     it("decodes allowed items", () => {
         fc.assert(
             fc.property(
-                fc.oneof<string | number | boolean>(fc.constant("foo"), fc.constant(1), fc.constant(true)),
+                fc.oneof<string | number | boolean>(fc.constant("foo"), fc.integer(), fc.boolean()),
                 (input) => {
-                    expect(simplify(D.oneOf<string | number | boolean>("foo", 1, true).decode(input)))
+                    expect(
+                        simplify(D
+                            .oneOf<string | number | boolean>(D.only("foo"), D.number, D.boolean)
+                            .decode(input)))
                         .toEqual(simplify(Valid(input)));
                 }));
     });
-    it("fails top decode forbidden items", () => {
+    it("fails to decode forbidden items", () => {
         fc.assert(
             fc.property(
-                fc.anything().filter((x) => x !== "foo" && x !== 1 && x !== true),
+                fc.anything().filter((x) => x !== "foo" && typeof(x) !== "number" && typeof(x) !== "boolean"),
                 (input) => {
-                    expect(simplify(D.oneOf<string | number | boolean>("foo", 1, true).decode(input)))
-                        .toEqual(simplify(Invalid({ $: "Valid options: foo | 1 | true" })));
+                    expect(
+                        simplify(D
+                            .oneOf<string | number | boolean>(D.only("foo"), D.number, D.boolean)
+                            .decode(input)))
+                        .toEqual(simplify(Invalid({ $: "Expected a boolean" })));
                 }));
     });
 });

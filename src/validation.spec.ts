@@ -370,7 +370,7 @@ describe("IValidation", () => {
         it("Picks the second if first Invalid", () => {
             expect(simplify(V.Invalid(["error"]).or(() => V.Valid("bar")))).toEqual(simplify(V.Valid("bar")));
         });
-        it("Picks the second if both Invalid", () => {
+        it("Picks the both if both Invalid", () => {
             expect(simplify(V.Invalid(["error1"]).or(() => V.Invalid(["error2"]))))
                 .toEqual(simplify(V.Invalid(["error2"])));
         });

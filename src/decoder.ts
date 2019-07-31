@@ -18,6 +18,7 @@ export {
     number,
     object,
     oneOf,
+    only,
     optional,
     property,
     sequence,
@@ -178,7 +179,7 @@ function constantFailure<T>(failure: DecodeError): Decoder<any, T> {
 const date: Decoder<any, Date> = makeDecoder((value: any) => {
     if (value instanceof Date) {
         return V.Valid(value);
-    } else if (typeof(value) === "string" && value.match(/^[0-9\w]+$/) == null) {
+    } else if (typeof(value) === "string" && value.match(/^[0-9\s]+$/) == null) {
         const parsed = Date.parse(value);
         return Number.isNaN(parsed)
             ? V.Invalid({ $: "Expected a date" } as DecodeError)
@@ -250,18 +251,24 @@ function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
  *
  * @example
  *
- *      oneOf("foo", "bar").decode("foo"); // Valid ("foo")
- *      oneOf("foo", "bar").decode("bar"); // Valid ("bar")
- *      oneOf("foo", "bar").decode("baz"); // Invalid ({"$": "Valid options: foo | bar"})
+ *      oneOf(only("foo"), only("bar")).decode("foo"); // Valid ("foo")
+ *      oneOf(only("foo"), only("bar")).decode("bar"); // Valid ("bar")
+ *      oneOf(only("foo"), only("bar")).decode("baz"); // Invalid ({"$": "Expected bar"})
  */
-function oneOf<T>(firstChoice: T, ...choices: T[]): Decoder<any, T> {
-    choices = [firstChoice, ...choices];
-    return makeDecoder((value) => {
-        const found = choices.find((x) => x === value);
-        return found
-            ? V.Valid(found)
-            : V.Invalid({ $: `Valid options: ${choices.join(" | ")}` } as DecodeError);
-    });
+function oneOf<T>(firstChoice: Decoder<any, T>, ...choices: Array<Decoder<any, T>>): Decoder<any, T> {
+    return choices.reduce((state, d) => state.or(d), firstChoice);
+}
+
+/**
+ * Conversion from unknown data to a single valid value.
+ *
+ * @example
+ *
+ *      only("foo").decode("foo"); // Valid ("foo")
+ *      only("foo").decode("bar"); // Invalid ({"$": "Expected foo"})
+ */
+function only<T>(value: T): Decoder<any, T> {
+    return makeDecoder((x) => x === value ? V.Valid(x) : V.Invalid({ $: `Expected ${value}` }));
 }
 
 /**
@@ -330,7 +337,7 @@ function property<T>(
  *      tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
  */
 
-function tuple<T extends any[]>(...converters: { [K in keyof T]: Decoder<any, T[K]> }): Decoder<any, T> {
+function tuple<T extends any[]>(...converters: MapDecoder<any, T>): Decoder<any, T> {
     return makeDecoder((value) => Array.isArray(value)
         ? value.length === converters.length
             ? V.zipWithM(

@@ -211,14 +211,14 @@ function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
  *
  * @example
  *
- *      oneOf("foo", "bar").decode("foo"); // Valid ("foo")
- *      oneOf("foo", "bar").decode("bar"); // Valid ("bar")
- *      oneOf("foo", "bar").decode("baz"); // Invalid ({"$": "Valid options: foo | bar"})
+ *      oneOf(only("foo"), only("bar")).decode("foo"); // Valid ("foo")
+ *      oneOf(only("foo"), only("bar")).decode("bar"); // Valid ("bar")
+ *      oneOf(only("foo"), only("bar")).decode("baz"); // Invalid ({"$": "Expected bar"})
  *
  *      oneOf("foo", "bar").encode("bar"); // "bar"
  */
-function oneOf<T>(firstChoice: T, ...choices: T[]): Codec<unknown, T> {
-    return makeCodec(D.oneOf(firstChoice, ...choices), E.makeEncoder(id));
+function oneOf<T>(firstChoice: Codec<unknown, T>, ...choices: Array<Codec<unknown, T>>): Codec<unknown, T> {
+    return makeCodec(D.oneOf(firstChoice.decoder, ...choices.map((x) => x.decoder)), E.makeEncoder(id));
 }
 
 /**
