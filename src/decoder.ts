@@ -347,7 +347,21 @@ function tuple<T extends any[]>(...converters: MapDecoder<any, T>): Decoder<any,
  *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: 0 }); // Invalid ({"answer": "Expected a boolean"})
  */
 function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
-    return sequence(args).map((a) => f.apply(undefined, a as P));
+    return makeDecoder((input) => {
+        const values = [];
+        const errors: DecodeError[] = [];
+        for (const d of args) {
+            const result = d.decode(input);
+            if (result.isValid()) {
+                values.push(result.value);
+            } else {
+                errors.push(result.failure);
+            }
+        }
+        return errors.length === 0
+            ? V.Valid(f(...values as P))
+            : V.Invalid(objectFromEntries(errors.flatMap(objectToEntries)));
+    });
 }
 
 /**
@@ -369,11 +383,29 @@ function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder
  *      fooDecoder.decode({ bar: "eek", baz: false });
  *      fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-function build<T extends object>(spec: MapDecoder<object, T>): Decoder<object, T> {
-    const kvpsDecoder = sequence(objectToEntries(spec).map(
-        ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
-
-    return kvpsDecoder.map(objectFromEntries);
+function build<T extends object>(spec: MapDecoder<object, T>): Decoder<unknown, T> {
+    return makeDecoder((input) => {
+        if (input == null || typeof(input) !== "object") {
+            return V.Invalid({ $: "Expected an object" });
+        } else {
+            const kvps: Array<[keyof T, T[keyof T]]> = [];
+            const errors: DecodeError[] = [];
+            for (const key in spec) {
+                if (spec.hasOwnProperty(key)) {
+                    const d = spec[key];
+                    const result = d.decode(input as object);
+                    if (result.isValid()) {
+                        kvps.push([key, result.value]);
+                    } else {
+                        errors.push(result.failure);
+                    }
+                }
+            }
+            return errors.length === 0
+                ? V.Valid(objectFromEntries(kvps))
+                : V.Invalid(objectFromEntries(errors.flatMap(objectToEntries)));
+        }
+    });
 }
 
 /*------------------------------

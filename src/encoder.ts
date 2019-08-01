@@ -16,7 +16,7 @@ export {
 
 import { zipWith } from "./array";
 import { Maybe } from "./maybe";
-import { id, objectToEntries } from "./prelude";
+import { id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -135,8 +135,9 @@ function tuple<T extends any[]>(...converters: MapEncoder<any, T>): Encoder<any,
  *
  *      fooEncoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-function build<T extends object>(spec: MapEncoder<object, T>): Encoder<object, T> {
-    return makeEncoder((obj) => objectToEntries(spec)
-        .map(([key, convert]) => convert.encode(obj[key]))
-        .reduce((a, b) => ({ ...a, ...b }), {}));
+function build<T extends object>(spec: MapEncoder<object, T>): Encoder<unknown, T> {
+    return makeEncoder((obj) => objectFromEntries(
+        objectToEntries(spec)
+            .map(([key, convert]) => convert.encode(obj[key]))
+            .flatMap(objectToEntries)));
 }

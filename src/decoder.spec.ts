@@ -77,7 +77,23 @@ describe("build", () => {
                                 .sort()
                                 .reduce((state, prop) => ({ ...state, [prop]: "error" }), {}))));
                 }));
-    });
+        });
+    it("rejects non-objects", () => {
+        fc.assert(
+            fc.property(
+                fc.anything().filter((x) => x == null || typeof(x) !== "object"),
+                (input) => {
+                    expect(
+                        simplify(D
+                            .build<IFoo>({
+                                bar: D.constant(1),
+                                baz: D.constant(true),
+                                qux: D.constant("qux"),
+                            })
+                            .decode(input)))
+                        .toEqual(simplify(Invalid({ $: "Expected an object" })));
+                }));
+        });
 });
 
 describe("mapM and forM", () => {

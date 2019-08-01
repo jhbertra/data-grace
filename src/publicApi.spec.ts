@@ -57,7 +57,7 @@ prove<Equals<typeof array, { unzip: typeof array.unzip, zipWith: typeof array.zi
   ------------------------------*/
 prove<Equals<typeof codec.array, <T>(_: codec.Codec<any, T>) => codec.Codec<any, T[]>>>(requireMajor("codec.array"));
 prove<Equals<typeof codec.boolean, codec.Codec<any, boolean>>>(requireMajor("codec.boolean"));
-prove<Equals<typeof codec.build, <T extends object>(spec: codec.MapCodec<object, T>) => codec.Codec<object, T>>>(requireMajor("codec.build"));
+prove<Equals<typeof codec.build, <T extends object>(spec: codec.MapCodec<object, T>) => codec.Codec<unknown, T>>>(requireMajor("codec.build"));
 prove<Equals<typeof codec.date, codec.Codec<any, Date>>>(requireMajor("codec.date"));
 prove<Equals<typeof codec.makeCodec, <TOut, A>(decoder: decoder.Decoder<TOut, A>, encoder: encoder.Encoder<TOut, A>) => codec.Codec<TOut, A>>>(requireMajor("codec.makeCodec"));
 prove<Equals<typeof codec.number, codec.Codec<any, number>>>(requireMajor("codec.number"));
@@ -101,7 +101,7 @@ prove<Equals<
   ------------------------------*/
 prove<Equals<typeof decoder.array, <T>(_: decoder.Decoder<any, T>) => decoder.Decoder<any, T[]>>>(requireMajor("decoder.array"));
 prove<Equals<typeof decoder.boolean, decoder.Decoder<any, boolean>>>(requireMajor("decoder.boolean"));
-prove<Equals<typeof decoder.build, <T extends object>(spec: decoder.MapDecoder<object, T>) => decoder.Decoder<object, T>>>(requireMajor("decoder.build"));
+prove<Equals<typeof decoder.build, <T extends object>(spec: decoder.MapDecoder<object, T>) => decoder.Decoder<unknown, T>>>(requireMajor("decoder.build"));
 prove<Equals<typeof decoder.constant, <T>(t: T) => decoder.Decoder<any, T>>>(requireMajor("decoder.constant"));
 prove<Equals<typeof decoder.constantFailure, <T>(e: decoder.DecodeError) => decoder.Decoder<any, T>>>(requireMajor("decoder.constantFailure"));
 prove<Equals<typeof decoder.date, decoder.Decoder<any, Date>>>(requireMajor("decoder.date"));
@@ -272,7 +272,7 @@ prove<Equals<
   ------------------------------*/
 prove<Equals<typeof encoder.array, <T>(_: encoder.Encoder<any, T>) => encoder.Encoder<any, T[]>>>(requireMajor("encoder.array"));
 prove<Equals<typeof encoder.boolean, encoder.Encoder<any, boolean>>>(requireMajor("encoder.boolean"));
-prove<Equals<typeof encoder.build, <T extends object>(spec: encoder.MapEncoder<object, T>) => encoder.Encoder<object, T>>>(requireMajor("encoder.build"));
+prove<Equals<typeof encoder.build, <T extends object>(spec: encoder.MapEncoder<object, T>) => encoder.Encoder<unknown, T>>>(requireMajor("encoder.build"));
 prove<Equals<typeof encoder.date, encoder.Encoder<any, Date>>>(requireMajor("encoder.date"));
 prove<Equals<typeof encoder.makeEncoder, <TOut, A>(_: (_: A) => TOut) => encoder.Encoder<TOut, A>>>(requireMajor("encoder.makeEncoder"));
 prove<Equals<typeof encoder.number, encoder.Encoder<any, number>>>(requireMajor("encoder.number"));

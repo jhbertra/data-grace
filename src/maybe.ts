@@ -237,7 +237,7 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
 function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
         defaultWith() { return value; },
-        filter(p) { return p(value) ? this : Nothing(); },
+        filter(p) { return p(value) ? this : staticNothing; },
         flatMap(f) { return f(value); },
         isJust() { return true; },
         isNothing() { return false; },
@@ -254,26 +254,28 @@ function Just<A>(value: A): Maybe<A> {
     });
 }
 
+const staticNothing: Maybe<any> = Object.freeze({
+    defaultWith: id,
+    filter() { return this; },
+    flatMap() { return this; },
+    isJust() { return false; },
+    isNothing() { return true; },
+    map() { return this; },
+    matchCase({ nothing }) { return nothing(); },
+    or(m2) { return m2(); },
+    replace() { return this; },
+    replacePure() { return this; },
+    tag: "Nothing",
+    toArray() { return []; },
+    toString() { return `Nothing`; },
+    voidOut() { return staticNothing; },
+});
+
 /**
  * Constructs a new @see Maybe that contains no value.
  */
 function Nothing<A>(): Maybe<A> {
-    return Object.freeze({
-        defaultWith: id,
-        filter() { return this; },
-        flatMap() { return this; },
-        isJust() { return false; },
-        isNothing() { return true; },
-        map() { return this; },
-        matchCase({ nothing }) { return nothing(); },
-        or(m2) { return m2(); },
-        replace() { return this; },
-        replacePure() { return this; },
-        tag: "Nothing",
-        toArray() { return []; },
-        toString() { return `Nothing`; },
-        voidOut() { return Nothing<[]>(); },
-    }) as Maybe<A>;
+    return staticNothing as Maybe<A>;
 }
 
 /*------------------------------
@@ -287,7 +289,7 @@ function Nothing<A>(): Maybe<A> {
  * defined or not.
  */
 function toMaybe<A>(value?: A): Maybe<A> {
-    return value == null ? Nothing() : Just(value);
+    return value == null ? staticNothing : Just(value);
 }
 
 /**
@@ -296,7 +298,7 @@ function toMaybe<A>(value?: A): Maybe<A> {
  * nothing.
  */
 function arrayToMaybe<A>(arr: A[]): Maybe<A> {
-    return arr.length === 0 ? Nothing() : Just(arr[0]);
+    return arr.length === 0 ? staticNothing : Just(arr[0]);
 }
 
 /**
@@ -307,17 +309,15 @@ function arrayToMaybe<A>(arr: A[]): Maybe<A> {
  *
  *      mapMaybes(f, arr) === catMaybes(arr.map(f));
  */
-function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
-    return ms
-        .map(f)
-        .reduce(
-            (state, b) => {
-                switch (b.tag) {
-                    case "Just": return [...state, b.value];
-                    case "Nothing": return state;
-                }
-            },
-            [] as B[]);
+function mapMaybe<A, B>(f: (value: A) => Maybe<B>, as: A[]): B[] {
+    const results: B[] = [];
+    for (const a of as) {
+        const m = f(a);
+        if (m.isJust()) {
+            results.push(m.value);
+        }
+    }
+    return results;
 }
 
 /**
@@ -328,14 +328,13 @@ function mapMaybe<A, B>(f: (value: A) => Maybe<B>, ms: A[]): B[] {
  *      catMaybes([Just("foo"), Nothing(), Just("bar")]); // ["foo", "bar"]
  */
 function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
-    return ms.reduce(
-        (state, m) => {
-            switch (m.tag) {
-                case "Just": return [...state, m.value];
-                case "Nothing": return state;
-            }
-        },
-        [] as A[]);
+    const results: A[] = [];
+    for (const m of ms) {
+        if (m.isJust()) {
+            results.push(m.value);
+        }
+    }
+    return results;
 }
 
 /*------------------------------
@@ -358,11 +357,15 @@ function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
  *      lift(answerTrueFalse, Just("The meaning of life is 42."), Just(true)).toString();
  */
 function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
-    const processedArgs = catMaybes(args);
-
-    return processedArgs.length === args.length
-        ? Just(f.apply(undefined, processedArgs as P))
-        : Nothing();
+    const values = [];
+    for (const arg of args) {
+        if (arg.isNothing()) {
+            return arg;
+        } else {
+            values.push(arg.value);
+        }
+    }
+    return Just(f(...values as P));
 }
 
 /**
@@ -453,20 +456,28 @@ function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe
  *          return reduceM(
  *              ([...x, prev], next) => next - prev === 1
  *                  ? Just([...x, prev, next])
- *                  : Nothing(),
+ *                  : staticNothing,
  *              [first],
  *              ns);
  *      }
  */
 function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
-    return as.reduce(
-        (state, a) => state.flatMap((b) => f(b, a)),
-        Just(seed));
+    let state = Just<B>(seed);
+    for (const a of as) {
+        if (state.isNothing()) {
+            return state;
+        } else {
+            state = state.flatMap((b) => f(b, a));
+        }
+    }
+    return state;
 }
 
 /*------------------------------
   GENERAL MONAD FUNCTIONS
   ------------------------------*/
+
+const empty = Just([]);
 
 /**
  * Create a @see Maybe that has a value when a condition is
@@ -484,7 +495,7 @@ function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe
  *      const censoredFileContents = Just(fileContents).filter(() => hasPermission);
  */
 function when(b: boolean): Maybe<[]> {
-    return b ? Just([]) : Nothing();
+    return b ? empty : staticNothing;
 }
 
 /**

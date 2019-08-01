@@ -257,7 +257,7 @@ function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> 
  *      fooCodec.decode({ bar: "eek", baz: false });
  *      fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  */
-export function build<T extends object>(spec: MapCodec<object, T>): Codec<object, T> {
+export function build<T extends object>(spec: MapCodec<object, T>): Codec<unknown, T> {
     return makeCodec(
         D.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
         E.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));

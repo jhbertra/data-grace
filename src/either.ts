@@ -91,7 +91,7 @@ interface IEither<A, B> {
      *          result.value; // "Bob";
      *      }
      */
-    isRight(): this is IEitherRight<A>;
+    isRight(): this is IEitherRight<B>;
 
     /**
      * Modify the data in the @see Right case.
@@ -309,9 +309,13 @@ function Right<A, B>(value: B): Either<A, B> {
  *     lefts(Right("bob"), Left("error"), Right("sue")); // ["error"]
  */
 function lefts<A, B>(es: Array<Either<A, B>>): A[] {
-    return es.reduce(
-        (state, m) => [...state, ...m.matchCase({ left: (x) => [x], right: () => [] })],
-        [] as A[]);
+    const result: A[] = [];
+    for (const e of es) {
+        if (e.isLeft()) {
+            result.push(e.value);
+        }
+    }
+    return result;
 }
 
 /**
@@ -319,12 +323,16 @@ function lefts<A, B>(es: Array<Either<A, B>>): A[] {
  *
  * @example
  *
- *     lefts(Right("bob"), Left("error"), Right("sue")); // ["bob", "sue"]
+ *     rights(Right("bob"), Left("error"), Right("sue")); // ["bob", "sue"]
  */
 function rights<A, B>(es: Array<Either<A, B>>): B[] {
-    return es.reduce(
-        (state, m) => [...state, ...m.matchCase({ left: () => [], right: (x) => [x] })],
-        [] as B[]);
+    const result: B[] = [];
+    for (const e of es) {
+        if (e.isRight()) {
+            result.push(e.value);
+        }
+    }
+    return result;
 }
 
 /*------------------------------
@@ -356,11 +364,15 @@ function rights<A, B>(es: Array<Either<A, B>>): B[] {
  *      lift(answerTrueFalse, Right("The meaning of life is 42."), Right(true)).toString();
  */
 function lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
-    const errors = lefts(args);
-
-    return errors.length === 0
-        ? Right(f.apply(undefined, rights(args) as P))
-        : Left(errors[0]);
+    const values = [];
+    for (const arg of args) {
+        if (arg.isLeft()) {
+            return arg;
+        } else {
+            values.push(arg.value);
+        }
+    }
+    return Right(f(...values as P));
 }
 
 /**
@@ -457,9 +469,15 @@ function zipWithM<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], cs: C[])
  *      }
  */
 function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
-    return bs.reduce(
-        (state, a) => state.flatMap((b) => f(b, a)),
-        Right<A, C>(seed));
+    let state = Right<A, C>(seed);
+    for (const b of bs) {
+        if (state.isLeft()) {
+            return state;
+        } else {
+            state = state.flatMap((c) => f(c, b));
+        }
+    }
+    return state;
 }
 
 /*------------------------------
@@ -473,11 +491,13 @@ function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
     return m.flatMap(id);
 }
 
+const empty = Right([]);
+
 /**
  * If a condition is true, run the given choice, otherwise skip it.
  */
 function when<A>(b: boolean, e: Either<A, []>): Either<A, []> {
-    return b ? e : Right([]);
+    return b ? e : empty as Either<A, []>;
 }
 
 /**

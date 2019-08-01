@@ -58,11 +58,12 @@ describe("build", () => {
     it("decode equals decoder", () => {
         fc.assert(
             fc.property(
-                fc.anything(),
-                fc.anything(),
-                fc.anything(),
-                (bar, baz, qux) => {
-                    const input = { bar, baz, qux };
+                fc.oneof(
+                    fc
+                        .tuple(fc.anything(), fc.anything(), fc.anything())
+                        .map(([bar, baz, qux]) => ({ bar, baz, qux })),
+                    fc.anything()),
+                (input) => {
                     expect(simplify(codec.decode(input))).toEqual(simplify(decoder.decode(input)));
                 }));
     });

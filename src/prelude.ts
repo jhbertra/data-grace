@@ -310,7 +310,9 @@ function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]
  */
 function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
     const result =  {} as T;
-    entries.forEach(([key, value]) => result[key] = value);
+    for (const [key, value] of entries) {
+        result[key] = value;
+    }
     return result;
 }
 

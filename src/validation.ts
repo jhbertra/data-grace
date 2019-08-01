@@ -18,10 +18,10 @@ export {
     zipWithM,
 };
 
-import {unzip, zipWith} from "./array";
+import { unzip, zipWith } from "./array";
 import { Either, Left, Right } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import {constant, id, objectFromEntries, objectToEntries} from "./prelude";
+import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -191,7 +191,7 @@ interface IValidationInvalid<A extends object | any[]> { readonly tag: "Invalid"
 /**
  * The type of an object constructed using the @see Valid case.
  */
-interface IValidationValid<B> { readonly tag: "Valid";  readonly value: B; }
+interface IValidationValid<B> { readonly tag: "Valid"; readonly value: B; }
 
 /**
  * A data type that represents a calculation which can fail. The primary
@@ -217,13 +217,13 @@ type MapValidation<A extends object | any[], B> = { [K in keyof B]: Validation<A
  * result.
  */
 function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
-    return  Object.freeze({
+    return Object.freeze({
         defaultWith: constant(value),
         isInvalid() { return false; },
         isValid() { return true; },
         map(f) { return Valid(f(value)); },
         mapError() { return this; },
-        matchCase({valid}) { return valid(value); },
+        matchCase({ valid }) { return valid(value); },
         or() { return this; },
         replace: id,
         replacePure: Valid,
@@ -242,14 +242,14 @@ function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
  * result.
  */
 function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
-    return  Object.freeze({
+    return Object.freeze({
         defaultWith: id,
         failure,
         isInvalid() { return true; },
         isValid() { return false; },
         map() { return this; },
         mapError(f) { return Invalid(f(failure)); },
-        matchCase({invalid}) { return invalid(failure); },
+        matchCase({ invalid }) { return invalid(failure); },
         or(x) { return x(); },
         replace(x) {
             return build<A, { a: B, b: typeof x extends Validation<A, infer C> ? C : never }>({
@@ -274,19 +274,27 @@ function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
 /**
  * return a collection of all the failures in the list of validations.
  */
-function failures<A extends object | any[], B>(es: Array<Validation<A, B>>): A[] {
-    return es.reduce(
-        (state, m) => [...state, ...m.matchCase({invalid: (x) => [x], valid: () => []})],
-         [] as A[]);
+function failures<A extends object | any[], B>(vs: Array<Validation<A, B>>): A[] {
+    const result: A[] = [];
+    for (const validation of vs) {
+        if (validation.isInvalid()) {
+            result.push(validation.failure);
+        }
+    }
+    return result;
 }
 
 /**
  * return a collection of all the successes in the list of validations.
  */
 function successful<A extends object | any[], B>(es: Array<Validation<A, B>>): B[] {
-    return es.reduce(
-        (state, m) => [...state, ...m.matchCase({invalid: () => [], valid: (x) => [x]})],
-         [] as B[]);
+    const result: B[] = [];
+    for (const validation of es) {
+        if (validation.isValid()) {
+            result.push(validation.value);
+        }
+    }
+    return result;
 }
 
 /*------------------------------
@@ -312,13 +320,23 @@ function successful<A extends object | any[], B>(es: Array<Validation<A, B>>): B
 function lift<A extends object | any[], P extends any[], R>(
     f: (...args: P) => R,
     ...args: MapValidation<A, P>): Validation<A, R> {
-    const errors = failures(args);
 
-    return errors.length === 0
-        ? Valid(f.apply(undefined,  successful(args) as P))
+    const values = [];
+    const errors: A[] = [];
+
+    for (const result of args) {
+        if (result.isValid()) {
+            values.push(result.value);
+        } else {
+            errors.push(result.failure);
+        }
+    }
+
+    return values.length === args.length
+        ? Valid(f.apply(undefined, values as P))
         : Array.isArray(errors[0])
-            ? Invalid(errors.reduce((a, b) => [...a as any[], ...b as any[]],  [] as any[]) as A)
-            : Invalid(errors.reduce((a, b) => ({...a, ...b}),  {} as A));
+            ? Invalid(errors.flatMap(id as any) as A)
+            : Invalid(objectFromEntries(errors.flatMap(objectToEntries)) as A);
 }
 
 /**
@@ -351,7 +369,7 @@ function lift<A extends object | any[], P extends any[], R>(
  */
 function build<A extends object | any[], T extends object>(spec: MapValidation<A, T>): Validation<A, T> {
     const kvpValidation = sequence(objectToEntries(spec).map(
-        ([key, value]) => value.map((x) =>  [key, x] as [keyof T, T[typeof key]])));
+        ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
 
     return kvpValidation.map(objectFromEntries);
 }
