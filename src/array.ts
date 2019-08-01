@@ -1,14 +1,15 @@
 export {
     IArrayExtensions,
+    Cons,
     MapArray,
     and,
     intercalate,
     maximum,
     minimum,
     or,
+    product,
     replicate,
     sum,
-    product,
     unzip,
 };
 
@@ -59,6 +60,118 @@ interface IArrayExtensions<A> {
  * onto the types of A.
  */
 type MapArray<A> = { [K in keyof A]: Array<A[K]> };
+
+/**
+ * Returns the conjunction of an array of booleans.
+ * Returns true if the array is empty.
+ */
+function and(bools: boolean[]): boolean {
+    let result = true;
+    for (const b of bools) {
+        result = result && b;
+    }
+    return result;
+}
+
+/**
+ * Inserts the separator array between the arrays in arrays and
+ * concatenates the result.
+ */
+function intercalate<A>(seperator: A[], arrays: A[][]): A[] {
+    return ([] as A[]).concat(...arrays.intersperse(seperator));
+}
+
+/**
+ * Returns the largest element in the array.
+ */
+function maximum(nums: number[]): number {
+    let result = Number.MIN_VALUE;
+    for (const num of nums) {
+        if (num > result) {
+            result = num;
+        }
+    }
+    return result;
+}
+
+/**
+ * Returns the smallest element in the array.
+ */
+function minimum(nums: number[]): number {
+    let result = Number.MAX_VALUE;
+    for (const num of nums) {
+        if (num < result) {
+            result = num;
+        }
+    }
+    return result;
+}
+
+/**
+ * Returns the disjunction of an array of booleans.
+ * Returns false if the array is empty.
+ */
+function or(bools: boolean[]): boolean {
+    let result = false;
+    for (const b of bools) {
+        result = result || b;
+    }
+    return result;
+}
+
+/**
+ * Returns the product of elements in the array.
+ */
+function product(nums: number[]): number {
+    let result = 1;
+    for (const num of nums) {
+        result *= num;
+    }
+    return result;
+}
+
+/**
+ * Returns an array that contains item a specific
+ * number of times.
+ */
+function replicate<N extends number, A>(times: N, item: A): A[] & { length: N } {
+    const result: A[] = [];
+    for (let i = 0; i < times; i++) {
+        result.push(item);
+    }
+    return result as any;
+}
+
+/**
+ * Returns the sum of elements in the array.
+ */
+function sum(nums: number[]): number {
+    let result = 0;
+    for (const num of nums) {
+        result += num;
+    }
+    return result;
+}
+
+/**
+ * Take a list of tuples and transform it into a tuple of lists.
+ *
+ * @param abs the array to unzip
+ */
+function unzip<N extends number, P extends any[] & { length: N }>(n: N, input: P[]): MapArray<P> {
+    const result = [];
+    for (let i = 0; i < n; i++) {
+        result.push([] as any[]);
+    }
+    for (const tuple of input) {
+        for (let i = 0; i < n; i++) {
+            const element = tuple[i];
+            const bucket = result[i];
+            bucket.push(element as any);
+        }
+    }
+    return result as any;
+}
 
 declare global {
     // tslint:disable-next-line:interface-name
@@ -313,88 +426,3 @@ Array.prototype.zipWith = function zipWithForArray(f, ...arrs) {
     }
     return result;
 };
-
-function and(bools: boolean[]): boolean {
-    let result = true;
-    for (const b of bools) {
-        result = result && b;
-    }
-    return result;
-}
-
-function intercalate<A>(seperator: A[], arrays: A[][]): A[] {
-    return ([] as A[]).concat(...arrays.intersperse(seperator));
-}
-
-function maximum(nums: number[]): number {
-    let result = Number.MIN_VALUE;
-    for (const num of nums) {
-        if (num > result) {
-            result = num;
-        }
-    }
-    return result;
-}
-
-function minimum(nums: number[]): number {
-    let result = Number.MAX_VALUE;
-    for (const num of nums) {
-        if (num < result) {
-            result = num;
-        }
-    }
-    return result;
-}
-
-function or(bools: boolean[]): boolean {
-    let result = false;
-    for (const b of bools) {
-        result = result || b;
-    }
-    return result;
-}
-
-function replicate<A>(times: number, a: A | A[]): A[] {
-    const toRepeat = Array.isArray(a) ? a : [a];
-    let result: A[] = [];
-    for (let i = 0; i < times; i++) {
-        result = result.concat(toRepeat);
-    }
-    return result;
-}
-
-function sum(nums: number[]): number {
-    let result = 0;
-    for (const num of nums) {
-        result += num;
-    }
-    return result;
-}
-
-function product(nums: number[]): number {
-    let result = 1;
-    for (const num of nums) {
-        result *= num;
-    }
-    return result;
-}
-
-/**
- * Take a list of tuples and transform it into a tuple of lists.
- *
- * @param abs the array to unzip
- */
-function unzip<N extends number, P extends any[] & { length: N }>(n: N, input: P[]): MapArray<P> {
-    const result = [];
-    for (let i = 0; i < n; i++) {
-        result.push([] as any[]);
-    }
-    for (const tuple of input) {
-        for (let i = 0; i < n; i++) {
-            const element = tuple[i];
-            const bucket = result[i];
-            bucket.push(element as any);
-        }
-    }
-    return result as any;
-}

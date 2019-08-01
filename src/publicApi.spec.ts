@@ -53,7 +53,7 @@ prove<Equals<typeof array.intercalate, <A>(seperator: A[], arrays: A[][]) => A[]
 prove<Equals<typeof array.maximum, (nums: number[]) => number>>(requireMajor("array.maximum"));
 prove<Equals<typeof array.minimum, (nums: number[]) => number>>(requireMajor("array.minimum"));
 prove<Equals<typeof array.or, (bools: boolean[]) => boolean>>(requireMajor("array.or"));
-prove<Equals<typeof array.replicate, <A>(times: number, a: A | A[]) => A[]>>(requireMajor("array.replicate"));
+prove<Equals<typeof array.replicate, <N extends number, A>(times: N, a: A) => A[] & { length: N }>>(requireMajor("array.replicate"));
 prove<Equals<typeof array.sum, (nums: number[]) => number>>(requireMajor("array.sum"));
 prove<Equals<typeof array.product, (nums: number[]) => number>>(requireMajor("array.product"));
 prove<Equals<typeof array.unzip, <N extends number, P extends any[] & { length: N }>(n: N, input: P[]) => array.MapArray<P>>>(requireMajor("array.unzip"));
@@ -71,6 +71,75 @@ prove<Equals<
     unzip: typeof array.unzip,
   }
 >>(requireMinor("array API"));
+
+(function validateIArrayExtendsions<A>() {
+  const iarrayextensions: array.IArrayExtensions<A> = undefined as any;
+  prove<Equals<typeof iarrayextensions.all, (p: (a: A) => boolean) => boolean>>(requireMajor("array.all"));
+  prove<Equals<typeof iarrayextensions.any, (p: (a: A) => boolean) => boolean>>(requireMajor("array.any"));
+  prove<Equals<typeof iarrayextensions.break, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.break"));
+  prove<Equals<typeof iarrayextensions.chain, <B>(f: (a: A) => B[]) => B[]>>(requireMajor("array.chain"));
+  prove<Equals<typeof iarrayextensions.contains, (a: A) => boolean>>(requireMajor("array.contains"));
+  prove<Equals<typeof iarrayextensions.dropWhile, (p: (a: A) => boolean) => A[]>>(requireMajor("array.dropWhile"));
+  prove<Equals<typeof iarrayextensions.group, () => A[][]>>(requireMajor("array.group"));
+  prove<Equals<typeof iarrayextensions.groupBy, <B>(getKey: (a: A) => B) => Array<[B, A[]]>>>(requireMajor("array.groupBy"));
+  prove<Equals<typeof iarrayextensions.head, () => A>>(requireMajor("array.head"));
+  prove<Equals<typeof iarrayextensions.init, () => A[]>>(requireMajor("array.init"));
+  prove<Equals<typeof iarrayextensions.inits, () => A[][]>>(requireMajor("array.inits"));
+  prove<Equals<typeof iarrayextensions.intersperse, (t: A) => A[]>>(requireMajor("array.intersperse"));
+  prove<Equals<typeof iarrayextensions.isEmpty, () => boolean>>(requireMajor("array.isEmpty"));
+  prove<Equals<typeof iarrayextensions.isInfixOf, (other: A[]) => boolean>>(requireMajor("array.isInfixOf"));
+  prove<Equals<typeof iarrayextensions.isInfixedBy, (other: A[]) => boolean>>(requireMajor("array.isInfixedBy"));
+  prove<Equals<typeof iarrayextensions.isPrefixOf, (other: A[]) => boolean>>(requireMajor("array.isPrefixOf"));
+  prove<Equals<typeof iarrayextensions.isPrefixedBy, (other: A[]) => boolean>>(requireMajor("array.isPrefixedBy"));
+  prove<Equals<typeof iarrayextensions.isSuffixOf, (other: A[]) => boolean>>(requireMajor("array.isSuffixOf"));
+  prove<Equals<typeof iarrayextensions.isSuffixedBy, (other: A[]) => boolean>>(requireMajor("array.isSuffixedBy"));
+  prove<Equals<typeof iarrayextensions.last, () => A>>(requireMajor("array.last"));
+  prove<Equals<typeof iarrayextensions.partition, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.partition"));
+  prove<Equals<typeof iarrayextensions.scan, <B>(reduce: (b: B, a: A) => B, seed: B) => B[]>>(requireMajor("array.scan"));
+  prove<Equals<typeof iarrayextensions.scanRight, <B>(reduce: (a: A, b: B) => B, seed: B) => B[]>>(requireMajor("array.scanRight"));
+  prove<Equals<typeof iarrayextensions.span, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.span"));
+  prove<Equals<typeof iarrayextensions.splitAt, (index: number) => [A[], A[]]>>(requireMajor("array.splitAt"));
+  prove<Equals<typeof iarrayextensions.takeWhile, (p: (a: A) => boolean) => A[]>>(requireMajor("array.takeWhile"));
+  prove<Equals<typeof iarrayextensions.tail, () => A[]>>(requireMajor("array.tail"));
+  prove<Equals<typeof iarrayextensions.tails, () => A[][]>>(requireMajor("array.tails"));
+  prove<Equals<typeof iarrayextensions.zip, <P extends any[]>(...arr: array.MapArray<P>) => Array<array.Cons<A, P>>>>(requireMajor("array.zip"));
+  prove<Equals<typeof iarrayextensions.zipWith, <P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: array.MapArray<P>) => B[]>>(requireMajor("array.zipWith"));
+  prove<Equals<
+    typeof iarrayextensions,
+    {
+      all: typeof iarrayextensions.all;
+      any: typeof iarrayextensions.any;
+      break: typeof iarrayextensions.break;
+      chain: typeof iarrayextensions.chain;
+      contains: typeof iarrayextensions.contains;
+      dropWhile: typeof iarrayextensions.dropWhile;
+      group: typeof iarrayextensions.group;
+      groupBy: typeof iarrayextensions.groupBy;
+      head: typeof iarrayextensions.head;
+      init: typeof iarrayextensions.init;
+      inits: typeof iarrayextensions.inits;
+      intersperse: typeof iarrayextensions.intersperse;
+      isEmpty: typeof iarrayextensions.isEmpty;
+      isInfixOf: typeof iarrayextensions.isInfixOf;
+      isInfixedBy: typeof iarrayextensions.isInfixedBy;
+      isPrefixOf: typeof iarrayextensions.isPrefixOf;
+      isPrefixedBy: typeof iarrayextensions.isPrefixedBy;
+      isSuffixOf: typeof iarrayextensions.isSuffixOf;
+      isSuffixedBy: typeof iarrayextensions.isSuffixedBy;
+      last: typeof iarrayextensions.last;
+      partition: typeof iarrayextensions.partition;
+      scan: typeof iarrayextensions.scan;
+      scanRight: typeof iarrayextensions.scanRight;
+      span: typeof iarrayextensions.span;
+      splitAt: typeof iarrayextensions.splitAt;
+      takeWhile: typeof iarrayextensions.takeWhile;
+      tail: typeof iarrayextensions.tail;
+      tails: typeof iarrayextensions.tails;
+      zip: typeof iarrayextensions.zip;
+      zipWith: typeof iarrayextensions.zipWith;
+    }
+  >>(requireMinor("array.IArrayExtensions"));
+}());
 
 /*------------------------------
   CODEC API
