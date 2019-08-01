@@ -14,7 +14,6 @@ export {
     tuple,
 };
 
-import { zipWith } from "./array";
 import { Maybe } from "./maybe";
 import { id, objectFromEntries, objectToEntries } from "./prelude";
 
@@ -112,7 +111,7 @@ function property<T>(name: string, convert: Encoder<any, T>): Encoder<object, T>
  * Encode the elements within a tuple.
  */
 function tuple<T extends any[]>(...converters: MapEncoder<any, T>): Encoder<any, T> {
-    return makeEncoder((t) => zipWith((elem, convert) => convert.encode(elem), t, converters));
+    return makeEncoder((t) => converters.zipWith((elem, convert) => convert.encode(elem), t));
 }
 
 /*------------------------------

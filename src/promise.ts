@@ -9,8 +9,8 @@ export {
     zipWithM,
 };
 
-import {unzip, zipWith} from "./array";
-import {objectFromEntries, objectToEntries} from "./prelude";
+import { MapArray, unzip } from "./array";
+import { objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -59,7 +59,7 @@ type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
  * are resolved.
  */
 async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
-    return f.apply(undefined,  (await Promise.all(args)) as P);
+    return f.apply(undefined, (await Promise.all(args)) as P);
 }
 
 /**
@@ -68,7 +68,7 @@ async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromis
  */
 async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
     const kvpsPromise = Promise.all(objectToEntries(spec).map(
-        ([key, value]) => value.then((x) =>  [key, x] as [keyof T, T[typeof key]])));
+        ([key, value]) => value.then((x) => [key, x] as [keyof T, T[typeof key]])));
 
     return objectFromEntries(await kvpsPromise);
 }
@@ -97,16 +97,24 @@ function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
  * @param f A decomposition function
  * @param as An array of inputs
  */
-async function mapAndUnzipWith<A, B, C>(f: (a: A) => Promise<[B, C]>, as: A[]): Promise<[B[], C[]]> {
-    return unzip(await mapM(f, as));
+async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
+    n: N,
+    f: (a: A) => Promise<P>,
+    as: A[]): Promise<MapArray<P>> {
+
+    return unzip(n, await mapM(f, as));
 }
 
 /**
  * Reads two input arrays in-order and produces a @see Promise for each pair,
  * then aggregates the results.
  */
-function zipWithM<A, B, C>(f: (a: A, b: B) => Promise<C>, as: A[], bs: B[]): Promise<C[]> {
-    return Promise.all(zipWith(f, as, bs));
+function zipWithM<A, P extends any[], C>(
+    f: (a: A, ...params: P) => Promise<C>,
+    as: A[],
+    ...params: MapArray<P>): Promise<C[]> {
+
+    return Promise.all(as.zipWith(f, ...params as any));
 }
 
 /*------------------------------

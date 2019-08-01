@@ -18,7 +18,7 @@ export {
     zipWithM,
 };
 
-import { unzip, zipWith } from "./array";
+import { MapArray, unzip } from "./array";
 import { Either, Left, Right } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
 import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
@@ -405,19 +405,22 @@ function sequence<A extends object | any[], B>(vbs: Array<Validation<A, B>>): Va
  * @param f A decomposition function
  * @param as An array of inputs
  */
-function mapAndUnzipWith<A extends object | any[], B, C, D>(
-    f: (a: B) => Validation<A, [C, D]>,
-    bs: B[]): Validation<A, [C[], D[]]> {
-    return mapM(f, bs).map(unzip);
+function mapAndUnzipWith<A extends object | any[], N extends number, B, P extends any[] & { length: N }>(
+    n: N,
+    f: (b: B) => Validation<A, P>,
+    bs: B[]): Validation<A, MapArray<P>> {
+
+    return mapM(f, bs).map((x) => unzip(n, x));
 }
 
 /**
  * Reads two input arrays in-order and produces an @see Validation for each pair,
  * then aggregates the results or failures.
  */
-function zipWithM<A extends object | any[], B, C, D>(
-    f: (b: B, c: C) => Validation<A, D>,
+function zipWithM<A extends object | any[], B, P extends any[], C>(
+    f: (b: B, ...params: P) => Validation<A, C>,
     bs: B[],
-    cs: C[]): Validation<A, D[]> {
-    return sequence(zipWith(f, bs, cs));
+    ...params: MapArray<P>): Validation<A, C[]> {
+
+    return sequence(bs.zipWith(f, ...params as any));
 }

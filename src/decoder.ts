@@ -26,7 +26,7 @@ export {
     zipWithM,
 };
 
-import { unzip, zipWith } from "./array";
+import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
 import { id as preludeId, objectFromEntries, objectToEntries } from "./prelude";
 import { Validation } from "./validation";
@@ -441,8 +441,12 @@ function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
  * @param f A decomposition function
  * @param as An array of inputs
  */
-function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>, as: A[]): Decoder<TIn, [B[], C[]]> {
-    return mapM(f, as).map(unzip);
+function mapAndUnzipWith<TIn, N extends number, A, P extends any[] & { length: N }>(
+    n: N,
+    f: (a: A) => Decoder<TIn, P>,
+    as: A[]): Decoder<TIn, MapArray<P>> {
+
+    return mapM(f, as).map((x) => unzip(n, x));
 }
 
 /**
@@ -452,6 +456,10 @@ function mapAndUnzipWith<TIn, A, B, C>(f: (a: A) => Decoder<TIn, [B, C]>, as: A[
  * @param as The first set of inputs
  * @param bs The second set of inputs
  */
-function zipWithM<TIn, A, B, C>(f: (a: A, b: B) => Decoder<TIn, C>, as: A[], bs: B[]): Decoder<TIn, C[]> {
-    return sequence(zipWith(f, as, bs));
+function zipWithM<TIn, A, P extends any[], C>(
+    f: (a: A, ...params: P) => Decoder<TIn, C>,
+    as: A[],
+    ...params: MapArray<P>): Decoder<TIn, C[]> {
+
+    return sequence(as.zipWith(f, ...params as any));
 }

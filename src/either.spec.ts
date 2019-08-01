@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { unzip, zipWith } from "./array";
+import { unzip } from "./array";
 import * as E from "./either";
 import { Just, Nothing } from "./maybe";
 import { Equals, prove, simplify } from "./prelude";
@@ -184,8 +184,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(E.mapAndUnzipWith(([x, y]) => E.Right([y, x]), xys)))
-                        .toEqual(simplify(E.Right(unzip(xys.map(([x, y]) => [y, x])))));
+                    expect(simplify(E.mapAndUnzipWith(2, ([x, y]) => E.Right<number, [string, number]>([y, x]), xys)))
+                        .toEqual(simplify(E.Right(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Left for any Left results", () => {
@@ -199,7 +199,10 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         E.mapAndUnzipWith(
-                            ([[x, y], i]) => empties.find((e) => e === i) != null ? E.Left(i) : E.Right([y, x]),
+                            2,
+                            ([[x, y], i]) => empties.find((e) => e === i) != null
+                                ? E.Left<number, [string, number]>(i)
+                                : E.Right<number, [string, number]>([y, x]),
                             xys.map((xy, i) => [xy, i] as [[number, string], number]))))
                         .toEqual(simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), xys.length))));
                 }));
@@ -289,7 +292,7 @@ describe("zipWithM", () => {
                 fc.array(fc.integer()),
                 (strs: string[], ns: number[]) => {
                     expect(simplify(E.zipWithM((str, n) => E.Right(str.length + n), strs, ns)))
-                        .toEqual(simplify(E.Right(zipWith((str, n) => str.length + n, strs, ns))));
+                        .toEqual(simplify(E.Right(strs.zipWith((str, n) => str.length + n, ns))));
                 }));
     });
     it("is equal to Left for any Left results", () => {

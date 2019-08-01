@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { unzip, zipWith } from "./array";
+import { unzip } from "./array";
 import { Left, Right } from "./either";
 import { Just, Nothing } from "./maybe";
 import { Equals, prove, simplify } from "./prelude";
@@ -176,8 +176,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(V.mapAndUnzipWith(([x, y]) => V.Valid([y, x]), xys)))
-                        .toEqual(simplify(V.Valid(unzip(xys.map(([x, y]) => [y, x])))));
+                    expect(simplify(V.mapAndUnzipWith(2, ([x, y]) => V.Valid([y, x] as [string, number]), xys)))
+                        .toEqual(simplify(V.Valid(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {
@@ -191,7 +191,10 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         V.mapAndUnzipWith(
-                            ([[x, y], i]) => empties.find((e) => e === i) != null ? V.Invalid([i]) : V.Valid([y, x]),
+                            2,
+                            ([[x, y], i]) => empties.find((e) => e === i) != null
+                                ? V.Invalid<number[], [string, number]>([i])
+                                : V.Valid([y, x] as [string, number]),
                             xys.map((xy, i) => [xy, i] as [[number, string], number]))))
                         .toEqual(simplify(V.Invalid(empties.sort().filter((x, i, arr) => arr.indexOf(x) === i))));
                 }));
@@ -234,7 +237,7 @@ describe("zipWithM", () => {
                 fc.array(fc.integer()),
                 (strs: string[], ns: number[]) => {
                     expect(simplify(V.zipWithM((str, n) => V.Valid(str.length + n), strs, ns)))
-                        .toEqual(simplify(V.Valid(zipWith((str, n) => str.length + n, strs, ns))));
+                        .toEqual(simplify(V.Valid(strs.zipWith((str, n) => str.length + n, ns))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {

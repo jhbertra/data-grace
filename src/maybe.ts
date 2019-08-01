@@ -24,7 +24,7 @@ export {
     zipWithM,
 };
 
-import { unzip, zipWith } from "./array";
+import { MapArray, unzip } from "./array";
 import { id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
@@ -434,16 +434,24 @@ function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
  * @param f A decomposition function
  * @param as An array of inputs
  */
-function mapAndUnzipWith<A, B, C>(f: (a: A) => Maybe<[B, C]>, as: A[]): Maybe<[B[], C[]]> {
-    return mapM(f, as).map(unzip);
+function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
+    n: N,
+    f: (a: A) => Maybe<P>,
+    as: A[]): Maybe<MapArray<P>> {
+
+    return mapM(f, as).map((x) => unzip(n, x));
 }
 
 /**
  * Reads two input arrays in-order and produces a @see Maybe for each pair,
  * then aggregates the results.
  */
-function zipWithM<A, B, C>(f: (a: A, b: B) => Maybe<C>, as: A[], bs: B[]): Maybe<C[]> {
-    return sequence(zipWith(f, as, bs));
+function zipWithM<A, P extends any[], C>(
+    f: (a: A, ...params: P) => Maybe<C>,
+    as: A[],
+    ...params: MapArray<P>): Maybe<C[]> {
+
+    return sequence(as.zipWith(f, ...params as any));
 }
 
 /**

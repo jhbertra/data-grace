@@ -48,9 +48,29 @@ prove<Equals<
   ARRAY API
   ------------------------------*/
 
-prove<Equals<typeof array.unzip, <A, B>(abs: Array<[A, B]>) => [A[], B[]]>>(requireMajor("array.unzip"));
-prove<Equals<typeof array.zipWith, <A, B, C>(f: (a: A, b: B) => C, as: A[], bs: B[]) => C[]>>(requireMajor("array.zipWith"));
-prove<Equals<typeof array, { unzip: typeof array.unzip, zipWith: typeof array.zipWith }>>(requireMinor("array API"));
+prove<Equals<typeof array.and, (bools: boolean[]) => boolean>>(requireMajor("array.and"));
+prove<Equals<typeof array.intercalate, <A>(seperator: A[], arrays: A[][]) => A[]>>(requireMajor("array.intercalate"));
+prove<Equals<typeof array.maximum, (nums: number[]) => number>>(requireMajor("array.maximum"));
+prove<Equals<typeof array.minimum, (nums: number[]) => number>>(requireMajor("array.minimum"));
+prove<Equals<typeof array.or, (bools: boolean[]) => boolean>>(requireMajor("array.or"));
+prove<Equals<typeof array.replicate, <A>(times: number, a: A | A[]) => A[]>>(requireMajor("array.replicate"));
+prove<Equals<typeof array.sum, (nums: number[]) => number>>(requireMajor("array.sum"));
+prove<Equals<typeof array.product, (nums: number[]) => number>>(requireMajor("array.product"));
+prove<Equals<typeof array.unzip, <N extends number, P extends any[] & { length: N }>(n: N, input: P[]) => array.MapArray<P>>>(requireMajor("array.unzip"));
+prove<Equals<
+  typeof array,
+  {
+    and: typeof array.and,
+    intercalate: typeof array.intercalate,
+    maximum: typeof array.maximum,
+    minimum: typeof array.minimum,
+    or: typeof array.or,
+    replicate: typeof array.replicate,
+    sum: typeof array.sum,
+    product: typeof array.product,
+    unzip: typeof array.unzip,
+  }
+>>(requireMinor("array API"));
 
 /*------------------------------
   CODEC API
@@ -109,7 +129,7 @@ prove<Equals<typeof decoder.forM, <TIn, A, B>(as: A[], f: (a: A) => decoder.Deco
 prove<Equals<typeof decoder.id, decoder.Decoder<any, any>>>(requireMajor("decoder.id"));
 prove<Equals<typeof decoder.lift, <TIn, P extends any[], R>(f: (...args: P) => R, ...args: decoder.MapDecoder<TIn, P>) => decoder.Decoder<TIn, R>>>(requireMajor("decoder.lift"));
 prove<Equals<typeof decoder.makeDecoder, <TIn, A>(_: (_: TIn) => validation.Validation<decoder.DecodeError, A>) => decoder.Decoder<TIn, A>>>(requireMajor("decoder.makeDecoder"));
-prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, A, B, C>(f: (a: A) => decoder.Decoder<TIn, [B, C]>, as: A[]) => decoder.Decoder<TIn, [B[], C[]]>>>(requireMajor("decoder.mapAndUnzipWith"));
+prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, N extends number, A, P extends any[] & { length: N }>(n: N, f: (a: A) => decoder.Decoder<TIn, P>, as: A[]) => decoder.Decoder<TIn, array.MapArray<P>>>>(requireMajor("decoder.mapAndUnzipWith"));
 prove<Equals<typeof decoder.mapM, <TIn, A, B>(f: (a: A) => decoder.Decoder<TIn, B>, as: A[]) => decoder.Decoder<TIn, B[]>>>(requireMajor("decoder.mapM"));
 prove<Equals<typeof decoder.number, decoder.Decoder<any, number>>>(requireMajor("decoder.number"));
 prove<Equals<typeof decoder.oneOf, <T>(...args: Array<decoder.Decoder<any, T>>) => decoder.Decoder<any, T>>>(requireMajor("decoder.oneOf"));
@@ -119,7 +139,7 @@ prove<Equals<typeof decoder.property, <T>(name: string, _: decoder.Decoder<any, 
 prove<Equals<typeof decoder.sequence, <TIn, A>(mas: Array<decoder.Decoder<TIn, A>>) => decoder.Decoder<TIn, A[]>>>(requireMajor("decoder.sequence"));
 prove<Equals<typeof decoder.string, decoder.Decoder<any, string>>>(requireMajor("decoder.string"));
 prove<Equals<typeof decoder.tuple, <T extends any[]>(...converters: decoder.MapDecoder<any, T>) => decoder.Decoder<any, T>>>(requireMajor("decoder.tuple"));
-prove<Equals<typeof decoder.zipWithM, <TIn, A, B, C>(f: (a: A, b: B) => decoder.Decoder<TIn, C>, as: A[], bs: B[]) => decoder.Decoder<TIn, C[]>>>(requireMajor("decoder.zipWithM"));
+prove<Equals<typeof decoder.zipWithM, <TIn, A, P extends any[], C>(f: (a: A, ...params: P) => decoder.Decoder<TIn, C>, as: A[], ...params: array.MapArray<P>) => decoder.Decoder<TIn, C[]>>>(requireMajor("decoder.zipWithM"));
 prove<Equals<
   typeof decoder,
   {
@@ -177,14 +197,14 @@ prove<Equals<typeof either.forM, <L, A, B>(as: A[], f: (a: A) => either.Either<L
 prove<Equals<typeof either.join, <L, A>(_: either.Either<L, either.Either<L, A>>) => either.Either<L, A>>>(requireMajor("either.join"));
 prove<Equals<typeof either.lefts, <L, A>(ms: Array<either.Either<L, A>>) => L[]>>(requireMajor("either.lefts"));
 prove<Equals<typeof either.lift, <L, P extends any[], R>(f: (...args: P) => R, ...args: either.MapEither<L, P>) => either.Either<L, R>>>(requireMajor("either.lift"));
-prove<Equals<typeof either.mapAndUnzipWith, <L, A, B, C>(f: (a: A) => either.Either<L, [B, C]>, as: A[]) => either.Either<L, [B[], C[]]>>>(requireMajor("either.mapAndUnzipWith"));
+prove<Equals<typeof either.mapAndUnzipWith, <A, N extends number, B, P extends any[] & { length: N }>(n: N, f: (b: B) => either.Either<A, P>, bs: B[]) => either.Either<A, array.MapArray<P>>>>(requireMajor("either.mapAndUnzipWith"));
 prove<Equals<typeof either.mapM, <L, A, B>(f: (a: A) => either.Either<L, B>, as: A[]) => either.Either<L, B[]>>>(requireMajor("either.mapM"));
 prove<Equals<typeof either.reduceM, <L, A, B>(f: (state: B, a: A) => either.Either<L, B>, seed: B, as: A[]) => either.Either<L, B>>>(requireMajor("either.reduceM"));
 prove<Equals<typeof either.rights, <L, A>(ms: Array<either.Either<L, A>>) => A[]>>(requireMajor("either.rights"));
 prove<Equals<typeof either.sequence, <L, A>(mas: Array<either.Either<L, A>>) => either.Either<L, A[]>>>(requireMajor("either.sequence"));
 prove<Equals<typeof either.unless, <L>(b: boolean, e: either.Either<L, []>) => either.Either<L, []>>>(requireMajor("either.unless"));
 prove<Equals<typeof either.when, <L>(b: boolean, e: either.Either<L, []>) => either.Either<L, []>>>(requireMajor("either.when"));
-prove<Equals<typeof either.zipWithM, <L, A, B, C>(f: (a: A, b: B) => either.Either<L, C>, as: A[], bs: B[]) => either.Either<L, C[]>>>(requireMajor("either.zipWithM"));
+prove<Equals<typeof either.zipWithM, <A, B, P extends any[], C>(f: (b: B, ...params: P) => either.Either<A, C>, bs: B[], ...params: array.MapArray<P>) => either.Either<A, C[]>>>(requireMajor("either.zipWithM"));
 prove<Equals<
   typeof either,
   {
@@ -319,7 +339,7 @@ prove<Equals<typeof maybe.catMaybes, <A>(ms: Array<maybe.Maybe<A>>) => A[]>>(req
 prove<Equals<typeof maybe.forM, <A, B>(as: A[], f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B[]>>>(requireMajor("maybe.forM"));
 prove<Equals<typeof maybe.join, <A>(_: maybe.Maybe<maybe.Maybe<A>>) => maybe.Maybe<A>>>(requireMajor("maybe.join"));
 prove<Equals<typeof maybe.lift, <P extends any[], R>(f: (...args: P) => R, ...args: maybe.MapMaybe<P>) => maybe.Maybe<R>>>(requireMajor("maybe.lift"));
-prove<Equals<typeof maybe.mapAndUnzipWith, <A, B, C>(f: (a: A) => maybe.Maybe<[B, C]>, as: A[]) => maybe.Maybe<[B[], C[]]>>>(requireMajor("maybe.mapAndUnzipWith"));
+prove<Equals<typeof maybe.mapAndUnzipWith, <N extends number, A, P extends any[] & { length: N }>(n: N, f: (a: A) => maybe.Maybe<P>, as: A[]) => maybe.Maybe<array.MapArray<P>>>>(requireMajor("maybe.mapAndUnzipWith"));
 prove<Equals<typeof maybe.mapM, <A, B>(f: (a: A) => maybe.Maybe<B>, as: A[]) => maybe.Maybe<B[]>>>(requireMajor("maybe.mapM"));
 prove<Equals<typeof maybe.mapMaybe, <A, B>(f: (value: A) => maybe.Maybe<B>, ms: A[]) => B[]>>(requireMajor("maybe.mapMaybe"));
 prove<Equals<typeof maybe.reduceM, <A, B>(f: (state: B, a: A) => maybe.Maybe<B>, seed: B, as: A[]) => maybe.Maybe<B>>>(requireMajor("maybe.reduceM"));
@@ -327,7 +347,7 @@ prove<Equals<typeof maybe.sequence, <A>(mas: Array<maybe.Maybe<A>>) => maybe.May
 prove<Equals<typeof maybe.toMaybe, <A>(value?: A) => maybe.Maybe<A>>>(requireMajor("maybe.toMaybe"));
 prove<Equals<typeof maybe.unless, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.unless"));
 prove<Equals<typeof maybe.when, (b: boolean) => maybe.Maybe<[]>>>(requireMajor("maybe.when"));
-prove<Equals<typeof maybe.zipWithM, <A, B, C>(f: (a: A, b: B) => maybe.Maybe<C>, as: A[], bs: B[]) => maybe.Maybe<C[]>>>(requireMajor("maybe.zipWithM"));
+prove<Equals<typeof maybe.zipWithM, <A, P extends any[], C>(f: (a: A, ...params: P) => maybe.Maybe<C>, as: A[], ...params: array.MapArray<P>) => maybe.Maybe<C[]>>>(requireMajor("maybe.zipWithM"));
 prove<Equals<
   typeof maybe,
   {
@@ -416,11 +436,11 @@ prove<Equals<typeof validation.build, <L extends object | any[], T extends objec
 prove<Equals<typeof validation.forM, <L extends object | any[], A, B>(as: A[], f: (a: A) => validation.Validation<L, B>) => validation.Validation<L, B[]>>>(requireMajor("validation.forM"));
 prove<Equals<typeof validation.failures, <L extends object | any[], A>(ms: Array<validation.Validation<L, A>>) => L[]>>(requireMajor("validation.failures"));
 prove<Equals<typeof validation.lift, <L extends object | any[], P extends any[], R>(f: (...args: P) => R, ...args: validation.MapValidation<L, P>) => validation.Validation<L, R>>>(requireMajor("validation.lift"));
-prove<Equals<typeof validation.mapAndUnzipWith, <L extends object | any[], A, B, C>(f: (a: A) => validation.Validation<L, [B, C]>, as: A[]) => validation.Validation<L, [B[], C[]]>>>(requireMajor("validation.mapAndUnzipWith"));
+prove<Equals<typeof validation.mapAndUnzipWith, <A extends object | any[], N extends number, B, P extends any[] & { length: N }>(n: N, f: (b: B) => validation.Validation<A, P>, bs: B[]) => validation.Validation<A, array.MapArray<P>>>>(requireMajor("validation.mapAndUnzipWith"));
 prove<Equals<typeof validation.mapM, <L extends object | any[], A, B>(f: (a: A) => validation.Validation<L, B>, as: A[]) => validation.Validation<L, B[]>>>(requireMajor("validation.mapM"));
 prove<Equals<typeof validation.successful, <L extends object | any[], A>(ms: Array<validation.Validation<L, A>>) => A[]>>(requireMajor("validation.successful"));
 prove<Equals<typeof validation.sequence, <L extends object | any[], A>(mas: Array<validation.Validation<L, A>>) => validation.Validation<L, A[]>>>(requireMajor("validation.sequence"));
-prove<Equals<typeof validation.zipWithM, <L extends object | any[], A, B, C>(f: (a: A, b: B) => validation.Validation<L, C>, as: A[], bs: B[]) => validation.Validation<L, C[]>>>(requireMajor("validation.zipWithM"));
+prove<Equals<typeof validation.zipWithM, <A extends object | any[], B, P extends any[], C>(f: (b: B, ...params: P) => validation.Validation<A, C>, bs: B[], ...params: array.MapArray<P>) => validation.Validation<A, C[]>>>(requireMajor("validation.zipWithM"));
 prove<Equals<
   typeof validation,
   {

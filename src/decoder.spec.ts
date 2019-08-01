@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { unzip, zipWith } from "./array";
+import { unzip } from "./array";
 import * as D from "./decoder";
 import { Just, Maybe, Nothing } from "./maybe";
 import { Equals, objectFromEntries, prove, simplify } from "./prelude";
@@ -180,8 +180,10 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(D.mapAndUnzipWith(([x, y]) => D.constant([y, x]), xys).decode(null)))
-                        .toEqual(simplify(Valid(unzip(xys.map(([x, y]) => [y, x])))));
+                    expect(
+                        simplify(
+                            D.mapAndUnzipWith(2, ([x, y]) => D.constant<[string, number]>([y, x]), xys).decode(null)))
+                        .toEqual(simplify(Valid(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {
@@ -196,9 +198,10 @@ describe("mapAndUnzipWith", () => {
                     expect(simplify(
                         D
                             .mapAndUnzipWith(
+                                2,
                                 ([[x, y], i]) => empties.find((e) => e === i) != null
-                                    ? D.constantFailure({ [i]: "error" })
-                                    : D.constant([y, x]),
+                                    ? D.constantFailure<[string, number]>({ [i]: "error" })
+                                    : D.constant<[string, number]>([y, x]),
                                 xys.map((xy, i) => [xy, i] as [[number, string], number]))
                             .decode(null)))
                         .toEqual(simplify(
@@ -248,7 +251,7 @@ describe("zipWithM", () => {
                 fc.array(fc.integer()),
                 (strs: string[], ns: number[]) => {
                     expect(simplify(D.zipWithM((str, n) => D.constant(str.length + n), strs, ns).decode(null)))
-                        .toEqual(simplify(Valid(zipWith((str, n) => str.length + n, strs, ns))));
+                        .toEqual(simplify(Valid(strs.zipWith((str, n) => str.length + n, ns))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {

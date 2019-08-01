@@ -22,7 +22,7 @@ export {
     zipWithM,
 };
 
-import { unzip, zipWith } from "./array";
+import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
 import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
 
@@ -441,16 +441,24 @@ function sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
  * @param f A decomposition function
  * @param as An array of inputs
  */
-function mapAndUnzipWith<A, B, C, D>(f: (a: B) => Either<A, [C, D]>, bs: B[]): Either<A, [C[], D[]]> {
-    return mapM(f, bs).map(unzip);
+function mapAndUnzipWith<A, N extends number, B, P extends any[] & { length: N }>(
+    n: N,
+    f: (b: B) => Either<A, P>,
+    bs: B[]): Either<A, MapArray<P>> {
+
+    return mapM(f, bs).map((x) => unzip(n, x));
 }
 
 /**
  * Reads two input arrays in-order and produces an @see Either for each pair,
  * then aggregates the results.
  */
-function zipWithM<A, B, C, D>(f: (b: B, c: C) => Either<A, D>, bs: B[], cs: C[]): Either<A, D[]> {
-    return sequence(zipWith(f, bs, cs));
+function zipWithM<A, B, P extends any[], C>(
+    f: (b: B, ...params: P) => Either<A, C>,
+    bs: B[],
+    ...params: MapArray<P>): Either<A, C[]> {
+
+    return sequence(bs.zipWith(f, ...params as any));
 }
 
 /**

@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { unzip, zipWith } from "./array";
+import { unzip } from "./array";
 import * as M from "./maybe";
 import { constant, Equals, prove, simplify } from "./prelude";
 
@@ -182,8 +182,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(M.mapAndUnzipWith(([x, y]) => M.Just([y, x]), xys)))
-                        .toEqual(simplify(M.Just(unzip(xys.map(([x, y]) => [y, x])))));
+                    expect(simplify(M.mapAndUnzipWith(2, ([x, y]) => M.Just<[string, number]>([y, x]), xys)))
+                        .toEqual(simplify(M.Just(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Nothing for any empty results", () => {
@@ -197,7 +197,10 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         M.mapAndUnzipWith(
-                            ([[x, y], i]) => empties.find((e) => e === i) != null ? M.Nothing() : M.Just([y, x]),
+                            2,
+                            ([[x, y], i]) => empties.find((e) => e === i) != null
+                                ? M.Nothing<[string, number]>()
+                                : M.Just<[string, number]>([y, x]),
                             xys.map((xy, i) => [xy, i] as [[number, string], number]))))
                         .toEqual(simplify(M.Nothing()));
                 }));
@@ -327,7 +330,7 @@ describe("zipWithM", () => {
                 fc.array(fc.integer()),
                 (strs: string[], ns: number[]) => {
                     expect(simplify(M.zipWithM((str, n) => M.Just(str.length + n), strs, ns)))
-                        .toEqual(simplify(M.Just(zipWith((str, n) => str.length + n, strs, ns))));
+                        .toEqual(simplify(M.Just(strs.zipWith((str, n) => str.length + n, ns))));
                 }));
     });
     it("is equal to Nothing for any empty results", () => {
