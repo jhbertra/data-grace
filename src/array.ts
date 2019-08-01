@@ -36,8 +36,8 @@ interface IArrayExtensions<A> {
     isSuffixedBy(other: A[]): boolean;
     last(): A;
     partition(p: (a: A) => boolean): [A[], A[]];
-    scan<B>(reduce: (b: B, a: A) => B): B[];
-    scanRight<B>(reduce: (a: A, b: B) => B): B[];
+    scan<B>(reduce: (b: B, a: A) => B, seed: B): B[];
+    scanRight<B>(reduce: (a: A, b: B) => B, seed: B): B[];
     span(p: (a: A) => boolean): [A[], A[]];
     splitAt(index: number): [A[], A[]];
     takeWhile(p: (a: A) => boolean): A[];
@@ -65,12 +65,251 @@ declare global {
     interface Array<T> extends IArrayExtensions<T> { }
 }
 
+Array.prototype.all = function allForArray(p) {
+    for (const elem of this) {
+        if (!p(elem)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+Array.prototype.any = function anyForArray(p) {
+    for (const elem of this) {
+        if (p(elem)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+Array.prototype.break = function breakForArray(p) {
+    return this.span((x) => !p(x));
+};
+
 Array.prototype.chain = function chainForArray<B>(f: (t: any) => B[]): B[] {
     const result: B[] = [];
     for (const bs of this.map(f)) {
         for (const b of bs) {
             result.push(b);
         }
+    }
+    return result;
+};
+
+Array.prototype.contains = function containsForArray(a) {
+    return this.any((x) => x === a);
+};
+
+Array.prototype.dropWhile = function dropWhileForArray(p) {
+    let i = 0;
+    const result = [];
+    while (i < this.length && p(this[i])) { ++i; }
+    while (i < this.length) {
+        result.push(this[i]);
+    }
+    return result;
+};
+
+Array.prototype.group = function groupForArray() {
+    const result = [];
+    const current: [any, any[]] = [null, []];
+    for (const elem of this) {
+        if (elem !== current[0]) {
+            current[0] = elem;
+            if (!current[1].isEmpty()) {
+                result.push(current[1]);
+            }
+            current[1] = [];
+        }
+        current[1].push(elem);
+    }
+    if (!current[1].isEmpty()) {
+        result.push(current[1]);
+    }
+    return result;
+};
+
+Array.prototype.groupBy = function groupByForArray<B>(getKey: (_: any) => B) {
+    const input = this.map((x) => [getKey(x), x] as [B, any]);
+    const keys = input.map(([b, _]) => b).filter((b, i, arr) => arr.indexOf(b) === i);
+    const result = [];
+    for (const key of keys) {
+        result.push([key, input.filter(([b, _]) => key === b).map(([_, x]) => x)] as [B, any]);
+    }
+    return result;
+};
+
+Array.prototype.head = function headForArray() {
+    return this[0];
+};
+
+Array.prototype.init = function initForArray() {
+    return this.slice(0, this.length);
+};
+
+Array.prototype.inits = function initsForArray() {
+    const result = [];
+    for (let i = 0; i <= this.length; i++) {
+        result.push(this.slice(0, i));
+    }
+    return result;
+};
+
+Array.prototype.intersperse = function intersperseForArray(seperator) {
+    const result = [];
+    for (const elem of this) {
+        result.push(elem, seperator);
+    }
+    if (result.length > 0) {
+        result.pop();
+    }
+    return result;
+};
+
+Array.prototype.isEmpty = function isEmptyForArray() {
+    return this.length === 0;
+};
+
+Array.prototype.isInfixOf = function isInfixOfForArray(other) {
+    if (this.isEmpty()) {
+        return true;
+    } else {
+        let current = 0;
+        for (const elem of other) {
+            const toMatch = this[current++];
+            if (elem !== toMatch) {
+                current = 0;
+            }
+        }
+        return current === this.length;
+    }
+};
+
+Array.prototype.isInfixedBy = function isInfixedByForArray(other) {
+    return other.isInfixOf(this);
+};
+
+Array.prototype.isEmpty = function isEmptyForArray() {
+    return this.length === 0;
+};
+
+Array.prototype.isPrefixOf = function isPrefixOfForArray(other) {
+    if (this.isEmpty()) {
+        return true;
+    } else if (this.length > other.length) {
+        return false;
+    } else {
+        return this.zip(other).all(and);
+    }
+};
+
+Array.prototype.isPrefixedBy = function isPrefixedByForArray(other) {
+    return other.isPrefixOf(this);
+};
+
+Array.prototype.isSuffixOf = function isSuffixOfForArray(other) {
+    if (this.isEmpty()) {
+        return true;
+    } else if (this.length > other.length) {
+        return false;
+    } else {
+        return this.zip(other.slice(other.length - this.length)).all(and);
+    }
+};
+
+Array.prototype.isSuffixedBy = function isSuffixedByForArray(other) {
+    return other.isSuffixOf(this);
+};
+
+Array.prototype.last = function lastForArray() {
+    return this[this.length - 1];
+};
+
+Array.prototype.partition = function partitionForArray(p) {
+    const trues = [];
+    const falses = [];
+    for (const elem of this) {
+        if (p(elem)) {
+            trues.push(elem);
+        } else {
+            falses.push(elem);
+        }
+    }
+    return [trues, falses];
+};
+
+Array.prototype.scan = function scanForArray(reduce, seed) {
+    const results = [seed];
+    for (const a of this) {
+        seed = reduce(seed, a);
+        results.push(seed);
+    }
+    return results;
+};
+
+Array.prototype.scanRight = function scanRightForArray(reduce, seed) {
+    const results = [seed];
+    for (let i = this.length - 1; i <= 0; --i) {
+        const element = this[i];
+        seed = reduce(element, seed);
+        results.push(seed);
+    }
+    return results;
+};
+
+Array.prototype.span = function spanForArray(p) {
+    const front = [];
+    const back = [];
+    let i = 0;
+    while (i < this.length && p(this[i])) {
+        front.push(this[i++]);
+    }
+    while (i < this.length) {
+        back.push(this[i++]);
+    }
+    return [front, back];
+};
+
+Array.prototype.splitAt = function splitAtForArray(i) {
+    return [this.slice(0, i), this.slice(i)];
+};
+
+Array.prototype.takeWhile = function takeWhileForArray(p) {
+    let i = 0;
+    const result = [];
+    while (i < this.length && p(this[i])) {
+        result.push(this[i++]);
+    }
+    return result;
+};
+
+Array.prototype.tail = function tailForArray() {
+    return this.slice(1, this.length);
+};
+
+Array.prototype.tails = function tailsForArray() {
+    const result = [];
+    for (let i = 0; i <= this.length; i++) {
+        result.push(this.slice(i, this.length));
+    }
+    return result;
+};
+
+Array.prototype.zip = function zipForArray(...arrs) {
+    const length = minimum(arrs.map((x) => x.length).concat([this.length]));
+    const result = [];
+    for (let i = 0; i < length; i++) {
+        result.push([this[i]].concat(arrs.map((x) => x[i])));
+    }
+    return result as any;
+};
+
+Array.prototype.zipWith = function zipWithForArray(f, ...arrs) {
+    const length = minimum(arrs.map((x) => x.length).concat([this.length]));
+    const result = [];
+    for (let i = 0; i < length; i++) {
+        result.push(f(this[i], ...arrs.map((x) => x[i]) as any));
     }
     return result;
 };
@@ -146,13 +385,16 @@ function product(nums: number[]): number {
  * @param abs the array to unzip
  */
 function unzip<N extends number, P extends any[] & { length: N }>(n: N, input: P[]): MapArray<P> {
-    const result = replicate(n, []) as unknown as MapArray<P>;
+    const result = [];
+    for (let i = 0; i < n; i++) {
+        result.push([] as any[]);
+    }
     for (const tuple of input) {
-        for (let i = 0; i < tuple.length; i++) {
+        for (let i = 0; i < n; i++) {
             const element = tuple[i];
             const bucket = result[i];
-            bucket.push(element);
+            bucket.push(element as any);
         }
     }
-    return result;
+    return result as any;
 }

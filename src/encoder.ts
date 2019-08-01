@@ -111,7 +111,7 @@ function property<T>(name: string, convert: Encoder<any, T>): Encoder<object, T>
  * Encode the elements within a tuple.
  */
 function tuple<T extends any[]>(...converters: MapEncoder<any, T>): Encoder<any, T> {
-    return makeEncoder((t) => converters.zipWith((elem, convert) => convert.encode(elem), t));
+    return makeEncoder((t) => converters.zipWith((convert, elem) => convert.encode(elem), t));
 }
 
 /*------------------------------

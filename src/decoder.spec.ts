@@ -290,7 +290,7 @@ describe("zipWithM", () => {
 describe("date", () => {
     it("decodes date objects", () => {
         const date = new Date();
-        expect(simplify(D.date.decode(new Date()))).toEqual(simplify(Valid(date)));
+        expect(simplify(D.date.decode(date))).toEqual(simplify(Valid(date)));
     });
     it("decodes date strings", () => {
         const date = new Date(Date.parse("2019-07-31"));

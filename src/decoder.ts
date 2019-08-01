@@ -178,7 +178,7 @@ function constantFailure<T>(failure: DecodeError): Decoder<any, T> {
 const date: Decoder<any, Date> = makeDecoder((value: any) => {
     if (value instanceof Date) {
         return V.Valid(value);
-    } else if (typeof(value) === "string" && value.match(/^[0-9\s]+$/) == null) {
+    } else if (typeof(value) === "string" && value.match(/^[!@#$%^&*_+=<>,.?/;"'{[}\]|\\~`0-9\s]+$/) == null) {
         const parsed = Date.parse(value);
         return Number.isNaN(parsed)
             ? V.Invalid({ $: "Expected a date" } as DecodeError)
