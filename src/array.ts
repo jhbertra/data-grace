@@ -6,11 +6,11 @@ export {
 declare global {
     // tslint:disable-next-line:interface-name
     interface Array<T> {
-        flatMap<B>(f: (t: T) => B[]): B[];
+        chain<B>(f: (t: T) => B[]): B[];
     }
 }
 
-Array.prototype.flatMap = function flatMapForArray<B>(f: (t: any) => B[]): B[] {
+Array.prototype.chain = function chainForArray<B>(f: (t: any) => B[]): B[] {
     const result: B[] = [];
     for (const bs of this.map(f)) {
         for (const b of bs) {

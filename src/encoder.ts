@@ -139,5 +139,5 @@ function build<T extends object>(spec: MapEncoder<object, T>): Encoder<unknown, 
     return makeEncoder((obj) => objectFromEntries(
         objectToEntries(spec)
             .map(([key, convert]) => convert.encode(obj[key]))
-            .flatMap(objectToEntries)));
+            .chain(objectToEntries)));
 }

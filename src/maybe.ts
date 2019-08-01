@@ -63,12 +63,12 @@ interface IMaybe<A> {
      *
      * @example
      *
-     *      Just("foo").flatMap(x => Just(`${x}bar`)); // Just (foobar)
-     *      Just("foo").flatMap(x => Nothing()); // Nothing
-     *      Nothing().flatMap(x => Just(`${x}bar`)); // Nothing
-     *      Nothing().flatMap(x => Nothing()); // Nothing
+     *      Just("foo").chain(x => Just(`${x}bar`)); // Just (foobar)
+     *      Just("foo").chain(x => Nothing()); // Nothing
+     *      Nothing().chain(x => Just(`${x}bar`)); // Nothing
+     *      Nothing().chain(x => Nothing()); // Nothing
      */
-    flatMap<B>(f: (a: A) => Maybe<B>): Maybe<B>;
+    chain<B>(f: (a: A) => Maybe<B>): Maybe<B>;
 
     /**
      * A type guard which determines if this @see Maybe is a @see Just
@@ -238,7 +238,7 @@ function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
         defaultWith() { return value; },
         filter(p) { return p(value) ? this : staticNothing; },
-        flatMap(f) { return f(value); },
+        chain(f) { return f(value); },
         isJust() { return true; },
         isNothing() { return false; },
         map(f) { return Just(f(value)); },
@@ -257,7 +257,7 @@ function Just<A>(value: A): Maybe<A> {
 const staticNothing: Maybe<any> = Object.freeze({
     defaultWith: id,
     filter() { return this; },
-    flatMap() { return this; },
+    chain() { return this; },
     isJust() { return false; },
     isNothing() { return true; },
     map() { return this; },
@@ -467,7 +467,7 @@ function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe
         if (state.isNothing()) {
             return state;
         } else {
-            state = state.flatMap((b) => f(b, a));
+            state = state.chain((b) => f(b, a));
         }
     }
     return state;
@@ -509,5 +509,5 @@ function unless(b: boolean): Maybe<[]> {
  * Flatten a nested structure.
  */
 function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
-    return m.flatMap(id);
+    return m.chain(id);
 }

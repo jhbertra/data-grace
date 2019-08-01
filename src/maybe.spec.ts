@@ -362,13 +362,13 @@ describe("IMaybe", () => {
     it("obeys the left identity monad law", () => {
         const k = (s: string) => M.Just(s).filter((x) => x.length < 4).map((x) => x.length);
         fc.assert(fc.property(fc.string(), (s) => {
-            expect(simplify(M.Just(s).flatMap(k))).toEqual(simplify(k(s)));
+            expect(simplify(M.Just(s).chain(k))).toEqual(simplify(k(s)));
         }));
     });
 
     it("obeys the right identity monad law", () => {
         fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing()), fc.string().map(M.Just)), (m) => {
-            expect(simplify(m.flatMap(M.Just))).toEqual(simplify(m));
+            expect(simplify(m.chain(M.Just))).toEqual(simplify(m));
         }));
     });
 
@@ -377,7 +377,7 @@ describe("IMaybe", () => {
         const h = (n: number) => M.Just(n).filter((x) => x % 2 === 0).map((x) => x.toString());
 
         fc.assert(fc.property(fc.oneof(fc.constant(M.Nothing<string>()), fc.string().map(M.Just)), (m) => {
-            expect(simplify(m.flatMap((x) => k(x).flatMap(h)))).toEqual(simplify(m.flatMap(k).flatMap(h)));
+            expect(simplify(m.chain((x) => k(x).chain(h)))).toEqual(simplify(m.chain(k).chain(h)));
         }));
     });
 
@@ -411,19 +411,19 @@ describe("IMaybe", () => {
         });
     });
 
-    describe("flatMap", () => {
+    describe("chain", () => {
         it("Passes the payload to the callback", () => {
-            fc.assert(fc.property(fc.string(), (s) => { M.Just(s).flatMap((x) => M.Just(expect(x).toEqual(s))); }));
+            fc.assert(fc.property(fc.string(), (s) => { M.Just(s).chain((x) => M.Just(expect(x).toEqual(s))); }));
         });
         it("Returns the value returned by the callback", () => {
             const k = (s: string) => M.Just(s).filter((x) => x.length < 5);
             fc.assert(fc.property(fc.string(), (s) => {
-                expect(simplify(M.Just(s).flatMap(k))).toEqual(simplify(k(s)));
+                expect(simplify(M.Just(s).chain(k))).toEqual(simplify(k(s)));
             }));
         });
         it("Skips the callback on empty", () => {
             const k = (s: string) => M.Just(s).filter((x) => x.length < 5);
-            expect(simplify(M.Nothing<string>().flatMap(k))).toEqual(simplify(M.Nothing()));
+            expect(simplify(M.Nothing<string>().chain(k))).toEqual(simplify(M.Nothing()));
         });
     });
 

@@ -325,7 +325,7 @@ describe("IEither", () => {
     it("obeys the left identity monad law", () => {
         const k = (s: string) => s.length < 4 ? E.Right(s.length) : E.Left("error");
         fc.assert(fc.property(fc.string(), (s) => {
-            expect(simplify(E.Right(s).flatMap(k))).toEqual(simplify(k(s)));
+            expect(simplify(E.Right(s).chain(k))).toEqual(simplify(k(s)));
         }));
     });
 
@@ -335,7 +335,7 @@ describe("IEither", () => {
                 fc.string().map((x) => E.Left<string, string>(x)),
                 fc.string().map((x) => E.Right<string, string>(x))),
                 (m) => {
-                    expect(simplify(m.flatMap(E.Right))).toEqual(simplify(m));
+                    expect(simplify(m.chain(E.Right))).toEqual(simplify(m));
                 }));
     });
 
@@ -348,7 +348,7 @@ describe("IEither", () => {
                 fc.string().map((x) => E.Left<string, string>(x)),
                 fc.string().map((x) => E.Right<string, string>(x))),
                 (m) => {
-                    expect(simplify(m.flatMap((x) => k(x).flatMap(h)))).toEqual(simplify(m.flatMap(k).flatMap(h)));
+                    expect(simplify(m.chain((x) => k(x).chain(h)))).toEqual(simplify(m.chain(k).chain(h)));
                 }));
     });
 
@@ -370,19 +370,19 @@ describe("IEither", () => {
         });
     });
 
-    describe("flatMap", () => {
+    describe("chain", () => {
         it("Passes the payload to the callback", () => {
-            fc.assert(fc.property(fc.string(), (s) => { E.Right(s).flatMap((x) => E.Right(expect(x).toEqual(s))); }));
+            fc.assert(fc.property(fc.string(), (s) => { E.Right(s).chain((x) => E.Right(expect(x).toEqual(s))); }));
         });
         it("Returns the value returned by the callback", () => {
             const k = (s: string) => s.length < 5 ? E.Right<string, string>(s) : E.Left<string, string>("error");
             fc.assert(fc.property(fc.string(), (s) => {
-                expect(simplify(E.Right(s).flatMap(k))).toEqual(simplify(k(s)));
+                expect(simplify(E.Right(s).chain(k))).toEqual(simplify(k(s)));
             }));
         });
         it("Skips the callback on empty", () => {
             const k = (s: string) => s.length < 5 ? E.Right<string, string>(s) : E.Left<string, string>("error");
-            expect(simplify(E.Left<string, string>("error").flatMap(k))).toEqual(simplify(E.Left("error")));
+            expect(simplify(E.Left<string, string>("error").chain(k))).toEqual(simplify(E.Left("error")));
         });
     });
 

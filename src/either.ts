@@ -62,12 +62,12 @@ interface IEither<A, B> {
      * @example
      *
      *      const result = Right("Bob")
-     *          .flatMap(name => name === "Jim" ? Right({ agentId: 12 }) : Left("Not Authorized"))
-     *          .flatMap(({agentId}) => agentId > 15 ? Right("Access granted") : Left("Access denied"));
+     *          .chain(name => name === "Jim" ? Right({ agentId: 12 }) : Left("Not Authorized"))
+     *          .chain(({agentId}) => agentId > 15 ? Right("Access granted") : Left("Access denied"));
      *
      *     result.toString() // "Left (Not Authorized)"
      */
-    flatMap<C>(f: (b: B) => Either<A, C>): Either<A, C>;
+    chain<C>(f: (b: B) => Either<A, C>): Either<A, C>;
 
     /**
      * A type guard which determines if this @see Either is a @see Left
@@ -253,7 +253,7 @@ function Left<A, B>(value: A): Either<A, B> {
     return Object.freeze({
         defaultLeftWith: constant(value),
         defaultRightWith: id,
-        flatMap() { return this; },
+        chain() { return this; },
         isLeft() { return true; },
         isRight() { return false; },
         map() { return this; },
@@ -279,7 +279,7 @@ function Right<A, B>(value: B): Either<A, B> {
     return Object.freeze({
         defaultLeftWith: id,
         defaultRightWith: constant(value),
-        flatMap(f) { return f(value); },
+        chain(f) { return f(value); },
         isLeft() { return false; },
         isRight() { return true; },
         map(f) { return Right(f(value)); },
@@ -346,11 +346,11 @@ function rights<A, B>(es: Array<Either<A, B>>): B[] {
  * In order to satisfy the consistency of results between
  *
  * ```ts
- * lift(f, e1, e2) == e1.flatMap(v1 => e2.map(v2 => f(v1, v2)));
+ * lift(f, e1, e2) == e1.chain(v1 => e2.map(v2 => f(v1, v2)));
  * ```
  *
  * The first failure will be returned. For a similar structure that
- * aggregates failures, @see Validation which does not provide and implementaion of @see flatMap
+ * aggregates failures, @see Validation which does not provide and implementaion of @see chain
  *
  * @example
  *
@@ -474,7 +474,7 @@ function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[])
         if (state.isLeft()) {
             return state;
         } else {
-            state = state.flatMap((c) => f(c, b));
+            state = state.chain((c) => f(c, b));
         }
     }
     return state;
@@ -488,7 +488,7 @@ function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[])
  * Flatten a nested structure.
  */
 function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
-    return m.flatMap(id);
+    return m.chain(id);
 }
 
 const empty = Right([]);

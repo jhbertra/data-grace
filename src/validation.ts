@@ -198,7 +198,7 @@ interface IValidationValid<B> { readonly tag: "Valid"; readonly value: B; }
  * difference between @see Validation and @see Either is that @see Validation
  * aggregates failures where it can. Its combinators are defined in such a
  * way that failures will accumulate, and as a consequence it is not possible
- * to do sequential validation with flatMap like one would do with @see Either.
+ * to do sequential validation with chain like one would do with @see Either.
  */
 type Validation<A extends object | any[], B> = (IValidationInvalid<A> | IValidationValid<B>) & IValidation<A, B>;
 
@@ -335,8 +335,8 @@ function lift<A extends object | any[], P extends any[], R>(
     return values.length === args.length
         ? Valid(f.apply(undefined, values as P))
         : Array.isArray(errors[0])
-            ? Invalid(errors.flatMap(id as any) as A)
-            : Invalid(objectFromEntries(errors.flatMap(objectToEntries)) as A);
+            ? Invalid(errors.chain(id as any) as A)
+            : Invalid(objectFromEntries(errors.chain(objectToEntries)) as A);
 }
 
 /**

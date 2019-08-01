@@ -360,7 +360,7 @@ function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder
         }
         return errors.length === 0
             ? V.Valid(f(...values as P))
-            : V.Invalid(objectFromEntries(errors.flatMap(objectToEntries)));
+            : V.Invalid(objectFromEntries(errors.chain(objectToEntries)));
     });
 }
 
@@ -403,7 +403,7 @@ function build<T extends object>(spec: MapDecoder<object, T>): Decoder<unknown, 
             }
             return errors.length === 0
                 ? V.Valid(objectFromEntries(kvps))
-                : V.Invalid(objectFromEntries(errors.flatMap(objectToEntries)));
+                : V.Invalid(objectFromEntries(errors.chain(objectToEntries)));
         }
     });
 }

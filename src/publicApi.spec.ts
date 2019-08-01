@@ -210,7 +210,7 @@ prove<Equals<
   const ieither: either.IEither<L, A> = undefined as any;
   prove<Equals<typeof ieither.defaultLeftWith, (value: L) => L>>(requireMajor("either.IEither.defaultLeftWith"));
   prove<Equals<typeof ieither.defaultRightWith, (value: A) => A>>(requireMajor("either.IEither.defaultRightWith"));
-  prove<Equals<typeof ieither.flatMap, <B>(f: (a: A) => either.Either<L, B>) => either.Either<L, B>>>(requireMajor("either.IEither.flatMap"));
+  prove<Equals<typeof ieither.chain, <B>(f: (a: A) => either.Either<L, B>) => either.Either<L, B>>>(requireMajor("either.IEither.chain"));
   prove<Equals<typeof ieither.isLeft, () => boolean>>(requireMajor("either.IEither.isLeft"));
   prove<Equals<typeof ieither.isRight, () => boolean>>(requireMajor("either.IEither.isRight"));
   prove<Equals<typeof ieither.map, <B>(f: (a: A) => B) => either.Either<L, B>>>(requireMajor("either.IEither.map"));
@@ -228,7 +228,7 @@ prove<Equals<
     {
       defaultLeftWith: typeof ieither.defaultLeftWith,
       defaultRightWith: typeof ieither.defaultRightWith,
-      flatMap: typeof ieither.flatMap,
+      chain: typeof ieither.chain,
       isLeft: typeof ieither.isLeft,
       isRight: typeof ieither.isRight,
       map: typeof ieither.map,
@@ -355,7 +355,7 @@ prove<Equals<
   const imaybe: maybe.IMaybe<A> = undefined as any;
   prove<Equals<typeof imaybe.defaultWith, (value: A) => A>>(requireMajor("maybe.IMaybe.defaultWith"));
   prove<Equals<typeof imaybe.filter, (p: (a: A) => boolean) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.filter"));
-  prove<Equals<typeof imaybe.flatMap, <B>(f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.flatMap"));
+  prove<Equals<typeof imaybe.chain, <B>(f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.chain"));
   prove<Equals<typeof imaybe.isJust, () => boolean>>(requireMajor("maybe.IMaybe.isJust"));
   prove<Equals<typeof imaybe.isNothing, () => boolean>>(requireMajor("maybe.IMaybe.isNothing"));
   prove<Equals<typeof imaybe.map, <B>(f: (a: A) => B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.map"));
@@ -371,7 +371,7 @@ prove<Equals<
     {
       defaultWith: typeof imaybe.defaultWith,
       filter: typeof imaybe.filter,
-      flatMap: typeof imaybe.flatMap,
+      chain: typeof imaybe.chain,
       isJust: typeof imaybe.isJust,
       isNothing: typeof imaybe.isNothing,
       map: typeof imaybe.map,
