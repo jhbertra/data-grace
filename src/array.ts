@@ -244,9 +244,7 @@ Array.prototype.groupBy = function groupByForArray(equals) {
     const current: [any, any[]] = [null, []];
     for (const elem of this) {
         if (current[0] !== null && !equals(elem, current[0])) {
-            if (!current[1].isEmpty()) {
-                result.push(current[1]);
-            }
+            result.push(current[1]);
             current[1] = [];
         }
         current[0] = elem;
@@ -322,10 +320,6 @@ Array.prototype.isInfixedBy = function isInfixedByForArray(other) {
     return other.isInfixOf(this);
 };
 
-Array.prototype.isEmpty = function isEmptyForArray() {
-    return this.length === 0;
-};
-
 Array.prototype.isPrefixOf = function isPrefixOfForArray(other) {
     if (this.isEmpty()) {
         return true;
@@ -386,7 +380,7 @@ Array.prototype.scan = function scanForArray(reduce, seed) {
 
 Array.prototype.scanRight = function scanRightForArray(reduce, seed) {
     const results = [seed];
-    for (let i = this.length - 1; i <= 0; --i) {
+    for (let i = this.length - 1; i >= 0; --i) {
         const element = this[i];
         seed = reduce(element, seed);
         results.push(seed);
@@ -407,8 +401,9 @@ Array.prototype.span = function spanForArray(p) {
     return [front, back];
 };
 
-Array.prototype.splitAt = function splitAtForArray(i) {
-    return [this.slice(0, i), this.slice(i)];
+Array.prototype.splitAt = function splitAtForArray(n) {
+    const clamped = Math.max(0, Math.min(this.length, n));
+    return [this.slice(0, clamped), this.slice(clamped)];
 };
 
 Array.prototype.takeWhile = function takeWhileForArray(p) {

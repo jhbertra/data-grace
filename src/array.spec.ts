@@ -449,12 +449,12 @@ describe("IArrayExtensions", () => {
         });
     });
 
-    describe("isSuffixedBy", () => {
+    describe("isPrefixedBy", () => {
         it("is the reverse of isSuffixOf", () => {
             fc.assert(fc.property(
                 fc.array(fc.integer()),
                 fc.array(fc.integer()),
-                (arr1, arr2) => arr1.isSuffixedBy(arr2) === arr2.isSuffixOf(arr1)));
+                (arr1, arr2) => arr1.isPrefixedBy(arr2) === arr2.isSuffixOf(arr1)));
         });
     });
 
@@ -495,6 +495,82 @@ describe("IArrayExtensions", () => {
         });
     });
 
+    describe("partition", () => {
+        const predicate = (s: string) => s.length !== 10;
+        it("partitions the array by the predicate", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => {
+                    expect(arr.partition(predicate)).toEqual([arr.filter(predicate), arr.filter((x) => !predicate(x))]);
+                }));
+        });
+    });
+
+    describe("scan", () => {
+        const reduce = (total: string, s: string) => total.concat(s);
+        it("produces a series of reductions", () => {
+            fc.assert(fc.property(
+                fc.string(),
+                fc.array(fc.string()),
+                (seed, arr) => {
+                    expect(arr.scan(reduce, seed))
+                        .toEqual(arr.reduce(
+                            (state, s) => {
+                                const start = state.init() as string[];
+                                const prev = state.last() as string;
+                                return [...start, prev, reduce(prev, s)];
+                            },
+                            [seed]));
+                }));
+        });
+    });
+
+    describe("scanRight", () => {
+        const reduce = (s: string, total: string) => s.concat(total);
+        it("produces a series of reductions from the right", () => {
+            fc.assert(fc.property(
+                fc.string(),
+                fc.array(fc.string()),
+                (seed, arr) => {
+                    expect(arr.scanRight(reduce, seed))
+                        .toEqual(arr.reduceRight(
+                            (state, s) => {
+                                const start = state.init() as string[];
+                                const prev = state.last() as string;
+                                return [...start, prev, reduce(s, prev)];
+                            },
+                            [seed]));
+                }));
+        });
+    });
+
+    describe("span", () => {
+        it("returns empty lists for empty lists", () => {
+            expect(([]).span(() => true)).toEqual([[], []]);
+        });
+        it("breaks a list in two when it encounters an element that fails the predicate", () => {
+            expect([1, 2, 3, 4, 1, 2, 3, 4].span((x) => x <= 3)).toEqual([[1, 2, 3], [4, 1, 2, 3, 4]]);
+        });
+        it("breaks at the start", () => {
+            expect([1, 2, 3].span((x) => x <= 0)).toEqual([[], [1, 2, 3]]);
+        });
+        it("breaks at the end", () => {
+            expect([1, 2, 3].span((x) => x < 9)).toEqual([[1, 2, 3], []]);
+        });
+    });
+
+    describe("splitAt", () => {
+        it("equals two slices", () => {
+            fc.assert(fc.property(
+                fc.integer(),
+                fc.array(fc.anything()),
+                (n, arr) => {
+                    const clamped = Math.max(0, Math.min(n, arr.length));
+                    expect(arr.splitAt(n)).toEqual([arr.slice(0, clamped), arr.slice(clamped)]);
+                }));
+        });
+    });
+
     describe("tail", () => {
         it("returns undefined for empty arrays", () => {
             expect([].tail()).toBeUndefined();
@@ -519,15 +595,82 @@ describe("IArrayExtensions", () => {
                 }));
         });
     });
-});
 
-/*
-    partition(p: (a: A) => boolean): [A[], A[]];
-    scan<B>(reduce: (b: B, a: A) => B, seed: B): B[];
-    scanRight<B>(reduce: (a: A, b: B) => B, seed: B): B[];
-    span(p: (a: A) => boolean): [A[], A[]];
-    splitAt(index: number): [A[], A[]];
-    takeWhile(p: (a: A) => boolean): A[];
-    zip<P extends any[]>(...arr: MapArray<P>): Array<Cons<A, P>>;
-    zipWith<P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: MapArray<P>): B[];
-*/
+    describe("takeWhile", () => {
+        const predicate = (s: string) => s.length !== 10;
+        it("returns the full array if all items pass the predicate", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string().filter(predicate)),
+                (arr) => { expect(arr.takeWhile(predicate)).toEqual(arr); }));
+        });
+        it("returns an empty array if the first item passes the predicate", () => {
+            fc.assert(fc.property(
+                fc.string(10, 10),
+                fc.array(fc.string().filter(predicate)),
+                (fst, arr) => { expect([fst, ...arr].takeWhile(predicate)).toEqual([]); }));
+        });
+        it("returns the array until the predicate passes", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string().filter(predicate)),
+                fc.string(10, 10),
+                fc.array(fc.string().filter(predicate)),
+                (fst, breaker, arr) => {
+                    expect([...fst, breaker, ...arr].takeWhile(predicate)).toEqual(fst);
+                }));
+        });
+        it("is idempotent", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.takeWhile(predicate).takeWhile(predicate)).toEqual(arr.takeWhile(predicate)); }));
+        });
+    });
+
+    describe("zip", () => {
+        it("returns an array of the minimum length of its inputs", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                fc.array(fc.array(fc.anything())),
+                (arr, inputs) => {
+                    expect(arr.zip(...inputs)).toHaveLength(minimum([arr.length, ...inputs.map((x) => x.length)]));
+                }));
+        });
+        it("zips the arrays positionally", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                fc.array(fc.array(fc.anything())),
+                (arr, inputs) => {
+                    const zipped = arr.zip(...inputs);
+                    expect(zipped).toEqual(zipped.map((_, i) => [arr, ...inputs].map((x) => x[i])));
+                }));
+        });
+        it("equals zipWith(id)", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                fc.array(fc.array(fc.anything())),
+                (arr, inputs) => {
+                    expect(arr.zip(...inputs)).toEqual(arr.zipWith((...xs) => xs, ...inputs));
+                }));
+        });
+    });
+
+    describe("zipWith", () => {
+        it("returns an array of the minimum length of its inputs", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                fc.array(fc.array(fc.anything())),
+                (arr, inputs) => {
+                    expect(arr.zipWith((..._) => [], ...inputs))
+                        .toHaveLength(minimum([arr.length, ...inputs.map((x) => x.length)]));
+                }));
+        });
+        it("zips the arrays positionally with the function", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                fc.array(fc.array(fc.anything())),
+                (arr, inputs) => {
+                    const zipped = arr.zipWith((...xs) => xs.reverse(), ...inputs);
+                    expect(zipped).toEqual(zipped.map((_, i) => [arr, ...inputs].reverse().map((x) => x[i])));
+                }));
+        });
+    });
+});
