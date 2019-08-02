@@ -21,11 +21,14 @@ interface IArrayExtensions<A> {
     break(p: (a: A) => boolean): [A[], A[]];
     chain<B>(f: (a: A) => B[]): B[];
     contains(a: A): boolean;
+    distinct(): A[];
+    distinctBy(equals: (a: A, b: A) => boolean): A[];
     dropWhile(p: (a: A) => boolean): A[];
     group(): A[][];
-    groupBy<B>(getKey: (a: A) => B): Array<[B, A[]]>;
-    head(): A;
-    init(): A[];
+    groupBy(equals: (a: A, b: A) => boolean): A[][];
+    groupByKey<B>(getKey: (a: A) => B): Array<[B, A[]]>;
+    head(): A | undefined;
+    init(): A[] | undefined;
     inits(): A[][];
     intersperse(t: A): A[];
     isEmpty(): boolean;
@@ -35,14 +38,14 @@ interface IArrayExtensions<A> {
     isPrefixedBy(other: A[]): boolean;
     isSuffixOf(other: A[]): boolean;
     isSuffixedBy(other: A[]): boolean;
-    last(): A;
+    last(): A | undefined;
     partition(p: (a: A) => boolean): [A[], A[]];
     scan<B>(reduce: (b: B, a: A) => B, seed: B): B[];
     scanRight<B>(reduce: (a: A, b: B) => B, seed: B): B[];
     span(p: (a: A) => boolean): [A[], A[]];
     splitAt(index: number): [A[], A[]];
     takeWhile(p: (a: A) => boolean): A[];
-    tail(): A[];
+    tail(): A[] | undefined;
     tails(): A[][];
     zip<P extends any[]>(...arr: MapArray<P>): Array<Cons<A, P>>;
 
@@ -214,27 +217,39 @@ Array.prototype.contains = function containsForArray(a) {
     return this.any((x) => x === a);
 };
 
+Array.prototype.distinct = function distinctForArray() {
+    return this.filter((x, i) => this.indexOf(x) === i);
+};
+
+Array.prototype.distinctBy = function distinctByForArray(equals) {
+    return this.filter((x, i) => this.findIndex((y) => equals(x, y)) === i);
+};
+
 Array.prototype.dropWhile = function dropWhileForArray(p) {
     let i = 0;
     const result = [];
     while (i < this.length && p(this[i])) { ++i; }
     while (i < this.length) {
-        result.push(this[i]);
+        result.push(this[i++]);
     }
     return result;
 };
 
 Array.prototype.group = function groupForArray() {
+    return this.groupBy((a, b) => a === b);
+};
+
+Array.prototype.groupBy = function groupByForArray(equals) {
     const result = [];
     const current: [any, any[]] = [null, []];
     for (const elem of this) {
-        if (elem !== current[0]) {
-            current[0] = elem;
+        if (current[0] !== null && !equals(elem, current[0])) {
             if (!current[1].isEmpty()) {
                 result.push(current[1]);
             }
             current[1] = [];
         }
+        current[0] = elem;
         current[1].push(elem);
     }
     if (!current[1].isEmpty()) {
@@ -243,7 +258,7 @@ Array.prototype.group = function groupForArray() {
     return result;
 };
 
-Array.prototype.groupBy = function groupByForArray<B>(getKey: (_: any) => B) {
+Array.prototype.groupByKey = function groupByForArray<B>(getKey: (_: any) => B) {
     const input = this.map((x) => [getKey(x), x] as [B, any]);
     const keys = input.map(([b, _]) => b).filter((b, i, arr) => arr.indexOf(b) === i);
     const result = [];
@@ -258,7 +273,9 @@ Array.prototype.head = function headForArray() {
 };
 
 Array.prototype.init = function initForArray() {
-    return this.slice(0, this.length);
+    return this.isEmpty()
+        ? undefined
+        : this.slice(0, this.length - 1);
 };
 
 Array.prototype.inits = function initsForArray() {
@@ -293,6 +310,8 @@ Array.prototype.isInfixOf = function isInfixOfForArray(other) {
             const toMatch = this[current++];
             if (elem !== toMatch) {
                 current = 0;
+            } else if (current === this.length) {
+                break;
             }
         }
         return current === this.length;
@@ -313,7 +332,9 @@ Array.prototype.isPrefixOf = function isPrefixOfForArray(other) {
     } else if (this.length > other.length) {
         return false;
     } else {
-        return this.zip(other).all(and);
+        return this
+            .zip(other)
+            .all(([a, b]) => a === b);
     }
 };
 
@@ -327,7 +348,9 @@ Array.prototype.isSuffixOf = function isSuffixOfForArray(other) {
     } else if (this.length > other.length) {
         return false;
     } else {
-        return this.zip(other.slice(other.length - this.length)).all(and);
+        return this
+            .zip(other.slice(other.length - this.length))
+            .all(([a, b]) => a === b);
     }
 };
 
@@ -398,7 +421,9 @@ Array.prototype.takeWhile = function takeWhileForArray(p) {
 };
 
 Array.prototype.tail = function tailForArray() {
-    return this.slice(1, this.length);
+    return this.isEmpty()
+        ? undefined
+        : this.slice(1, this.length);
 };
 
 Array.prototype.tails = function tailsForArray() {

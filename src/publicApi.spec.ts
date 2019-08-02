@@ -79,11 +79,14 @@ prove<Equals<
   prove<Equals<typeof iarrayextensions.break, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.break"));
   prove<Equals<typeof iarrayextensions.chain, <B>(f: (a: A) => B[]) => B[]>>(requireMajor("array.chain"));
   prove<Equals<typeof iarrayextensions.contains, (a: A) => boolean>>(requireMajor("array.contains"));
+  prove<Equals<typeof iarrayextensions.distinct, () => A[]>>(requireMajor("array.distinct"));
+  prove<Equals<typeof iarrayextensions.distinctBy, (equals: (a: A, b: A) => boolean) => A[]>>(requireMajor("array.distinctBy"));
   prove<Equals<typeof iarrayextensions.dropWhile, (p: (a: A) => boolean) => A[]>>(requireMajor("array.dropWhile"));
   prove<Equals<typeof iarrayextensions.group, () => A[][]>>(requireMajor("array.group"));
-  prove<Equals<typeof iarrayextensions.groupBy, <B>(getKey: (a: A) => B) => Array<[B, A[]]>>>(requireMajor("array.groupBy"));
-  prove<Equals<typeof iarrayextensions.head, () => A>>(requireMajor("array.head"));
-  prove<Equals<typeof iarrayextensions.init, () => A[]>>(requireMajor("array.init"));
+  prove<Equals<typeof iarrayextensions.groupBy, (equals: (a: A, b: A) => boolean) => A[][]>>(requireMajor("array.groupBy"));
+  prove<Equals<typeof iarrayextensions.groupByKey, <B>(getKey: (a: A) => B) => Array<[B, A[]]>>>(requireMajor("array.groupByKey"));
+  prove<Equals<typeof iarrayextensions.head, () => A | undefined>>(requireMajor("array.head"));
+  prove<Equals<typeof iarrayextensions.init, () => A[] | undefined>>(requireMajor("array.init"));
   prove<Equals<typeof iarrayextensions.inits, () => A[][]>>(requireMajor("array.inits"));
   prove<Equals<typeof iarrayextensions.intersperse, (t: A) => A[]>>(requireMajor("array.intersperse"));
   prove<Equals<typeof iarrayextensions.isEmpty, () => boolean>>(requireMajor("array.isEmpty"));
@@ -93,14 +96,14 @@ prove<Equals<
   prove<Equals<typeof iarrayextensions.isPrefixedBy, (other: A[]) => boolean>>(requireMajor("array.isPrefixedBy"));
   prove<Equals<typeof iarrayextensions.isSuffixOf, (other: A[]) => boolean>>(requireMajor("array.isSuffixOf"));
   prove<Equals<typeof iarrayextensions.isSuffixedBy, (other: A[]) => boolean>>(requireMajor("array.isSuffixedBy"));
-  prove<Equals<typeof iarrayextensions.last, () => A>>(requireMajor("array.last"));
+  prove<Equals<typeof iarrayextensions.last, () => A | undefined>>(requireMajor("array.last"));
   prove<Equals<typeof iarrayextensions.partition, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.partition"));
   prove<Equals<typeof iarrayextensions.scan, <B>(reduce: (b: B, a: A) => B, seed: B) => B[]>>(requireMajor("array.scan"));
   prove<Equals<typeof iarrayextensions.scanRight, <B>(reduce: (a: A, b: B) => B, seed: B) => B[]>>(requireMajor("array.scanRight"));
   prove<Equals<typeof iarrayextensions.span, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.span"));
   prove<Equals<typeof iarrayextensions.splitAt, (index: number) => [A[], A[]]>>(requireMajor("array.splitAt"));
   prove<Equals<typeof iarrayextensions.takeWhile, (p: (a: A) => boolean) => A[]>>(requireMajor("array.takeWhile"));
-  prove<Equals<typeof iarrayextensions.tail, () => A[]>>(requireMajor("array.tail"));
+  prove<Equals<typeof iarrayextensions.tail, () => A[] | undefined>>(requireMajor("array.tail"));
   prove<Equals<typeof iarrayextensions.tails, () => A[][]>>(requireMajor("array.tails"));
   prove<Equals<typeof iarrayextensions.zip, <P extends any[]>(...arr: array.MapArray<P>) => Array<array.Cons<A, P>>>>(requireMajor("array.zip"));
   prove<Equals<typeof iarrayextensions.zipWith, <P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: array.MapArray<P>) => B[]>>(requireMajor("array.zipWith"));
@@ -112,9 +115,12 @@ prove<Equals<
       break: typeof iarrayextensions.break;
       chain: typeof iarrayextensions.chain;
       contains: typeof iarrayextensions.contains;
+      distinct: typeof iarrayextensions.distinct;
+      distinctBy: typeof iarrayextensions.distinctBy;
       dropWhile: typeof iarrayextensions.dropWhile;
       group: typeof iarrayextensions.group;
       groupBy: typeof iarrayextensions.groupBy;
+      groupByKey: typeof iarrayextensions.groupByKey;
       head: typeof iarrayextensions.head;
       init: typeof iarrayextensions.init;
       inits: typeof iarrayextensions.inits;
@@ -147,7 +153,6 @@ prove<Equals<
 prove<Equals<typeof codec.array, <T>(_: codec.Codec<any, T>) => codec.Codec<any, T[]>>>(requireMajor("codec.array"));
 prove<Equals<typeof codec.boolean, codec.Codec<any, boolean>>>(requireMajor("codec.boolean"));
 prove<Equals<typeof codec.build, <T extends object>(spec: codec.MapCodec<object, T>) => codec.Codec<unknown, T>>>(requireMajor("codec.build"));
-prove<Equals<typeof codec.date, codec.Codec<any, Date>>>(requireMajor("codec.date"));
 prove<Equals<typeof codec.makeCodec, <TOut, A>(decoder: decoder.Decoder<TOut, A>, encoder: encoder.Encoder<TOut, A>) => codec.Codec<TOut, A>>>(requireMajor("codec.makeCodec"));
 prove<Equals<typeof codec.number, codec.Codec<any, number>>>(requireMajor("codec.number"));
 prove<Equals<typeof codec.optional, <T>(_: codec.Codec<any, T>) => codec.Codec<any, maybe.Maybe<T>>>>(requireMajor("codec.optional"));
@@ -160,7 +165,6 @@ prove<Equals<
     array: typeof codec.array,
     boolean: typeof codec.boolean,
     build: typeof codec.build,
-    date: typeof codec.date,
     makeCodec: typeof codec.makeCodec,
     number: typeof codec.number,
     optional: typeof codec.optional,
@@ -193,7 +197,6 @@ prove<Equals<typeof decoder.boolean, decoder.Decoder<any, boolean>>>(requireMajo
 prove<Equals<typeof decoder.build, <T extends object>(spec: decoder.MapDecoder<object, T>) => decoder.Decoder<unknown, T>>>(requireMajor("decoder.build"));
 prove<Equals<typeof decoder.constant, <T>(t: T) => decoder.Decoder<any, T>>>(requireMajor("decoder.constant"));
 prove<Equals<typeof decoder.constantFailure, <T>(e: decoder.DecodeError) => decoder.Decoder<any, T>>>(requireMajor("decoder.constantFailure"));
-prove<Equals<typeof decoder.date, decoder.Decoder<any, Date>>>(requireMajor("decoder.date"));
 prove<Equals<typeof decoder.forM, <TIn, A, B>(as: A[], f: (a: A) => decoder.Decoder<TIn, B>) => decoder.Decoder<TIn, B[]>>>(requireMajor("decoder.forM"));
 prove<Equals<typeof decoder.id, decoder.Decoder<any, any>>>(requireMajor("decoder.id"));
 prove<Equals<typeof decoder.lift, <TIn, P extends any[], R>(f: (...args: P) => R, ...args: decoder.MapDecoder<TIn, P>) => decoder.Decoder<TIn, R>>>(requireMajor("decoder.lift"));
@@ -217,7 +220,6 @@ prove<Equals<
     build: typeof decoder.build,
     constant: typeof decoder.constant,
     constantFailure: typeof decoder.constantFailure,
-    date: typeof decoder.date,
     forM: typeof decoder.forM,
     id: typeof decoder.id,
     lift: typeof decoder.lift,
@@ -362,7 +364,6 @@ prove<Equals<
 prove<Equals<typeof encoder.array, <T>(_: encoder.Encoder<any, T>) => encoder.Encoder<any, T[]>>>(requireMajor("encoder.array"));
 prove<Equals<typeof encoder.boolean, encoder.Encoder<any, boolean>>>(requireMajor("encoder.boolean"));
 prove<Equals<typeof encoder.build, <T extends object>(spec: encoder.MapEncoder<object, T>) => encoder.Encoder<unknown, T>>>(requireMajor("encoder.build"));
-prove<Equals<typeof encoder.date, encoder.Encoder<any, Date>>>(requireMajor("encoder.date"));
 prove<Equals<typeof encoder.makeEncoder, <TOut, A>(_: (_: A) => TOut) => encoder.Encoder<TOut, A>>>(requireMajor("encoder.makeEncoder"));
 prove<Equals<typeof encoder.number, encoder.Encoder<any, number>>>(requireMajor("encoder.number"));
 prove<Equals<typeof encoder.optional, <T>(_: encoder.Encoder<any, T>) => encoder.Encoder<any, maybe.Maybe<T>>>>(requireMajor("encoder.optional"));
@@ -375,7 +376,6 @@ prove<Equals<
     array: typeof encoder.array,
     boolean: typeof encoder.boolean,
     build: typeof encoder.build,
-    date: typeof encoder.date,
     makeEncoder: typeof encoder.makeEncoder,
     number: typeof encoder.number,
     optional: typeof encoder.optional,

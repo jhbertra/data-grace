@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
 import { and, intercalate, MapArray, maximum, minimum, or, product, replicate, sum, unzip } from "./array";
-import { Equals, prove, id } from "./prelude";
+import { Equals, id, prove } from "./prelude";
 
 // Map the fields of an object
 prove<Equals<MapArray<{ bar: number, baz: string }>, { bar: number[], baz: string[] }>>("proof");
@@ -192,32 +192,342 @@ describe("IArrayExtensions", () => {
                 (input, elem) => input.contains(elem) === !!input.find((x) => x === elem) ));
         });
     });
+
+    describe("distinct", () => {
+        it("removes duplicate elements", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { arr.distinct().map((x, i, self) => expect(self.indexOf(x)).toEqual(i)); }));
+        });
+        it("is idempotent", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.distinct().distinct()).toEqual(arr.distinct()); }));
+        });
+    });
+
+    describe("distinctBy", () => {
+        const equals = (a: string, b: string) => a.length === b.length;
+        it("removes duplicate elements", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => {
+                    arr.distinctBy(equals).map((x, i, self) => expect(self.findIndex((y) => equals(x, y))).toEqual(i));
+                }));
+        });
+        it("is idempotent", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.distinctBy(equals).distinctBy(equals)).toEqual(arr.distinctBy(equals)); }));
+        });
+    });
+
+    describe("dropWhile", () => {
+        const predicate = (s: string) => s.length !== 10;
+        it("returns empty lists if all items pass the predicate", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string().filter(predicate)),
+                (arr) => { expect(arr.dropWhile(predicate)).toEqual([]); }));
+        });
+        it("returns the full array if the first item passes the predicate", () => {
+            fc.assert(fc.property(
+                fc.string(10, 10),
+                fc.array(fc.string().filter(predicate)),
+                (fst, arr) => { expect([fst, ...arr].dropWhile(predicate)).toEqual([fst, ...arr]); }));
+        });
+        it("returns the array starting when the predicate passes", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string().filter(predicate)),
+                fc.string(10, 10),
+                fc.array(fc.string().filter(predicate)),
+                (fst, breaker, arr) => {
+                    expect([...fst, breaker, ...arr].dropWhile(predicate)).toEqual([breaker, ...arr]);
+                }));
+        });
+        it("is idempotent", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.dropWhile(predicate).dropWhile(predicate)).toEqual(arr.dropWhile(predicate)); }));
+        });
+    });
+
+    describe("group", () => {
+        it("Produces arrays of arrays where all elements in elements are equal", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => arr.group().all((g) => g.all((x) => x === g[0]))));
+        });
+        it("Produces arrays whose adjacent groups do not contain equal elements", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => arr
+                    .group()
+                    .scan(
+                        ([_, prev], current) => [prev, current] as [string[], string[]],
+                        [[], []] as [string[], string[]])
+                    .filter((x) => !(x[0].isEmpty() || x[1].isEmpty()))
+                    .all(([g, succ]) => g[0] !== succ[0])));
+        });
+        it("Produces the input array when concatenated", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.group().chain(id)).toEqual(arr); }));
+        });
+        it("Is equivalent to groupBy with === as equality function", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.group()).toEqual(arr.groupBy((a, b) => a === b)); }));
+        });
+    });
+
+    describe("groupBy", () => {
+        const equals = (a: string, b: string) => a.length === b.length;
+        it("Produces arrays of arrays where all elements in elements pass the equality test", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => arr.groupBy(equals).all((g) => g.all((x) => equals(x, g[0])))));
+        });
+        it("Produces arrays whose adjacent groups do not contain equal elements", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => arr
+                    .groupBy(equals)
+                    .scan(
+                        ([_, prev], current) => [prev, current] as [string[], string[]],
+                        [[], []] as [string[], string[]])
+                    .filter((x) => !(x[0].isEmpty() || x[1].isEmpty()))
+                    .all(([g, succ]) => !equals(g[0], succ[0]))));
+        });
+        it("Produces the input array when concatenated", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => { expect(arr.groupBy(equals).chain(id)).toEqual(arr); }));
+        });
+    });
+
+    describe("groupByKey", () => {
+        it("produces a distinct set of keys", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => {
+                    const keys = arr.groupByKey((x) => x.length).map((x) => x[0]);
+                    expect(keys.distinct()).toEqual(keys);
+                }));
+        });
+        it("does not drop values", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => {
+                    const flattened = arr.groupByKey((x) => x.length).chain((x) => x[1]);
+                    expect(flattened.length).toEqual(arr.length);
+                    expect(flattened.sort()).toEqual(arr.sort());
+                }));
+        });
+        it("produces sets which all satisfy the same key", () => {
+            fc.assert(fc.property(
+                fc.array(fc.string()),
+                (arr) => arr
+                    .groupByKey((x) => x.length)
+                    .all(([key, g]) => g.all((x) => x.length === key))));
+        });
+    });
+
+    describe("head", () => {
+        it("returns undefined for empty arrays", () => {
+            expect([].head()).toBeUndefined();
+        });
+        it("returns the first element of a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => { expect(arr.head()).toEqual(arr[0]); }));
+        });
+    });
+
+    describe("init", () => {
+        it("returns undefined for empty arrays", () => {
+            expect([].init()).toBeUndefined();
+        });
+        it("returns all but the last element for a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => { expect(arr.init()).toEqual(arr.slice(0, arr.length - 1)); }));
+        });
+    });
+
+    describe("inits", () => {
+        it("returns one empty array for empty arrays", () => {
+            expect([].inits()).toEqual([[]]);
+        });
+        it("returns all prefixes of a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => {
+                    expect(arr.inits()).toEqual(arr.reduce((state, _, i) => [...state, arr.slice(0, i + 1)], [[]]));
+                }));
+        });
+    });
+
+    describe("intersperse", () => {
+        it("returns empty array for empty arrays", () => {
+            expect(([] as string[]).intersperse("BANG")).toEqual([]);
+        });
+        it("puts the separator between each element for a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => {
+                    expect(arr.intersperse("BANG")).toEqual(arr.chain((x) => [x, "BANG"]).init());
+                }));
+        });
+    });
+
+    describe("isEmpty", () => {
+        it("returns true for empty arrays", () => {
+            expect(([] as string[]).isEmpty()).toEqual(true);
+        });
+        it("returns false for non-empty arrays", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => !arr.isEmpty()));
+        });
+    });
+
+    describe("isInfixOf", () => {
+        it("returns true for empty arrays", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                (arr) => ([] as any[]).isInfixOf(arr)));
+        });
+        it("returns equals contains for single element", () => {
+            fc.assert(fc.property(
+                fc.integer(),
+                fc.array(fc.integer()),
+                (elem, arr) => [elem].isInfixOf(arr) === arr.contains(elem)));
+        });
+        it("returns true if it occurs in the array", () => {
+            expect([3, 4, 5].isInfixOf([1, 2, 3, 4, 5, 6, 7])).toEqual(true);
+        });
+        it("returns false if it does not occur in the array", () => {
+            expect([3, 4, 6].isInfixOf([1, 2, 3, 4, 5, 6, 7])).toEqual(false);
+        });
+        it("returns true if isPrefixOf returns true", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (prefix, arr) => prefix.isPrefixOf(arr) ? prefix.isInfixOf(arr) : true));
+        });
+        it("returns true if isSuffixOF returns true", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (prefix, arr) => prefix.isSuffixOf(arr) ? prefix.isInfixOf(arr) : true));
+        });
+    });
+
+    describe("isInfixedBy", () => {
+        it("is the reverse of isInfixOf", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (arr1, arr2) => arr1.isInfixedBy(arr2) === arr2.isInfixOf(arr1)));
+        });
+    });
+
+    describe("isPrefixOf", () => {
+        it("returns true for empty arrays", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                (arr) => ([] as any[]).isPrefixOf(arr)));
+        });
+        it("returns true if it occurs at the start the array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (prefix, arr) => prefix.isPrefixOf([...prefix, ...arr])));
+        });
+        it("returns false if it does not occur at the start of the array", () => {
+            expect([1, 2, 3].isPrefixOf([2, 3, 4, 5])).toEqual(false);
+        });
+    });
+
+    describe("isSuffixedBy", () => {
+        it("is the reverse of isSuffixOf", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (arr1, arr2) => arr1.isSuffixedBy(arr2) === arr2.isSuffixOf(arr1)));
+        });
+    });
+
+    describe("isSuffixOf", () => {
+        it("returns true for empty arrays", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()),
+                (arr) => ([] as any[]).isSuffixOf(arr)));
+        });
+        it("returns true if it occurs at the start the array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (suffix, arr) => suffix.isSuffixOf([...arr, ...suffix])));
+        });
+        it("returns false if it does not occur at the start of the array", () => {
+            expect([4, 5, 6].isSuffixOf([2, 3, 4, 5])).toEqual(false);
+        });
+    });
+
+    describe("isSuffixedBy", () => {
+        it("is the reverse of isSuffixOf", () => {
+            fc.assert(fc.property(
+                fc.array(fc.integer()),
+                fc.array(fc.integer()),
+                (arr1, arr2) => arr1.isSuffixedBy(arr2) === arr2.isSuffixOf(arr1)));
+        });
+    });
+
+    describe("last", () => {
+        it("returns undefined for empty arrays", () => {
+            expect([].last()).toBeUndefined();
+        });
+        it("returns the last element of a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => { expect(arr.last()).toEqual(arr.reverse()[0]); }));
+        });
+    });
+
+    describe("tail", () => {
+        it("returns undefined for empty arrays", () => {
+            expect([].tail()).toBeUndefined();
+        });
+        it("returns all but the first element for a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => { expect(arr.tail()).toEqual(arr.slice(1, arr.length)); }));
+        });
+    });
+
+    describe("tails", () => {
+        it("returns one empty array for empty arrays", () => {
+            expect([].tails()).toEqual([[]]);
+        });
+        it("returns all prefixes of a non-empty array", () => {
+            fc.assert(fc.property(
+                fc.array(fc.anything()).filter((x) => !x.isEmpty()),
+                (arr) => {
+                    expect(arr.tails())
+                        .toEqual(arr.reduce((state, _, i) => [...state, arr.slice(i + 1, arr.length)], [arr]));
+                }));
+        });
+    });
 });
 
 /*
-    dropWhile(p: (a: A) => boolean): A[];
-    group(): A[][];
-    groupBy<B>(getKey: (a: A) => B): Array<[B, A[]]>;
-    head(): A;
-    init(): A[];
-    inits(): A[][];
-    intersperse(t: A): A[];
-    isEmpty(): boolean;
-    isInfixOf(other: A[]): boolean;
-    isInfixedBy(other: A[]): boolean;
-    isPrefixOf(other: A[]): boolean;
-    isPrefixedBy(other: A[]): boolean;
-    isSuffixOf(other: A[]): boolean;
-    isSuffixedBy(other: A[]): boolean;
-    last(): A;
     partition(p: (a: A) => boolean): [A[], A[]];
     scan<B>(reduce: (b: B, a: A) => B, seed: B): B[];
     scanRight<B>(reduce: (a: A, b: B) => B, seed: B): B[];
     span(p: (a: A) => boolean): [A[], A[]];
     splitAt(index: number): [A[], A[]];
     takeWhile(p: (a: A) => boolean): A[];
-    tail(): A[];
-    tails(): A[][];
     zip<P extends any[]>(...arr: MapArray<P>): Array<Cons<A, P>>;
     zipWith<P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: MapArray<P>): B[];
 */
