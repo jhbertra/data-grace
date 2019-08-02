@@ -4,7 +4,6 @@ export {
     Codec,
     array,
     boolean,
-    date,
     makeCodec,
     number,
     optional,
@@ -119,19 +118,6 @@ function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>
 /*------------------------------
   GENERAL-PURPOSE CODECS
   ------------------------------*/
-
-/**
- * Conversion between unknown data and dates.
- *
- * @example
- *
- *      date.decode(true); // Invalid ({"$": "Expected a date"})
- *      date.decode("2019-07-26"); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
- *      date.decode(Date.parse("2019-07-26")); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
- *
- *      date.encode(Date.parse("2019-07-26")); // Fri Jul 26 2019 00:00:00 GMT-0000 (UTC)
- */
-const date: Codec<unknown, Date> = makeCodec(D.date, E.date);
 
 /**
  * Conversion between unknown data and booleans.

@@ -287,26 +287,6 @@ describe("zipWithM", () => {
     });
 });
 
-describe("date", () => {
-    it("decodes date objects", () => {
-        const date = new Date();
-        expect(simplify(D.date.decode(date))).toEqual(simplify(Valid(date)));
-    });
-    it("decodes date strings", () => {
-        const date = new Date(Date.parse("2019-07-31"));
-        expect(simplify(D.date.decode("2019-07-31"))).toEqual(simplify(Valid(date)));
-    });
-    it("fails invalid input", () => {
-        fc.assert(
-            fc.property(
-                fc.anything().filter((x) => !(x instanceof Date)),
-                (input: any) => {
-                    expect(simplify(D.date.decode(input)))
-                        .toEqual(simplify(Invalid({ $: "Expected a date" })));
-                }));
-    });
-});
-
 describe("boolean", () => {
     it("decodes booleans", () => {
         expect(simplify(D.boolean.decode(true))).toEqual(simplify(Valid(true)));

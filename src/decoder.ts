@@ -7,7 +7,6 @@ export {
     boolean,
     constant,
     constantFailure,
-    date,
     forM,
     id,
     lift,
@@ -165,28 +164,6 @@ const id: Decoder<any, any> = makeDecoder(V.Valid);
 function constantFailure<T>(failure: DecodeError): Decoder<any, T> {
     return makeDecoder(() => V.Invalid(failure));
 }
-
-/**
- * Conversion from unknown data to dates.
- *
- * @example
- *
- *      date.decode(true); // Invalid ({"$": "Expected a date"})
- *      date.decode("2019-07-26"); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
- *      date.decode(Date.parse("2019-07-26")); // Valid (Fri Jul 26 2019 00:00:00 GMT-0000 (UTC))
- */
-const date: Decoder<any, Date> = makeDecoder((value: any) => {
-    if (value instanceof Date) {
-        return V.Valid(value);
-    } else if (typeof(value) === "string" && value.match(/^[!@#$%^&*_+=<>,.?/;"'{[}\]|\\~`0-9\s]+$/) == null) {
-        const parsed = Date.parse(value);
-        return Number.isNaN(parsed)
-            ? V.Invalid({ $: "Expected a date" } as DecodeError)
-            : V.Valid(new Date(parsed));
-    } else {
-        return V.Invalid({ $: "Expected a date" } as DecodeError);
-    }
-});
 
 /**
  * Conversion from unknown data to booleans.

@@ -4,7 +4,6 @@ export {
     MapEncoder,
     array,
     boolean,
-    date,
     build,
     makeEncoder,
     number,
@@ -62,11 +61,6 @@ function makeEncoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
 /*------------------------------
   GENERAL-PURPOSE ENCODERS
   ------------------------------*/
-
-/**
- * Conversion from dates to raw data.
- */
-const date: Encoder<any, Date> = makeEncoder(id);
 
 /**
  * Conversion from booleans to raw data.

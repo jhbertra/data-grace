@@ -46,13 +46,6 @@ describe("build", () => {
     });
 });
 
-describe("date", () => {
-    it("encodes date objects", () => {
-        const date = new Date();
-        expect(E.date.encode(date)).toEqual(date);
-    });
-});
-
 describe("boolean", () => {
     it("encodes booleans", () => {
         expect(E.boolean.encode(true)).toEqual(true);

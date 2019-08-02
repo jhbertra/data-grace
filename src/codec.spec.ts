@@ -91,19 +91,6 @@ describe("build", () => {
     });
 });
 
-describe("date", () => {
-    it("encode equals encoder", () => {
-        const date = new Date();
-        expect(C.date.encode(date)).toEqual(E.date.encode(date));
-    });
-    it("decode equals decoder", () => {
-        fc.assert(
-            fc.property(
-                fc.anything(),
-                (input) => { expect(simplify(C.date.decode(input))).toEqual(simplify(D.date.decode(input))); }));
-    });
-});
-
 describe("boolean", () => {
     it("encode equals encoder", () => {
         expect(C.boolean.encode(true)).toEqual(E.boolean.encode(true));
