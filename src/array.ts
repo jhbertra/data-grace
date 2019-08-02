@@ -16,44 +16,205 @@ export {
 type Cons<A, Tail extends any[]> = ((a: A, ...t: Tail) => any) extends ((...tail: infer TT) => any) ? TT : never;
 
 interface IArrayExtensions<A> {
+
+    /**
+     * Determines whether all elements of the array satisfy the predicate.
+     */
     all(p: (a: A) => boolean): boolean;
+
+    /**
+     * Determines whether any element of the array satisfies the predicate.
+     */
     any(p: (a: A) => boolean): boolean;
+
+    /**
+     * Returns a tuple where first element is the longest prefix (possibly empty)
+     * of this array whose elements do not satisfy p and the second element is the
+     * remainder of the array.
+     *
+     * @example
+     *
+     *  [1, 2, 3, 4, 1, 2, 3, 4].break((x) => x > 3) // [[1, 2, 3], [4, 1, 2, 3, 4]]
+     *  [1, 2, 3].break((x) => x < 9) // [[], [1, 2, 3]]
+     *  [1, 2, 3].break((x) => x > 9) // [[1, 2, 3], []]
+     */
     break(p: (a: A) => boolean): [A[], A[]];
+
+    /**
+     * From each element in this array, get a new array and concatenate the results.
+     */
     chain<B>(f: (a: A) => B[]): B[];
+
+    /**
+     * Determines whether the array contains a.
+     */
     contains(a: A): boolean;
+
+    /**
+     * Get an array which contains all unique elements of this array
+     * with no duplicates.
+     */
     distinct(): A[];
+
+    /**
+     * Get an array which contains all unique elements of this array
+     * with no duplicates using a user-defined equality test.
+     */
     distinctBy(equals: (a: A, b: A) => boolean): A[];
+
+    /**
+     * Get all elements of this array starting after the first element
+     * that does not satisfy p.
+     */
     dropWhile(p: (a: A) => boolean): A[];
+
+    /**
+     * Return an array of arrays where each element contains adjacent equal
+     * items found in this array. If the result were concatenated / flattened,
+     * it would equal this array.
+     */
     group(): A[][];
+
+    /**
+     * Return an array of arrays where each element contains adjacent items
+     * found in this array which are equal according to a user-defined equality test.
+     * If the result were concatenated / flattened, it would equal this array.
+     */
     groupBy(equals: (a: A, b: A) => boolean): A[][];
+
+    /**
+     * Group all items in this array which resolve the same key.
+     */
     groupByKey<B>(getKey: (a: A) => B): Array<[B, A[]]>;
+
+    /**
+     * Return the first element of this array if it exists.
+     */
     head(): A | undefined;
+
+    /**
+     * Return the all but the last element of this array unless it is empty.
+     */
     init(): A[] | undefined;
+
+    /**
+     * Return the all possible prefixes of this array including the empty array
+     * and the full array.
+     */
     inits(): A[][];
+
+    /**
+     * Insert an element between all elements in this array.
+     */
     intersperse(t: A): A[];
+
+    /**
+     * Determines if this array is empty.
+     */
     isEmpty(): boolean;
+
+    /**
+     * Determines if this array is found anywhere in other.
+     */
     isInfixOf(other: A[]): boolean;
+
+    /**
+     * Determines if other is found anywhere in this array.
+     */
     isInfixedBy(other: A[]): boolean;
+
+    /**
+     * Determines if this array is found at the start of other.
+     */
     isPrefixOf(other: A[]): boolean;
+
+    /**
+     * Determines if other is found at the start of this array.
+     */
     isPrefixedBy(other: A[]): boolean;
+
+    /**
+     * Determines if this array is found at the end of other.
+     */
     isSuffixOf(other: A[]): boolean;
+
+    /**
+     * Determines if other is found at the end of this array.
+     */
     isSuffixedBy(other: A[]): boolean;
+
+    /**
+     * Return the last element of this array if it exists.
+     */
     last(): A | undefined;
+
+    /**
+     * Returns a tuple whose first element contains all items in this array that
+     * satisfy p and whose second element contains all items that do not.
+     */
     partition(p: (a: A) => boolean): [A[], A[]];
+
+    /**
+     * Return a series of left-associative state reductions on this list. For each element of
+     * this array, the inputs of the reducer will be the output of the previous reduction
+     * (or seed if it is the first element) and the element.
+     */
     scan<B>(reduce: (b: B, a: A) => B, seed: B): B[];
+
+    /**
+     * Return a series of right-associative state reductions on this list. For each element of
+     * this array in reverse, the inputs of the reducer will be the element and the output of
+     * the previous reduction (or seed if it is the last element).
+     */
     scanRight<B>(reduce: (a: A, b: B) => B, seed: B): B[];
+
+    /**
+     * Returns a tuple where first element is the longest prefix (possibly empty)
+     * of this array whose elements satisfy p and the second element is the
+     * remainder of the array.
+     *
+     * @example
+     *
+     *  [1, 2, 3, 4, 1, 2, 3, 4].span((x) => x < 3) // [[1, 2, 3], [4, 1, 2, 3, 4]]
+     *  [1, 2, 3].span((x) => x > 9) // [[], [1, 2, 3]]
+     *  [1, 2, 3].span((x) => x > 0) // [[1, 2, 3], []]
+     */
     span(p: (a: A) => boolean): [A[], A[]];
+
+    /**
+     * Returns a tuple where the first element is the prefix of
+     * length n of this array and second element is the remainder of the array.
+     * If n is negative, acts as if n were 0, and if n > this.length, acts as if
+     * it were this.length.
+     */
     splitAt(index: number): [A[], A[]];
+
+    /**
+     * Get all elements of this array while until an element that does not
+     * satisfied p is encountered.
+     */
     takeWhile(p: (a: A) => boolean): A[];
+
+    /**
+     * Return the all but the first element of this array unless it is empty.
+     */
     tail(): A[] | undefined;
+
+    /**
+     * Return the all possible suffixes of this array including the empty array
+     * and the full array.
+     */
     tails(): A[][];
+
+    /**
+     * Return an array of tuples that contains the items in order from the argument
+     * arrays (including this array).
+     */
     zip<P extends any[]>(...arr: MapArray<P>): Array<Cons<A, P>>;
 
     /**
      * Map a function over the elements of multiple arrays in order and return an
      * array containing the combined results.
-     *
-     * @param f a merge function that combines the elements of the  argument arrays
      */
     zipWith<P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: MapArray<P>): B[];
 }
