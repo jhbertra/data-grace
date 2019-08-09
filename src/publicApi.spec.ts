@@ -15,8 +15,8 @@ import * as utilityTypes from "./utilityTypes";
 import * as validation from "./validation";
 
 describe("package.json", () => {
-  it("Is on version 0.0.1", () => {
-    expect(p.version).toEqual("0.0.1");
+  it("Is on version 0.0.2", () => {
+    expect(p.version).toEqual("0.0.2");
   });
 });
 
