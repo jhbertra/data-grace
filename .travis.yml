@@ -7,11 +7,9 @@ install:
 jobs:
   include:
     - stage: Build and Test
-      script:
-        - yarn lint
-        - yarn cover
+      script: yarn test
     - stage: Upload Coverage
-      script: cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
+      script: yarn build && yarn cover && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
     - stage: NPM Release
       script: yarn build
       deploy:
