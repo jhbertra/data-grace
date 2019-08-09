@@ -3,13 +3,12 @@
     "target": "ES2015",
     "module": "commonjs",
     "declaration": true,
-    "outDir": "lib",
+    "outDir": "./lib",
     "strict": true,
     "sourceMap": true,
     "removeComments": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
 }

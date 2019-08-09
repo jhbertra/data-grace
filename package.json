@@ -1,7 +1,7 @@
 {
   "name": "data-grace",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "lib/index.js",
   "author": "Jamie Bertram <jhbertra@gmail.com>",
   "license": "MIT",
   "devDependencies": {
@@ -23,7 +23,8 @@
     "test": "yarn lint && jest"
   },
   "files": [
-    "lib"
+    "lib/*.js",
+    "lib/*.d.ts"
   ],
   "jest": {
     "transform": {
