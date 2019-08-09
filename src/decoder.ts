@@ -1,7 +1,7 @@
 export {
-    IDecoder,
-    DecodeError,
     Decoder,
+    DecodeError,
+    IDecoder,
     MapDecoder,
     array,
     boolean,
@@ -11,7 +11,6 @@ export {
     id,
     lift,
     build,
-    makeDecoder,
     mapAndUnzipWith,
     mapM,
     number,
@@ -36,35 +35,85 @@ import * as V from "./validation";
   ------------------------------*/
 
 /**
- * The public methods exposed by the @see Decoder type.
+ * The public methods exposed by the [[IDecoder]] type.
  */
 interface IDecoder<TIn, A> {
 
     /**
-     * Apply a transformation to all data produced by this @see Decoder.
+     * Try to convert `input` to an instance of `A`
+     * @param input The raw input to decode.
+     * @returns A [[Validation]] possibly containing a decoded value.
      */
-    map<B>(f: (c: A) => B): Decoder<TIn, B>;
+    decode(input: TIn): Validation<DecodeError, A>;
 
     /**
-     * Make a @see Decoder that first tries to run this @see Decoder,
-     * falling back on another if it fails.
+     * Apply a transformation to all data produced by this [[IDecoder]].
+     *
+     * ```ts
+     * string.map(s => s.toUpperCase()).decode("bob").toString(); // "Valid (BOB)"
+     * string.map(s => s.toUpperCase()).decode(12).toString(); // "Invalid ({ $: "Expected a string" })"
+     * ```
+     *
+     * @param f a function that modifies values decoded by this [[IDecoder]].
+     * @returns an [[IDecoder]] that transforms its values.
      */
-    or(other: Decoder<TIn, A>): Decoder<TIn, A>;
+    map<B>(f: (c: A) => B): IDecoder<TIn, B>;
+
+    /**
+     * Make an [[IDecoder]] that first tries to run this [[IDecoder]],
+     * falling back on another if it fails.
+     *
+     * ```ts
+     * string.or(number).decode("foo"); // "Valid (foo)"
+     * string.or(number).decode(12); // "Valid (12)"
+     * string.or(number).decode(false); // "Invalid ({ $: "Expected a number" })"
+     * ```
+     *
+     * @param other an [[IDecoder]] to chose if this one fails.
+     * @returns an [[IDecoder]] which if `this` decodes, chooses the decoded value, else runs `other`.
+     */
+    or(other: IDecoder<TIn, A>): IDecoder<TIn, A>;
 
     /**
      * Replace all successfully decoded values with a new decoder.
+     *
+     * ```ts
+     * const d = property("foo", string).replace(property("bar", number))
+     * d.decode({ "foo": "test" }) // "Invalid ({ "bar": "Required" })"
+     * d.decode({ "bar": 12 }) // "Invalid ({ "foo": "Required" })"
+     * d.decode({}) // "Invalid ({ "foo": "Required", "bar": "Required" })"
+     * d.decode({ "foo": "test", "bar": 12 }) // "Valid (12)"
+     * ```
+     *
+     * @param m an [[IDecoder]] to run if this one succeeds.
+     * @returns an [[IDecoder]] which runs `m` and replaces the value if both succeed.
      */
-    replace<B>(m: Decoder<TIn, B>): Decoder<TIn, B>;
+    replace<B>(m: IDecoder<TIn, B>): IDecoder<TIn, B>;
 
     /**
      * Replace all successfully decoded values with a new value.
+     *
+     * ```ts
+     * const d = property("foo", string).replacePure(42)
+     * d.decode({ "foo": 12 }) // "Invalid ({ "foo": "Expected a string" })"
+     * d.decode({}) // "Invalid ({ "foo": "Required" })"
+     * d.decode({ "foo": "test" }) // "Valid (42)"
+     * ```
+     *
+     * @param b a value to replace successful results with.
+     * @returns an [[IDecoder]] which replaces successfully decoded values with `b`.
      */
-    replacePure<B>(c: B): Decoder<TIn, B>;
+    replacePure<B>(b: B): IDecoder<TIn, B>;
 
     /**
-     * Discard any output this @see Decoder produces.
+     * Discard any output this [[IDecoder]] produces.
+     *
+     * ```ts
+     * string.voidOut().decode(12); // Invalid ({ $: "Expected a string" })
+     * string.voidOut().decode("foo"); // Valid ([])
+     * ```
      */
-    voidOut(): Decoder<TIn, []>;
+    voidOut(): IDecoder<TIn, []>;
 }
 
 /**
@@ -74,41 +123,15 @@ interface IDecoder<TIn, A> {
 type DecodeError = { [id: string]: string };
 
 /**
- * A decoder is a conversion function that converts from a raw data format
- * to a more abstract one. The conversion may fail.
- */
-type Decoder<TIn, A> = { decode: (input: TIn) => Validation<DecodeError, A> } & IDecoder<TIn, A>;
-
-/**
- * A type transformer that homomorphically maps the @see Decoder
+ * A type transformer that homomorphically maps the [[IDecoder]]
  * onto the types of A.
  *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapDecoder<string, Foo> extends { bar: Decoder<string, number>, baz: Decoder<string, string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality = MapDecoder<string, Foo> extends Decoder<string, string>[] ? any : never;
- *
- *       // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
+ * ```ts
+ * // Example = {a: IDecoder<unknown, string>, b: IDecoder<unknown, number>}
+ * type Example = MapDecoder<unknown, {a: string, b: number}>
+ * ```
  */
-type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
+type MapDecoder<TIn, A> = { [K in keyof A]: IDecoder<TIn, A[K]> };
 
 /*------------------------------
   CONSTRUCTORS
@@ -117,15 +140,15 @@ type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
 /**
  * Creates a Decoder that runs the given decoding function.
  */
-function makeDecoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): Decoder<TIn, A> {
+function Decoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): IDecoder<TIn, A> {
     return Object.freeze({
         decode,
-        map(f) { return makeDecoder((x) => decode(x).map(f)); },
-        or(d) { return makeDecoder((x) => decode(x).or(() => d.decode(x))); },
-        replace(d) { return makeDecoder((x) => decode(x).replace(d.decode(x))); },
-        replacePure(f) { return makeDecoder((x) => decode(x).replacePure(f)); },
-        voidOut() { return makeDecoder<TIn, []>((x) => decode(x).voidOut()); },
-    }) as Decoder<TIn, A>;
+        map(f) { return Decoder((x) => decode(x).map(f)); },
+        or(d) { return Decoder((x) => decode(x).or(d.decode(x))); },
+        replace(d) { return Decoder((x) => decode(x).replace(d.decode(x))); },
+        replacePure(f) { return Decoder((x) => decode(x).replacePure(f)); },
+        voidOut() { return Decoder<TIn, []>((x) => decode(x).voidOut()); },
+    }) as IDecoder<TIn, A>;
 }
 
 /*------------------------------
@@ -148,33 +171,51 @@ function prefixError(prefix: string, error: DecodeError): DecodeError {
 
 /**
  * Always returns t as a valid result.
+ *
+ * ```ts
+ * constant("foo").decode(42); // Valid (foo)
+ * ```
+ *
+ * @param t the value to return when decoding.
+ * @returns a decoder that always returns `t`.
  */
-function constant<T>(t: T): Decoder<any, T> {
-    return makeDecoder(() => V.Valid(t));
+function constant<T>(t: T): IDecoder<unknown, T> {
+    return Decoder(() => V.Valid(t));
 }
 
 /**
  * Always decodes the input.
+ *
+ * ```ts
+ * id.decode(12); // Valid (12)
+ * ```
  */
-const id: Decoder<any, any> = makeDecoder(V.Valid);
+const id: IDecoder<unknown, any> = Decoder(V.Valid);
 
 /**
  * Always returns t as a failed result.
+ *
+ * ```ts
+ * constantFailure({ foo: "bar" }).decode(42); // Invalid ({ foo: "bar" })
+ * ```
+ *
+ * @param failure the error to return when decoding.
+ * @returns a decoder that always returns `failure`.
  */
-function constantFailure<T>(failure: DecodeError): Decoder<any, T> {
-    return makeDecoder(() => V.Invalid(failure));
+function constantFailure<T>(failure: DecodeError): IDecoder<unknown, T> {
+    return Decoder(() => V.Invalid(failure));
 }
 
 /**
  * Conversion from unknown data to booleans.
  *
- * @example
- *
- *      boolean.decode(true); // Valid (true)
- *      boolean.decode("true"); // Invalid ({"$": "Expected a boolean"})
+ * ```ts
+ * boolean.decode(true); // Valid (true)
+ * boolean.decode("true"); // Invalid ({"$": "Expected a boolean"})
+ * ```
  */
 // tslint:disable-next-line: variable-name
-const boolean: Decoder<any, boolean> = makeDecoder(
+const boolean: IDecoder<unknown, boolean> = Decoder(
     (value: any) => typeof (value) === "boolean"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a boolean" } as DecodeError));
@@ -182,13 +223,13 @@ const boolean: Decoder<any, boolean> = makeDecoder(
 /**
  * Conversion from unknown data to numbers.
  *
- * @example
- *
- *      number.decode(1); // Valid (1)
- *      number.decode("1"); // Invalid ({"$": "Expected a number"})
+ * ```ts
+ * number.decode(1); // Valid (1)
+ * number.decode("1"); // Invalid ({"$": "Expected a number"})
+ * ```
  */
 // tslint:disable-next-line: variable-name
-const number: Decoder<any, number> = makeDecoder(
+const number: IDecoder<unknown, number> = Decoder(
     (value: any) => typeof (value) === "number"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a number" } as DecodeError));
@@ -196,13 +237,13 @@ const number: Decoder<any, number> = makeDecoder(
 /**
  * Conversion from unknown data to strings.
  *
- * @example
- *
- *      string.decode(null); // Invalid ({"$": "Expected a string"})
- *      string.decode("foo"); // Valid ("foo")
+ * ```ts
+ * string.decode(null); // Invalid ({"$": "Expected a string"})
+ * string.decode("foo"); // Valid ("foo")
+ * ```
  */
 // tslint:disable-next-line: variable-name
-const string: Decoder<any, string> = makeDecoder(
+const string: IDecoder<unknown, string> = Decoder(
     (value: any) => typeof (value) === "string"
         ? V.Valid(value)
         : V.Invalid({ $: "Expected a string" } as DecodeError));
@@ -210,14 +251,17 @@ const string: Decoder<any, string> = makeDecoder(
 /**
  * Conversion from unknown data to arrays.
  *
- * @example
+ * ```ts
+ * array(string).decode("foo"); // Invalid ({"$": "Expected an array"})
+ * array(string).decode([true, "foo"]); // Invalid ({"[0]": "Expected a string"})
+ * array(string).decode(["foo"]); // Valid (["foo"])
+ * ```
  *
- *      array(string).decode("foo"); // Invalid ({"$": "Expected an array"})
- *      array(string).decode([true, "foo"]); // Invalid ({"[0]": "Expected a string"})
- *      array(string).decode(["foo"]); // Valid (["foo"])
+ * @param convert a decoder used to decode the values in the array.
+ * @returns An [[IDecoder]] that decodes arrays whose items can be decoded with `convert`.
  */
-function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
-    return makeDecoder((value) => Array.isArray(value)
+function array<T>(convert: IDecoder<unknown, T>): IDecoder<unknown, T[]> {
+    return Decoder((value) => Array.isArray(value)
         ? V.sequence(value.map((x, i) => convert.decode(x).mapError((error) => prefixError(`[${i}]`, error))))
         : V.Invalid({ $: "Expected an array" } as DecodeError));
 }
@@ -225,56 +269,70 @@ function array<T>(convert: Decoder<any, T>): Decoder<any, T[]> {
 /**
  * Conversion from unknown data to a finite set of values.
  *
- * @example
+ * ```ts
+ * oneOf(only("foo"), only("bar")).decode("foo"); // Valid ("foo")
+ * oneOf(only("foo"), only("bar")).decode("bar"); // Valid ("bar")
+ * oneOf(only("foo"), only("bar")).decode("baz"); // Invalid ({"$": "Expected bar"})
+ * ```
  *
- *      oneOf(only("foo"), only("bar")).decode("foo"); // Valid ("foo")
- *      oneOf(only("foo"), only("bar")).decode("bar"); // Valid ("bar")
- *      oneOf(only("foo"), only("bar")).decode("baz"); // Invalid ({"$": "Expected bar"})
+ * @param firstChoice the first decoder to try.
+ * @param choices additional decoders to try until one succeeds, or all fail.
+ * @returns An [[IDecoder]] which tries all decoders in sequence until one succeeds, or all fail.
  */
-function oneOf<T>(firstChoice: Decoder<any, T>, ...choices: Array<Decoder<any, T>>): Decoder<any, T> {
+function oneOf<T>(firstChoice: IDecoder<unknown, T>, ...choices: Array<IDecoder<unknown, T>>): IDecoder<unknown, T> {
     return choices.reduce((state, d) => state.or(d), firstChoice);
 }
 
 /**
  * Conversion from unknown data to a single valid value.
  *
- * @example
+ * ```ts
+ * only("foo").decode("foo"); // Valid ("foo")
+ * only("foo").decode("bar"); // Invalid ({"$": "Expected foo"})
+ * ```
  *
- *      only("foo").decode("foo"); // Valid ("foo")
- *      only("foo").decode("bar"); // Invalid ({"$": "Expected foo"})
+ * @param value the value to match.
+ * @returns An [[IDecoder]] that only permits `value`.
  */
-function only<T>(value: T): Decoder<any, T> {
-    return makeDecoder((x) => x === value ? V.Valid(x) : V.Invalid({ $: `Expected ${value}` }));
+function only<T>(value: T): IDecoder<unknown, T> {
+    return Decoder((x) => x === value ? V.Valid(x as T) : V.Invalid({ $: `Expected ${value}` }));
 }
 
 /**
  * Conversion from unknown data to optional types.
  *
- * @example
+ * ```ts
+ * optional(string).decode(null); // Valid (Nothing)
+ * optional(string).decode(unknown); // Valid (Nothing)
+ * optional(string).decode("foo"); // Valid (Just (foo))
+ * optional(string).decode(true); // Invalid ({"$": "Expected a string"})
+ * ```
  *
- *      optional(string).decode(null); // Valid (Nothing)
- *      optional(string).decode(unknown); // Valid (Nothing)
- *      optional(string).decode("foo"); // Valid (Just (foo))
- *      optional(string).decode(true); // Invalid ({"$": "Expected a string"})
+ * @param convert an [[IDecoder]] which converts values when they are not `null` or `undefined`
+ * @returns An [[IDecoder]] which can handle `null` and `undefined` by wrapping the result in a [[Maybe]].
  */
-function optional<T>(convert: Decoder<any, T>): Decoder<any, Maybe<T>> {
-    return makeDecoder(
+function optional<T>(convert: IDecoder<unknown, T>): IDecoder<unknown, Maybe<T>> {
+    return Decoder(
         (value) => value === null || value === undefined ? V.Valid(Nothing()) : convert.decode(value).map(Just));
 }
 
 /**
  * Decodes properties of an object.
  *
- * @example
+ * ```ts
+ * property("bar", string).decode({}); // Invalid ({"bar", "Expected a string"})
+ * property("bar", string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
+ * property("bar", string).decode({ bar: "foo"}); // Valid ("foo")
+ * ```
  *
- *      property("bar", string).decode({}); // Invalid ({"bar", "Expected a string"})
- *      property("bar", string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
- *      property("bar", string).decode({ bar: "foo"}); // Valid ("foo")
+ * @param name The name of the property to read.
+ * @param convert The decoder to decode the property value.
+ * @returns An [[IDecoder]] which accepts an object and reads properties from it.
  */
 function property<T>(
     name: string,
-    convert: Decoder<any, T>): Decoder<object, T> {
-    return makeDecoder((obj) => convert
+    convert: IDecoder<unknown, T>): IDecoder<object, T> {
+    return Decoder((obj) => convert
         .decode((obj as any)[name])
         .mapError((error) => prefixError(name, error)));
 }
@@ -282,21 +340,24 @@ function property<T>(
 /**
  * Conversion from unknown data to tuples.
  *
- * @example
+ * ```ts
+ * tuple(string, number).decode("foo"); // Invalid ({"$": "Expected an array"})
+ * tuple(string, number).decode([1, "foo"]); // Invalid ({"[0]": "Expected a string", "[1]": "Expected a number"})
+ * tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
+ * ```
  *
- *      tuple(string, number).decode("foo"); // Invalid ({"$": "Expected an array"})
- *      tuple(string, number).decode([1, "foo"]); // Invalid ({"[0]": "Expected a string", "[1]": "Expected a number"})
- *      tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
+ * @param converters a sequence of decoders that positionally decode tuple values.
+ * @returns An [[IDecoder]] which runs each converter in-order on an input array and produces a tuple.
  */
 
-function tuple<T extends any[]>(...converters: MapDecoder<any, T>): Decoder<any, T> {
-    return makeDecoder((value) => Array.isArray(value)
+function tuple<T extends any[]>(...converters: MapDecoder<unknown, T>): IDecoder<unknown, T> {
+    return Decoder((value) => Array.isArray(value)
         ? value.length === converters.length
             ? V.zipWithM(
                 (x, [converter, i]) => converter.decode(x).mapError((error) => prefixError(`[${i}]`, error)),
                 value,
                 converters.map(
-                    (x, i) => [x, i] as [Decoder<any, T[keyof T]>, number])) as unknown as Validation<DecodeError, T>
+                    (x, i) => [x, i] as [IDecoder<unknown, T[keyof T]>, number])) as Validation<DecodeError, T>
             : V.Invalid({ $: `Expected an array of length ${converters.length}` } as DecodeError)
         : V.Invalid({ $: `Expected an array of length ${converters.length}` } as DecodeError));
 }
@@ -309,22 +370,26 @@ function tuple<T extends any[]>(...converters: MapDecoder<any, T>): Decoder<any,
  * Composes a decoder that decodes all the arguments of a
  * function and applies the function to its decoded arguments.
  *
- * @example
+ * ```ts
+ * function answerTrueFalse(question: string, answer: boolean): string {
+ *     return `${question} ${answer}`;
+ * }
  *
- *      function answerTrueFalse(question: string, answer: boolean): string {
- *          return `${question} ${answer}`;
- *      }
+ * const decodeAnswerTrueFalse: IDecoder<object, string> = lift(
+ *     answerTrueFalse,
+ *     property("question", string),
+ *     property("answer", boolean))
  *
- *      const decodeAnswerTrueFalse: Decoder<object, string> = lift(
- *          answerTrueFalse,
- *          property("question", string),
- *          property("answer", boolean))
+ * decodeAnswerTrueFalse.decode({ question: "foo", answer: true }); // Valid (foo true)
+ * decodeAnswerTrueFalse.decode({ question: "foo", answer: 0 }); // Invalid ({"answer": "Expected a boolean"})
+ * ```
  *
- *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: true }); // Valid (asdf true)
- *      decodeAnswerTrueFalse.decode({ question: "asdf", answer: 0 }); // Invalid ({"answer": "Expected a boolean"})
+ * @param f a function to lift to operate in [[IDecoder]]s.
+ * @param args lifted arguments to `f`.
+ * @returns the result of evaluating `f` in an [[IDecoder]] on the values produced by `args`.
  */
-function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): Decoder<TIn, R> {
-    return makeDecoder((input) => {
+function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder<TIn, P>): IDecoder<TIn, R> {
+    return Decoder((input) => {
         const values = [];
         const errors: DecodeError[] = [];
         for (const d of args) {
@@ -346,22 +411,25 @@ function lift<TIn, P extends any[], R>(f: (...args: P) => R, ...args: MapDecoder
  * T out of decoders which decode the constituent components. It
  * "lifts" the structure of an object into a decoder.
  *
- * @example
+ * ```ts
+ * type Foo = { bar: string, baz: Maybe<boolean> };
  *
- *      type Foo = { bar: string, baz: Maybe<boolean> };
+ * const fooDecoder: IDecoder<object, Foo> = build<Foo>({
+ *     bar: property("bar", string),
+ *     baz: property("baz", optional(boolean))
+ * });
  *
- *      const fooDecoder: Decoder<object, Foo> = build<Foo>({
- *          bar: property("bar", string),
- *          baz: property("baz", optional(boolean))
- *      });
+ * fooDecoder.decode({ bar: null, baz: 1 }); // Invalid ({"bar": "Required", "baz": "Expected a boolean"})
+ * // Valid ({ "bar": "eek", "baz": { "tag": "Just", "value": false } })
+ * fooDecoder.decode({ bar: "eek", baz: false });
+ * fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
+ * ```
  *
- *      fooDecoder.decode({ bar: null, baz: 1 }); // Invalid ({"bar": "Required", "baz": "Expected a boolean"})
- *      // Valid ({ "bar": "eek", "baz": { "tag": "Just", "value": false } })
- *      fooDecoder.decode({ bar: "eek", baz: false });
- *      fooDecoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
+ * @param spec an object composed of [[IDecoder]]s to build the result out of in an [[IDecoder]].
+ * @returns An [[IDecoder]] which will produce a `T` with the values produced by the [[IDecoder]]s in `spec`.
  */
-function build<T extends object>(spec: MapDecoder<object, T>): Decoder<unknown, T> {
-    return makeDecoder((input) => {
+function build<T extends object>(spec: MapDecoder<object, T>): IDecoder<unknown, T> {
+    return Decoder((input) => {
         if (input == null || typeof(input) !== "object") {
             return V.Invalid({ $: "Expected an object" });
         } else {
@@ -392,45 +460,47 @@ function build<T extends object>(spec: MapDecoder<object, T>): Decoder<unknown, 
 /**
  * Maps a function over an array of inputs and produces a decoder for each.
  *
- * ```ts
- * mapM(url => fetchUrl(url), urls); // Promise<string[]>
- * ```
- *
- * @param f A function that produces a new promise for each input
- * @param as A set of inputs to map over
+ * @param f produces an [[IDecoder]] for each element in `as`
+ * @param as an array of inputs.
+ * @returns an [[IDecoder]] witch produces the values produced by `f` in order.
  */
-function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn, B[]> {
-    return makeDecoder((x) => V.mapM((a) => f(a).decode(x), as));
+function mapM<TIn, A, B>(f: (value: A) => IDecoder<TIn, B>, as: A[]): IDecoder<TIn, B[]> {
+    return Decoder((x) => V.mapM((a) => f(a).decode(x), as));
 }
 
 /**
- * @see mapM with its arguments reversed.
+ * [[mapM]] with its arguments reversed. Generally provides better
+ * ergonomics when `f` is a lambda (squint and it looks a bit like a `for` loop).
  *
- * ```ts
- * forM(urls, url => fetchUrl(url)); // Promise<string[]>
- * ```
+ * @param f produces an [[IDecoder]] for each element in `as`
+ * @param as an array of inputs.
+ * @returns an [[IDecoder]] witch produces the values produced by `f` in order.
  */
-function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn, B[]> {
+function forM<TIn, A, B>(as: A[], f: (value: A) => IDecoder<TIn, B>): IDecoder<TIn, B[]> {
     return mapM(f, as);
 }
 
 /**
  * Runs a sequence of decoders and aggregates their results.
+ *
  * @param das A sequence of decoders to run.
+ * @returns An [[IDecoder]] which runs `das` in sequence and aggregates their results or failures.
  */
-function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
+function sequence<TIn, A>(das: Array<IDecoder<TIn, A>>): IDecoder<TIn, A[]> {
     return mapM(preludeId, das);
 }
 
 /**
  * Maps a decomposition of parts over an array of inputs.
- * @param f A decomposition function
- * @param as An array of inputs
+ *
+ * @param f A decomposition function.
+ * @param as An array of inputs.
+ * @param n optional param to control the number of buckets in the case of empty input.
  */
 function mapAndUnzipWith<TIn, N extends number, A, P extends any[] & { length: N }>(
-    f: (a: A) => Decoder<TIn, P>,
+    f: (a: A) => IDecoder<TIn, P>,
     as: A[],
-    n: N = 0 as any): Decoder<TIn, MapArray<P>> {
+    n: N = 0 as any): IDecoder<TIn, MapArray<P>> {
 
     return mapM(f, as).map((x) => unzip(x, n));
 }
@@ -438,14 +508,15 @@ function mapAndUnzipWith<TIn, N extends number, A, P extends any[] & { length: N
 /**
  * Reads two input arrays in-order and produces a decoder for each pair,
  * then aggregates the results.
- * @param f A function that merges two inputs into a decoder
- * @param as The first set of inputs
- * @param bs The second set of inputs
+ *
+ * @param f A function that merges two inputs into a decoder.
+ * @param as The first set of inputs.
+ * @param params Additional arrays to zip.
  */
 function zipWithM<TIn, A, P extends any[], C>(
-    f: (a: A, ...params: P) => Decoder<TIn, C>,
+    f: (a: A, ...params: P) => IDecoder<TIn, C>,
     as: A[],
-    ...params: MapArray<P>): Decoder<TIn, C[]> {
+    ...params: MapArray<P>): IDecoder<TIn, C[]> {
 
     return sequence(as.zipWith(f, ...params as any));
 }

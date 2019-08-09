@@ -474,13 +474,13 @@ describe("IEither", () => {
 
     describe("or", () => {
         it("Picks the first if Right", () => {
-            expect(simplify(E.Right("foo").or(() => E.Right("bar")))).toEqual(simplify(E.Right("foo")));
+            expect(simplify(E.Right("foo").or(E.Right("bar")))).toEqual(simplify(E.Right("foo")));
         });
         it("Picks the second if first Left", () => {
-            expect(simplify(E.Left("error").or(() => E.Right("bar")))).toEqual(simplify(E.Right("bar")));
+            expect(simplify(E.Left("error").or(E.Right("bar")))).toEqual(simplify(E.Right("bar")));
         });
         it("Picks the second if both Left", () => {
-            expect(simplify(E.Left("error1").or(() => E.Left("error2")))).toEqual(simplify(E.Left("error2")));
+            expect(simplify(E.Left("error1").or(E.Left("error2")))).toEqual(simplify(E.Left("error2")));
         });
     });
 

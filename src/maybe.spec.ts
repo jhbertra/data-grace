@@ -493,13 +493,13 @@ describe("IMaybe", () => {
 
     describe("or", () => {
         it("Picks the first if non empty", () => {
-            expect(simplify(M.Just("foo").or(() => M.Just("bar")))).toEqual(simplify(M.Just("foo")));
+            expect(simplify(M.Just("foo").or(M.Just("bar")))).toEqual(simplify(M.Just("foo")));
         });
         it("Picks the second if first empty", () => {
-            expect(simplify(M.Nothing().or(() => M.Just("bar")))).toEqual(simplify(M.Just("bar")));
+            expect(simplify(M.Nothing().or(M.Just("bar")))).toEqual(simplify(M.Just("bar")));
         });
         it("Picks nothing if both empty", () => {
-            expect(simplify(M.Nothing().or(() => M.Nothing()))).toEqual(simplify(M.Nothing()));
+            expect(simplify(M.Nothing().or(M.Nothing()))).toEqual(simplify(M.Nothing()));
         });
     });
 

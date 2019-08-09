@@ -498,8 +498,8 @@ function and(bools: boolean[]): boolean {
  * intercalate([","], [["the"], ["quick", "brown"], ["fox"]]) // ["the", ",", "quick", "brown", ",", "fox"]
  * ```
  */
-function intercalate<A>(seperator: A[], arrays: A[][]): A[] {
-    return ([] as A[]).concat(...arrays.intersperse(seperator));
+function intercalate<A>(separator: A[], arrays: A[][]): A[] {
+    return ([] as A[]).concat(...arrays.intersperse(separator));
 }
 
 /**
@@ -752,10 +752,10 @@ Array.prototype.inits = function initsForArray() {
     return result;
 };
 
-Array.prototype.intersperse = function intersperseForArray(seperator) {
+Array.prototype.intersperse = function intersperseForArray(separator) {
     const result = [];
     for (const elem of this) {
-        result.push(elem, seperator);
+        result.push(elem, separator);
     }
     if (result.length > 0) {
         result.pop();

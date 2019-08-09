@@ -52,7 +52,7 @@ prove<Equals<
   ------------------------------*/
 
 prove<Equals<typeof array.and, (bools: boolean[]) => boolean>>(requireMajor("array.and"));
-prove<Equals<typeof array.intercalate, <A>(seperator: A[], arrays: A[][]) => A[]>>(requireMajor("array.intercalate"));
+prove<Equals<typeof array.intercalate, <A>(separator: A[], arrays: A[][]) => A[]>>(requireMajor("array.intercalate"));
 prove<Equals<typeof array.maximum, (nums: number[]) => number>>(requireMajor("array.maximum"));
 prove<Equals<typeof array.minimum, (nums: number[]) => number>>(requireMajor("array.minimum"));
 prove<Equals<typeof array.or, (bools: boolean[]) => boolean>>(requireMajor("array.or"));
@@ -75,7 +75,7 @@ prove<Equals<
   }
 >>(requireMinor("array API"));
 
-(function validateIArrayExtendsions<A>() {
+(function validateIArrayExtensions<A>() {
   const iarrayextensions: array.IArrayExtensions<A> = undefined as any;
   prove<Equals<typeof iarrayextensions.all, (p: (a: A) => boolean) => boolean>>(requireMajor("array.all"));
   prove<Equals<typeof iarrayextensions.any, (p: (a: A) => boolean) => boolean>>(requireMajor("array.any"));
@@ -156,7 +156,7 @@ prove<Equals<
 prove<Equals<typeof codec.array, <T>(_: codec.Codec<any, T>) => codec.Codec<any, T[]>>>(requireMajor("codec.array"));
 prove<Equals<typeof codec.boolean, codec.Codec<any, boolean>>>(requireMajor("codec.boolean"));
 prove<Equals<typeof codec.build, <T extends object>(spec: codec.MapCodec<object, T>) => codec.Codec<unknown, T>>>(requireMajor("codec.build"));
-prove<Equals<typeof codec.makeCodec, <TOut, A>(decoder: decoder.Decoder<TOut, A>, encoder: encoder.Encoder<TOut, A>) => codec.Codec<TOut, A>>>(requireMajor("codec.makeCodec"));
+prove<Equals<typeof codec.makeCodec, <TOut, A>(decoder: decoder.IDecoder<TOut, A>, encoder: encoder.IEncoder<TOut, A>) => codec.Codec<TOut, A>>>(requireMajor("codec.makeCodec"));
 prove<Equals<typeof codec.number, codec.Codec<any, number>>>(requireMajor("codec.number"));
 prove<Equals<typeof codec.optional, <T>(_: codec.Codec<any, T>) => codec.Codec<any, maybe.Maybe<T>>>>(requireMajor("codec.optional"));
 prove<Equals<typeof codec.property, <T>(name: string, _: codec.Codec<any, T>) => codec.Codec<object, T>>>(requireMajor("codec.property"));
@@ -195,26 +195,26 @@ prove<Equals<
 /*------------------------------
   DECODER API
   ------------------------------*/
-prove<Equals<typeof decoder.array, <T>(_: decoder.Decoder<any, T>) => decoder.Decoder<any, T[]>>>(requireMajor("decoder.array"));
-prove<Equals<typeof decoder.boolean, decoder.Decoder<any, boolean>>>(requireMajor("decoder.boolean"));
-prove<Equals<typeof decoder.build, <T extends object>(spec: decoder.MapDecoder<object, T>) => decoder.Decoder<unknown, T>>>(requireMajor("decoder.build"));
-prove<Equals<typeof decoder.constant, <T>(t: T) => decoder.Decoder<any, T>>>(requireMajor("decoder.constant"));
-prove<Equals<typeof decoder.constantFailure, <T>(e: decoder.DecodeError) => decoder.Decoder<any, T>>>(requireMajor("decoder.constantFailure"));
-prove<Equals<typeof decoder.forM, <TIn, A, B>(as: A[], f: (a: A) => decoder.Decoder<TIn, B>) => decoder.Decoder<TIn, B[]>>>(requireMajor("decoder.forM"));
-prove<Equals<typeof decoder.id, decoder.Decoder<any, any>>>(requireMajor("decoder.id"));
-prove<Equals<typeof decoder.lift, <TIn, P extends any[], R>(f: (...args: P) => R, ...args: decoder.MapDecoder<TIn, P>) => decoder.Decoder<TIn, R>>>(requireMajor("decoder.lift"));
-prove<Equals<typeof decoder.makeDecoder, <TIn, A>(_: (_: TIn) => validation.Validation<decoder.DecodeError, A>) => decoder.Decoder<TIn, A>>>(requireMajor("decoder.makeDecoder"));
-prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, N extends number, A, P extends any[] & { length: N }>(f: (a: A) => decoder.Decoder<TIn, P>, as: A[], n?: N) => decoder.Decoder<TIn, array.MapArray<P>>>>(requireMajor("decoder.mapAndUnzipWith"));
-prove<Equals<typeof decoder.mapM, <TIn, A, B>(f: (a: A) => decoder.Decoder<TIn, B>, as: A[]) => decoder.Decoder<TIn, B[]>>>(requireMajor("decoder.mapM"));
-prove<Equals<typeof decoder.number, decoder.Decoder<any, number>>>(requireMajor("decoder.number"));
-prove<Equals<typeof decoder.oneOf, <T>(...args: Array<decoder.Decoder<any, T>>) => decoder.Decoder<any, T>>>(requireMajor("decoder.oneOf"));
-prove<Equals<typeof decoder.only, <T>(t: T) => decoder.Decoder<any, T>>>(requireMajor("decoder.only"));
-prove<Equals<typeof decoder.optional, <T>(_: decoder.Decoder<any, T>) => decoder.Decoder<any, maybe.Maybe<T>>>>(requireMajor("decoder.optional"));
-prove<Equals<typeof decoder.property, <T>(name: string, _: decoder.Decoder<any, T>) => decoder.Decoder<object, T>>>(requireMajor("decoder.property"));
-prove<Equals<typeof decoder.sequence, <TIn, A>(mas: Array<decoder.Decoder<TIn, A>>) => decoder.Decoder<TIn, A[]>>>(requireMajor("decoder.sequence"));
-prove<Equals<typeof decoder.string, decoder.Decoder<any, string>>>(requireMajor("decoder.string"));
-prove<Equals<typeof decoder.tuple, <T extends any[]>(...converters: decoder.MapDecoder<any, T>) => decoder.Decoder<any, T>>>(requireMajor("decoder.tuple"));
-prove<Equals<typeof decoder.zipWithM, <TIn, A, P extends any[], C>(f: (a: A, ...params: P) => decoder.Decoder<TIn, C>, as: A[], ...params: array.MapArray<P>) => decoder.Decoder<TIn, C[]>>>(requireMajor("decoder.zipWithM"));
+prove<Equals<typeof decoder.array, <T>(_: decoder.IDecoder<any, T>) => decoder.IDecoder<any, T[]>>>(requireMajor("decoder.array"));
+prove<Equals<typeof decoder.boolean, decoder.IDecoder<any, boolean>>>(requireMajor("decoder.boolean"));
+prove<Equals<typeof decoder.build, <T extends object>(spec: decoder.MapDecoder<object, T>) => decoder.IDecoder<unknown, T>>>(requireMajor("decoder.build"));
+prove<Equals<typeof decoder.constant, <T>(t: T) => decoder.IDecoder<any, T>>>(requireMajor("decoder.constant"));
+prove<Equals<typeof decoder.constantFailure, <T>(e: decoder.DecodeError) => decoder.IDecoder<any, T>>>(requireMajor("decoder.constantFailure"));
+prove<Equals<typeof decoder.forM, <TIn, A, B>(as: A[], f: (a: A) => decoder.IDecoder<TIn, B>) => decoder.IDecoder<TIn, B[]>>>(requireMajor("decoder.forM"));
+prove<Equals<typeof decoder.id, decoder.IDecoder<any, any>>>(requireMajor("decoder.id"));
+prove<Equals<typeof decoder.lift, <TIn, P extends any[], R>(f: (...args: P) => R, ...args: decoder.MapDecoder<TIn, P>) => decoder.IDecoder<TIn, R>>>(requireMajor("decoder.lift"));
+prove<Equals<typeof decoder.Decoder, <TIn, A>(_: (_: TIn) => validation.Validation<decoder.DecodeError, A>) => decoder.IDecoder<TIn, A>>>(requireMajor("decoder.IDecoder"));
+prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, N extends number, A, P extends any[] & { length: N }>(f: (a: A) => decoder.IDecoder<TIn, P>, as: A[], n?: N) => decoder.IDecoder<TIn, array.MapArray<P>>>>(requireMajor("decoder.mapAndUnzipWith"));
+prove<Equals<typeof decoder.mapM, <TIn, A, B>(f: (a: A) => decoder.IDecoder<TIn, B>, as: A[]) => decoder.IDecoder<TIn, B[]>>>(requireMajor("decoder.mapM"));
+prove<Equals<typeof decoder.number, decoder.IDecoder<any, number>>>(requireMajor("decoder.number"));
+prove<Equals<typeof decoder.oneOf, <T>(...args: Array<decoder.IDecoder<any, T>>) => decoder.IDecoder<any, T>>>(requireMajor("decoder.oneOf"));
+prove<Equals<typeof decoder.only, <T>(t: T) => decoder.IDecoder<any, T>>>(requireMajor("decoder.only"));
+prove<Equals<typeof decoder.optional, <T>(_: decoder.IDecoder<any, T>) => decoder.IDecoder<any, maybe.Maybe<T>>>>(requireMajor("decoder.optional"));
+prove<Equals<typeof decoder.property, <T>(name: string, _: decoder.IDecoder<any, T>) => decoder.IDecoder<object, T>>>(requireMajor("decoder.property"));
+prove<Equals<typeof decoder.sequence, <TIn, A>(mas: Array<decoder.IDecoder<TIn, A>>) => decoder.IDecoder<TIn, A[]>>>(requireMajor("decoder.sequence"));
+prove<Equals<typeof decoder.string, decoder.IDecoder<any, string>>>(requireMajor("decoder.string"));
+prove<Equals<typeof decoder.tuple, <T extends any[]>(...converters: decoder.MapDecoder<any, T>) => decoder.IDecoder<any, T>>>(requireMajor("decoder.tuple"));
+prove<Equals<typeof decoder.zipWithM, <TIn, A, P extends any[], C>(f: (a: A, ...params: P) => decoder.IDecoder<TIn, C>, as: A[], ...params: array.MapArray<P>) => decoder.IDecoder<TIn, C[]>>>(requireMajor("decoder.zipWithM"));
 prove<Equals<
   typeof decoder,
   {
@@ -226,7 +226,7 @@ prove<Equals<
     forM: typeof decoder.forM,
     id: typeof decoder.id,
     lift: typeof decoder.lift,
-    makeDecoder: typeof decoder.makeDecoder,
+    Decoder: typeof decoder.Decoder,
     mapAndUnzipWith: typeof decoder.mapAndUnzipWith,
     mapM: typeof decoder.mapM,
     number: typeof decoder.number,
@@ -243,14 +243,16 @@ prove<Equals<
 
 (function validateIDecoder<TIn, A>() {
   const idecoder: decoder.IDecoder<TIn, A> = undefined as any;
-  prove<Equals<typeof idecoder.map, <B>(f: (a: A) => B) => decoder.Decoder<TIn, B>>>(requireMajor("decoder.IDecoder.map"));
-  prove<Equals<typeof idecoder.replace, <B>(m: decoder.Decoder<TIn, B>) => decoder.Decoder<TIn, B>>>(requireMajor("decoder.IDecoder.replace"));
-  prove<Equals<typeof idecoder.replacePure, <B>(b: B) => decoder.Decoder<TIn, B>>>(requireMajor("decoder.IDecoder.replacePure"));
+  prove<Equals<typeof idecoder.decode, (input: TIn) => validation.Validation<decoder.DecodeError, A>>>(requireMajor("decoder.IDecoder.decode"));
+  prove<Equals<typeof idecoder.map, <B>(f: (a: A) => B) => decoder.IDecoder<TIn, B>>>(requireMajor("decoder.IDecoder.map"));
+  prove<Equals<typeof idecoder.replace, <B>(m: decoder.IDecoder<TIn, B>) => decoder.IDecoder<TIn, B>>>(requireMajor("decoder.IDecoder.replace"));
+  prove<Equals<typeof idecoder.replacePure, <B>(b: B) => decoder.IDecoder<TIn, B>>>(requireMajor("decoder.IDecoder.replacePure"));
   prove<Equals<typeof idecoder.toString, () => string>>(requireMajor("decoder.IDecoder.toString"));
-  prove<Equals<typeof idecoder.voidOut, () => decoder.Decoder<TIn, []>>>(requireMajor("decoder.IDecoder.voidOut"));
+  prove<Equals<typeof idecoder.voidOut, () => decoder.IDecoder<TIn, []>>>(requireMajor("decoder.IDecoder.voidOut"));
   prove<Equals<
     typeof idecoder,
     {
+      decode: typeof idecoder.decode,
       map: typeof idecoder.map,
       or: typeof idecoder.or,
       replace: typeof idecoder.replace,
@@ -285,12 +287,14 @@ prove<Equals<
     Left: typeof either.Left,
     Right: typeof either.Right,
     build: typeof either.build,
+    arrayToEither: typeof either.arrayToEither,
     forM: typeof either.forM,
     join: typeof either.join,
     lefts: typeof either.lefts,
     lift: typeof either.lift,
     mapAndUnzipWith: typeof either.mapAndUnzipWith,
     mapM: typeof either.mapM,
+    maybeToEither: typeof either.maybeToEither,
     reduceM: typeof either.reduceM,
     rights: typeof either.rights,
     sequence: typeof either.sequence,
@@ -310,7 +314,7 @@ prove<Equals<
   prove<Equals<typeof ieither.map, <B>(f: (a: A) => B) => either.Either<L, B>>>(requireMajor("either.IEither.map"));
   prove<Equals<typeof ieither.mapLeft, <B>(f: (a: L) => B) => either.Either<B, A>>>(requireMajor("either.IEither.mapLeft"));
   prove<Equals<typeof ieither.matchCase, <B>(cases: either.IEitherCaseScrutinizer<L, A, B>) => B>>(requireMajor("either.IEither.matchCase"));
-  prove<Equals<typeof ieither.or, (other: () => either.Either<L, A>) => either.Either<L, A>>>(requireMajor("either.IEither.or"));
+  prove<Equals<typeof ieither.or, (other: either.Either<L, A>) => either.Either<L, A>>>(requireMajor("either.IEither.or"));
   prove<Equals<typeof ieither.replace, <B>(m: either.Either<L, B>) => either.Either<L, B>>>(requireMajor("either.IEither.replace"));
   prove<Equals<typeof ieither.replacePure, <B>(b: B) => either.Either<L, B>>>(requireMajor("either.IEither.replacePure"));
   prove<Equals<typeof ieither.toArray, () => A[]>>(requireMajor("either.IEither.toArray"));
@@ -364,22 +368,22 @@ prove<Equals<
 /*------------------------------
   ENCODER API
   ------------------------------*/
-prove<Equals<typeof encoder.array, <T>(_: encoder.Encoder<any, T>) => encoder.Encoder<any, T[]>>>(requireMajor("encoder.array"));
-prove<Equals<typeof encoder.boolean, encoder.Encoder<any, boolean>>>(requireMajor("encoder.boolean"));
-prove<Equals<typeof encoder.build, <T extends object>(spec: encoder.MapEncoder<object, T>) => encoder.Encoder<unknown, T>>>(requireMajor("encoder.build"));
-prove<Equals<typeof encoder.makeEncoder, <TOut, A>(_: (_: A) => TOut) => encoder.Encoder<TOut, A>>>(requireMajor("encoder.makeEncoder"));
-prove<Equals<typeof encoder.number, encoder.Encoder<any, number>>>(requireMajor("encoder.number"));
-prove<Equals<typeof encoder.optional, <T>(_: encoder.Encoder<any, T>) => encoder.Encoder<any, maybe.Maybe<T>>>>(requireMajor("encoder.optional"));
-prove<Equals<typeof encoder.property, <T>(name: string, _: encoder.Encoder<any, T>) => encoder.Encoder<object, T>>>(requireMajor("encoder.property"));
-prove<Equals<typeof encoder.string, encoder.Encoder<any, string>>>(requireMajor("encoder.string"));
-prove<Equals<typeof encoder.tuple, <T extends any[]>(...converters: encoder.MapEncoder<any, T>) => encoder.Encoder<any, T>>>(requireMajor("encoder.tuple"));
+prove<Equals<typeof encoder.array, <T>(_: encoder.IEncoder<any, T>) => encoder.IEncoder<any, T[]>>>(requireMajor("encoder.array"));
+prove<Equals<typeof encoder.boolean, encoder.IEncoder<any, boolean>>>(requireMajor("encoder.boolean"));
+prove<Equals<typeof encoder.build, <T extends object>(spec: encoder.MapEncoder<object, T>) => encoder.IEncoder<unknown, T>>>(requireMajor("encoder.build"));
+prove<Equals<typeof encoder.Encoder, <TOut, A>(_: (_: A) => TOut) => encoder.IEncoder<TOut, A>>>(requireMajor("encoder.Encoder"));
+prove<Equals<typeof encoder.number, encoder.IEncoder<any, number>>>(requireMajor("encoder.number"));
+prove<Equals<typeof encoder.optional, <T>(_: encoder.IEncoder<any, T>) => encoder.IEncoder<any, maybe.Maybe<T>>>>(requireMajor("encoder.optional"));
+prove<Equals<typeof encoder.property, <T>(name: string, _: encoder.IEncoder<any, T>) => encoder.IEncoder<object, T>>>(requireMajor("encoder.property"));
+prove<Equals<typeof encoder.string, encoder.IEncoder<any, string>>>(requireMajor("encoder.string"));
+prove<Equals<typeof encoder.tuple, <T extends any[]>(...converters: encoder.MapEncoder<any, T>) => encoder.IEncoder<any, T>>>(requireMajor("encoder.tuple"));
 prove<Equals<
   typeof encoder,
   {
     array: typeof encoder.array,
     boolean: typeof encoder.boolean,
     build: typeof encoder.build,
-    makeEncoder: typeof encoder.makeEncoder,
+    Encoder: typeof encoder.Encoder,
     number: typeof encoder.number,
     optional: typeof encoder.optional,
     property: typeof encoder.property,
@@ -390,10 +394,12 @@ prove<Equals<
 
 (function validateIEncoder<TIn, A>() {
   const idecoder: encoder.IEncoder<TIn, A> = undefined as any;
-  prove<Equals<typeof idecoder.contramap, <B>(f: (b: B) => A) => encoder.Encoder<TIn, B>>>(requireMajor("encoder.IEncoder.contramap"));
+  prove<Equals<typeof idecoder.encode, (a: A) => TIn>>(requireMajor("encoder.IEncoder.encode"));
+  prove<Equals<typeof idecoder.contramap, <B>(f: (b: B) => A) => encoder.IEncoder<TIn, B>>>(requireMajor("encoder.IEncoder.contramap"));
   prove<Equals<
     typeof idecoder,
     {
+      encode: typeof idecoder.encode,
       contramap: typeof idecoder.contramap,
     }
   >>(requireMinor("encoder.IEncoder"));
@@ -452,7 +458,7 @@ prove<Equals<
   prove<Equals<typeof imaybe.isNothing, () => boolean>>(requireMajor("maybe.IMaybe.isNothing"));
   prove<Equals<typeof imaybe.map, <B>(f: (a: A) => B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.map"));
   prove<Equals<typeof imaybe.matchCase, <B>(cases: maybe.IMaybeCaseScrutinizer<A, B>) => B>>(requireMajor("maybe.IMaybe.matchCase"));
-  prove<Equals<typeof imaybe.or, (other: () => maybe.Maybe<A>) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.or"));
+  prove<Equals<typeof imaybe.or, (other: maybe.Maybe<A>) => maybe.Maybe<A>>>(requireMajor("maybe.IMaybe.or"));
   prove<Equals<typeof imaybe.replace, <B>(m: maybe.Maybe<B>) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replace"));
   prove<Equals<typeof imaybe.replacePure, <B>(b: B) => maybe.Maybe<B>>>(requireMajor("maybe.IMaybe.replacePure"));
   prove<Equals<typeof imaybe.toArray, () => A[]>>(requireMajor("maybe.IMaybe.toArray"));
@@ -518,12 +524,15 @@ prove<Equals<
   {
     Invalid: typeof validation.Invalid,
     Valid: typeof validation.Valid,
+    arrayToValidation: typeof validation.arrayToValidation,
     build: typeof validation.build,
+    eitherToValidation: typeof validation.eitherToValidation,
     failures: typeof validation.failures,
     forM: typeof validation.forM,
     lift: typeof validation.lift,
     mapAndUnzipWith: typeof validation.mapAndUnzipWith,
     mapM: typeof validation.mapM,
+    maybeToValidation: typeof validation.maybeToValidation,
     sequence: typeof validation.sequence,
     successful: typeof validation.successful,
     zipWithM: typeof validation.zipWithM,
@@ -538,7 +547,7 @@ prove<Equals<
   prove<Equals<typeof ivalidation.map, <B>(f: (a: A) => B) => validation.Validation<L, B>>>(requireMajor("validation.IValidation.map"));
   prove<Equals<typeof ivalidation.mapError, <B extends object | any[]>(f: (a: L) => B) => validation.Validation<B, A>>>(requireMajor("validation.IValidation.mapError"));
   prove<Equals<typeof ivalidation.matchCase, <B>(cases: validation.IValidationCaseScrutinizer<L, A, B>) => B>>(requireMajor("validation.IValidation.matchCase"));
-  prove<Equals<typeof ivalidation.or, (other: () => validation.Validation<L, A>) => validation.Validation<L, A>>>(requireMajor("validation.IValidation.or"));
+  prove<Equals<typeof ivalidation.or, (other: validation.Validation<L, A>) => validation.Validation<L, A>>>(requireMajor("validation.IValidation.or"));
   prove<Equals<typeof ivalidation.replace, <B>(m: validation.Validation<L, B>) => validation.Validation<L, B>>>(requireMajor("validation.IValidation.replace"));
   prove<Equals<typeof ivalidation.replacePure, <B>(b: B) => validation.Validation<L, B>>>(requireMajor("validation.IValidation.replacePure"));
   prove<Equals<typeof ivalidation.toArray, () => A[]>>(requireMajor("validation.IValidation.toArray"));

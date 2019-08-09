@@ -12,12 +12,12 @@ export {
     tuple,
 };
 
-import { Decoder } from "./decoder";
+import { IDecoder } from "./decoder";
 import * as D from "./decoder";
-import { Encoder } from "./encoder";
+import { IEncoder } from "./encoder";
 import * as E from "./encoder";
 import { Maybe } from "./maybe";
-import { id, objectFromEntries, objectToEntries } from "./prelude";
+import { objectFromEntries, objectToEntries } from "./prelude";
 import { Validation } from "./validation";
 
 /*------------------------------
@@ -25,14 +25,14 @@ import { Validation } from "./validation";
   ------------------------------*/
 
 /**
- * The public methods exposed by the {@link Codec} type.
+ * The public methods exposed by the [[Codec]] type.
  */
 interface ICodec<TRaw, A> {
 
     /**
      * Map invariantly over the rich data format of the codec.
      * The bidirectional mapping requires that any transformation must
-     * be "undoable".
+     * be "undoable" (i.e. `A` and `B` are isomorphic).
      */
     invmap<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
 
@@ -49,7 +49,7 @@ interface ICodec<TRaw, A> {
 
 /**
  * A codec is a pair of bidirectional conversion functions. It
- * is comprised of a {@link Decoder} and an {@link Encoder}, which
+ * is comprised of an [[IDecoder]] and an [[IEncoder]], which
  * convert data between a rich data format and a raw data format.
  *
  * An additional requirement of codecs is that their components must
@@ -57,44 +57,21 @@ interface ICodec<TRaw, A> {
  * the decoder is run through the encoder or vice versa, the end result
  * should be structurally equivalent to the initial input, which is to say:
  *
- * @example
- *
- *      codec.decode(codec.encode(decodedData)) === decodedData // structural, not referential equality
- *      codec.encode(codec.decode(rawData)) === rawData
+ * ```ts
+ * codec.decode(codec.encode(decodedData)) === decodedData // structural, not referential equality
+ * codec.encode(codec.decode(rawData)) === rawData
+ * ```
  */
-type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A> } & ICodec<TRaw, A>;
+type Codec<TRaw, A> = { decoder: IDecoder<TRaw, A>, encoder: IEncoder<TRaw, A> } & ICodec<TRaw, A>;
 
 /**
- * A type transformer that homomorphically maps the {@link Codec}
+ * A type transformer that homomorphically maps the [[Codec]]
  * onto the types of A.
  *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapCodec<string, Foo> extends { bar: Codec<string, number>, baz: Codec<string, string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapCodec<string, Foo> extends Codec<string, string>[]
- *              ? any
- *              : never;
- *
- *      // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
+ * ```ts
+ * // Example = {a: Codec<unknown, string>, b: Codec<unknown, number>}
+ * type Example = MapCodec<unknown, {a: string, b: number}>
+ * ```
  */
 type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 
@@ -105,7 +82,7 @@ type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 /**
  * Creates a new codec that uses the give decoder / encoder pair.
  */
-function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>): Codec<TRaw, A> {
+function makeCodec<TRaw, A>(decoder: IDecoder<TRaw, A>, encoder: IEncoder<TRaw, A>): Codec<TRaw, A> {
     return Object.freeze({
         decode: decoder.decode,
         decoder,
@@ -122,12 +99,12 @@ function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>
 /**
  * Conversion between unknown data and booleans.
  *
- * @example
+ * ```ts
+ * boolean.decode(true); // Valid (true)
+ * boolean.decode("true"); // Invalid ({"$": "Expected a boolean"})
  *
- *      boolean.decode(true); // Valid (true)
- *      boolean.decode("true"); // Invalid ({"$": "Expected a boolean"})
- *
- *      boolean.encode(false); // false
+ * boolean.encode(false); // false
+ * ```
  */
 // tslint:disable-next-line: variable-name
 const boolean: Codec<unknown, boolean> = makeCodec(D.boolean, E.boolean);
@@ -135,12 +112,12 @@ const boolean: Codec<unknown, boolean> = makeCodec(D.boolean, E.boolean);
 /**
  * Conversion between unknown data and numbers.
  *
- * @example
+ * ```ts
+ * number.decode(1); // Valid (1)
+ * number.decode("1"); // Invalid ({"$": "Expected a number"})
  *
- *      number.decode(1); // Valid (1)
- *      number.decode("1"); // Invalid ({"$": "Expected a number"})
- *
- *      number.encode(2); // 2
+ * number.encode(2); // 2
+ * ```
  */
 // tslint:disable-next-line: variable-name
 const number: Codec<unknown, number> = makeCodec(D.number, E.number);
@@ -148,12 +125,12 @@ const number: Codec<unknown, number> = makeCodec(D.number, E.number);
 /**
  * Conversion between unknown data and strings.
  *
- * @example
+ * ```ts
+ * string.decode(null); // Invalid ({"$": "Expected a string"})
+ * string.decode("foo"); // Valid ("foo")
  *
- *      string.decode(null); // Invalid ({"$": "Expected a string"})
- *      string.decode("foo"); // Valid ("foo")
- *
- *      string.encode("bar"); // "bar"
+ * string.encode("bar"); // "bar"
+ * ```
  */
 // tslint:disable-next-line: variable-name
 const string: Codec<unknown, string> = makeCodec(D.string, E.string);
@@ -161,13 +138,13 @@ const string: Codec<unknown, string> = makeCodec(D.string, E.string);
 /**
  * Conversion between unknown data and arrays.
  *
- * @example
+ * ```ts
+ * array(string).decode("foo"); // Invalid ({"$": "Expected an array"})
+ * array(string).decode([true, "foo"]); // Invalid ({"[0]": "Expected a string"})
+ * array(string).decode(["foo"]); // Valid (["foo"])
  *
- *      array(string).decode("foo"); // Invalid ({"$": "Expected an array"})
- *      array(string).decode([true, "foo"]); // Invalid ({"[0]": "Expected a string"})
- *      array(string).decode(["foo"]); // Valid (["foo"])
- *
- *      array(string).encode(["bar"]); // ["bar"]
+ * array(string).encode(["bar"]); // ["bar"]
+ * ```
  */
 function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
     return makeCodec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
@@ -176,15 +153,15 @@ function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
 /**
  * Conversion between unknown data and optional types.
  *
- * @example
+ * ```ts
+ * optional(string).decode(null); // Valid (Nothing)
+ * optional(string).decode(unknown); // Valid (Nothing)
+ * optional(string).decode("foo"); // Valid (Just (foo))
+ * optional(string).decode(true); // Invalid ({"$": "Expected a string"})
  *
- *      optional(string).decode(null); // Valid (Nothing)
- *      optional(string).decode(unknown); // Valid (Nothing)
- *      optional(string).decode("foo"); // Valid (Just (foo))
- *      optional(string).decode(true); // Invalid ({"$": "Expected a string"})
- *
- *      optional(string).encode(Nothing()); // undefined
- *      optional(string).encode(Just("foo")); // "foo"
+ * optional(string).encode(Nothing()); // undefined
+ * optional(string).encode(Just("foo")); // "foo"
+ * ```
  */
 function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
     return makeCodec(D.optional(innerCodec.decoder), E.optional(innerCodec.encoder));
@@ -193,13 +170,13 @@ function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
 /**
  * Reads and writes properties of an object.
  *
- * @example
+ * ```ts
+ * property("bar": string).decode({}); // Invalid ({"bar", "Required"})
+ * property("bar": string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
+ * property("bar": string).decode({ bar: "foo"}); // Valid ("foo")
  *
- *      property("bar": string).decode({}); // Invalid ({"bar", "Required"})
- *      property("bar": string).decode({ bar: true}); // Invalid ({"bar", "Expected a string"})
- *      property("bar": string).decode({ bar: "foo"}); // Valid ("foo")
- *
- *      property("bar": string).encode("foo"); // Valid ({ bar: "foo" })
+ * property("bar": string).encode("foo"); // Valid ({ bar: "foo" })
+ * ```
  */
 function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T> {
     return makeCodec(D.property(name, convert.decoder), E.property(name, convert.encoder));
@@ -208,13 +185,13 @@ function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T>
 /**
  * Conversion between unknown data and tuples.
  *
- * @example
+ * ```ts
+ * tuple(string, number).decode("foo"); // Invalid ({"$": "Expected an array"})
+ * tuple(string, number).decode([1, "foo"]); // Invalid ({"[0]": "Expected a string", "[1]": "Expected a number"})
+ * tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
  *
- *      tuple(string, number).decode("foo"); // Invalid ({"$": "Expected an array"})
- *      tuple(string, number).decode([1, "foo"]); // Invalid ({"[0]": "Expected a string", "[1]": "Expected a number"})
- *      tuple(string, number).decode(["foo", 1]); // Valid (["foo", 1])
- *
- *      tuple(string, number).encode(["foo", 1]); // ["foo", 1]
+ * tuple(string, number).encode(["foo", 1]); // ["foo", 1]
+ * ```
  */
 function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> {
     return makeCodec(D.tuple(...converters.map((x) => x.decoder)), E.tuple(...converters.map((x) => x.encoder))) as any;
@@ -229,19 +206,19 @@ function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> 
  * codecs which transforms the constituent components. It
  * "lifts" the structure of an object into a codec.
  *
- * @example
+ * ```ts
+ * type Foo = { bar: string, baz: Maybe<boolean> };
  *
- *      type Foo = { bar: string, baz: Maybe<boolean> };
+ * const fooCodec: Codec<object, Foo> = build<Foo>({
+ *     bar: property("bar", string),
+ *     baz: property("baz", optional(boolean))
+ * });
  *
- *      const fooCodec: Codec<object, Foo> = build<Foo>({
- *          bar: property("bar", string),
- *          baz: property("baz", optional(boolean))
- *      });
- *
- *      fooCodec.decode({ bar: null, baz: 1 }); // Invalid ({"bar": "Required", "baz": "Expected a boolean"})
- *      // Valid ({ "bar": "eek", "baz": { "tag": "Just", "value": false } })
- *      fooCodec.decode({ bar: "eek", baz: false });
- *      fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
+ * fooCodec.decode({ bar: null, baz: 1 }); // Invalid ({"bar": "Required", "baz": "Expected a boolean"})
+ * // Valid ({ "bar": "eek", "baz": { "tag": "Just", "value": false } })
+ * fooCodec.decode({ bar: "eek", baz: false });
+ * fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
+ * ```
  */
 export function build<T extends object>(spec: MapCodec<object, T>): Codec<unknown, T> {
     return makeCodec(

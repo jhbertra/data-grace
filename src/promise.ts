@@ -17,8 +17,9 @@ import { objectFromEntries, objectToEntries } from "./prelude";
   ------------------------------*/
 
 /**
- * A type transformer that homomorphically maps the [[Promise]] type
- * onto the types of A.
+ * A type transformer that homomorphically maps the
+ * [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+ * type onto the types of A.
  *
  * ```ts
  * type Example = MapPromise<{a: string, b: number}> // Example = {a: Promise<string>, b: Promise<number>}
@@ -66,6 +67,7 @@ async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromis
  * ```
  *
  * @param spec an object composed of promises to build the result out of in a promise.
+ * @returns a promise which will produce a `T` with the outputs of the promises in `spec`.
  */
 async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
     const kvpsPromise = Promise.all(objectToEntries(spec).map(
@@ -79,19 +81,34 @@ async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
   ------------------------------*/
 
 /**
- * Maps a function over an array of inputs and produces a [[Promise]] for each,
- * then aggregates the results inside of a [[Promise]].
- * 
+ * Maps a function over an array of inputs and produces a
+ * [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+ * for each, then aggregates the results inside of a
+ * [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise).
+ *
  * ```ts
- * 
+ * mapM(url => fetchResourceFromUrl(url), urlsToFetch); // Promise<Resource[]>
  * ```
+ *
+ * @param f produces a promise for each element in `as`
+ * @param as an array of inputs.
+ * @returns a promise witch produces the values produced by `f` in order.
  */
 function mapM<A, B>(f: (value: A) => Promise<B>, as: A[]): Promise<B[]> {
     return Promise.all(as.map(f));
 }
 
 /**
- * @see mapM with its arguments reversed.
+ * [[mapM]] with its arguments reversed. Generally provides better
+ * ergonomics when `f` is a lambda (squint and it looks a bit like a `for` loop).
+ *
+ * ```ts
+ * forM(urlsToFetch, url => fetchResourceFromUrl(url)); // Promise<Resource[]>
+ * ```
+ *
+ * @param f produces a promise for each element in `as`
+ * @param as an array of inputs.
+ * @returns a promise witch produces the values produced by `f` in order.
  */
 function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
     return mapM(f, as);
@@ -99,8 +116,18 @@ function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
 
 /**
  * Maps a decomposition of parts over an array of inputs.
+ *
+ * ```ts
+ * declare function fetchActionHistory(id: number): Promise<Action[]>;
+ * declare function partitionByType(history: Action[]): [CreateAction[], EditAction[], ReadAction[], DeleteAction[]];
+ * mapAndUnzipWith(
+ *     id => fetchActionHistory(id).then(partitionByType),
+ *     idsToFetch); // E.g. Promise<[CreateAction[], EditAction[], ReadAction[], DeleteAction[]]>
+ * ```
+ *
  * @param f A decomposition function
  * @param as An array of inputs
+ * @param n optional param to control the number of buckets in the case of empty input.
  */
 async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
     f: (a: A) => Promise<P>,
@@ -111,8 +138,17 @@ async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: 
 }
 
 /**
- * Reads two input arrays in-order and produces a [[Promise]] for each pair,
- * then aggregates the results.
+ * Reads two input arrays in-order and produces a
+ * [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+ * for each pair, then aggregates the results.
+ *
+ * ```ts
+ * zipWithM((id, token) => fetchResource(id, token), ids, tokens); // Promise<Resource[]>
+ * ```
+ *
+ * @param f A function to combine each element of the input arrays in-order into a promise
+ * @param as An input array.
+ * @param params Additional arrays to zip.
  */
 function zipWithM<A, P extends any[], C>(
     f: (a: A, ...params: P) => Promise<C>,
@@ -128,6 +164,8 @@ function zipWithM<A, P extends any[], C>(
 
 /**
  * Flatten a nested structure.
+ *
+ * @param m a nested promise to flatten.
  */
 async function join<A>(m: Promise<Promise<A>>): Promise<A> {
     return await m;
