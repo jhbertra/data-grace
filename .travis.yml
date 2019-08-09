@@ -1,10 +1,27 @@
 language: node_js
 node_js:
-  - "node"
-script: yarn lint
-
+  - '8'
+cache: yarn
+install:
+  - yarn install
 jobs:
   include:
-    - stage: Produce Coverage
-      node_js: node
-      script: yarn cover && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
+    - stage: Build and Test
+      script:
+        - yarn lint
+        - yarn cover
+    - stage: Upload Coverage
+      script: cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
+    - stage: NPM Release
+      script: yarn build
+      deploy:
+        provider: npm
+        email: '$NPM_EMAIL'
+        api_key: '$NPM_TOKEN'
+        skip_cleanup: true
+        on:
+          tags: true
+branches:
+  only:
+    - master
+    - /^v[0-9]+.*$/
