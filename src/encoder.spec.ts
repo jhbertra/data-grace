@@ -11,11 +11,11 @@ import { Equals } from "./utilityTypes";
 // Map the fields of an object
 prove<Equals<
     E.MapEncoder<any, { bar: number, baz: string }>,
-    { bar: E.Encoder<any, number>, baz: E.Encoder<any, string> }>
+    { bar: E.IEncoder<any, number>, baz: E.IEncoder<any, string> }>
 >("proof");
 
 // Map the items of an array
-prove<Equals<E.MapEncoder<any, string[]>, Array<E.Encoder<any, string>>>>("proof");
+prove<Equals<E.MapEncoder<any, string[]>, Array<E.IEncoder<any, string>>>>("proof");
 
 /*------------------------------
   UNIT TESTS
@@ -78,7 +78,7 @@ describe("array", () => {
             fc.property(
                 fc.array(fc.anything()),
                 (input) => {
-                    expect(E.array(E.makeEncoder((x) => `${x}`)).encode(input))
+                    expect(E.array(E.Encoder((x) => `${x}`)).encode(input))
                         .toEqual(input.map((x) => `${x}`));
                 }));
     });
@@ -100,7 +100,7 @@ describe("property", () => {
                 fc.string(),
                 fc.anything(),
                 (key, input) => {
-                    expect(E.property(key, E.makeEncoder(id)).encode(input))
+                    expect(E.property(key, E.Encoder(id)).encode(input))
                         .toEqual({ [key]: input });
                 }));
     });
@@ -112,7 +112,7 @@ describe("tuple", () => {
             fc.property(
                 fc.tuple(fc.anything(), fc.anything(), fc.anything()),
                 (input) => {
-                    expect(E.tuple(E.makeEncoder(id), E.makeEncoder(id), E.makeEncoder(id)).encode(input))
+                    expect(E.tuple(E.Encoder(id), E.Encoder(id), E.Encoder(id)).encode(input))
                         .toEqual(input);
                 }));
     });

@@ -13,11 +13,11 @@ import { Invalid, Valid } from "./validation";
 // Map the fields of an object
 prove<Equals<
     D.MapDecoder<any, { bar: number, baz: string }>,
-    { bar: D.Decoder<any, number>, baz: D.Decoder<any, string> }>
+    { bar: D.IDecoder<any, number>, baz: D.IDecoder<any, string> }>
 >("proof");
 
 // Map the items of an array
-prove<Equals<D.MapDecoder<any, string[]>, Array<D.Decoder<any, string>>>>("proof");
+prove<Equals<D.MapDecoder<any, string[]>, Array<D.IDecoder<any, string>>>>("proof");
 
 /*------------------------------
   UNIT TESTS
@@ -60,7 +60,7 @@ describe("build", () => {
                 fc.string(),
                 fc.array(fc.oneof(fc.constant("bar"), fc.constant("baz"), fc.constant("qux")), 1, 3),
                 (bar: number, baz: boolean, qux: string, empties: string[]) => {
-                    function getComponent<T>(prop: string, value: T): D.Decoder<object, T> {
+                    function getComponent<T>(prop: string, value: T): D.IDecoder<object, T> {
                         return empties.find((x) => x === prop) != null
                             ? D.constantFailure({ [prop]: "error" })
                             : D.constant(value);
@@ -159,7 +159,7 @@ describe("lift", () => {
                 fc.string(),
                 fc.array(fc.integer(0, 2), 1, 3),
                 (a: number, b: boolean, c: string, empties: number[]) => {
-                    function getArg<T>(i: number, value: T): D.Decoder<any, T> {
+                    function getArg<T>(i: number, value: T): D.IDecoder<any, T> {
                         return empties.find((x) => x === i) != null
                             ? D.constantFailure({ [i]: "error" })
                             : D.constant(value);

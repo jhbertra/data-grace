@@ -22,6 +22,34 @@ prove<Equals<E.MapEither<string, string[]>, Array<E.Either<string, string>>>>("p
   UNIT TESTS
   ------------------------------*/
 
+describe("arrayToEither", () => {
+    it("returns an error when input is empty", () => {
+        expect(simplify(E.arrayToEither([], "error"))).toEqual(simplify(E.Left("error")));
+    });
+    it("returns the first element when the input is not empty", () => {
+        fc.assert(
+            fc.property(
+                fc.array(fc.integer()).filter((x) => x.length > 0),
+                (xs: number[]) => {
+                    expect(simplify(E.arrayToEither(xs, "error"))).toEqual(simplify(E.Right(xs[0])));
+                }));
+    });
+});
+
+describe("maybeToEither", () => {
+    it("returns an error when input is empty", () => {
+        expect(simplify(E.maybeToEither(Nothing(), "error"))).toEqual(simplify(E.Left("error")));
+    });
+    it("returns the value when the input is not empty", () => {
+        fc.assert(
+            fc.property(
+                fc.anything(),
+                (a) => {
+                    expect(simplify(E.maybeToEither(Just(a), "error"))).toEqual(simplify(E.Right(a)));
+                }));
+    });
+});
+
 describe("build", () => {
     interface IFoo {
         bar: number;

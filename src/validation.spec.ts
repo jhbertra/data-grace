@@ -23,6 +23,53 @@ prove<Equals<V.MapValidation<[string], string[]>, Array<V.Validation<[string], s
   UNIT TESTS
   ------------------------------*/
 
+describe("arrayToValidation", () => {
+    it("returns an error when input is empty", () => {
+        expect(simplify(V.arrayToValidation([], ["error"]))).toEqual(simplify(V.Invalid(["error"])));
+    });
+    it("returns the first element when the input is not empty", () => {
+        fc.assert(
+            fc.property(
+                fc.array(fc.integer()).filter((x) => x.length > 0),
+                (xs: number[]) => {
+                    expect(simplify(V.arrayToValidation(xs, ["error"]))).toEqual(simplify(V.Valid(xs[0])));
+                }));
+    });
+});
+
+describe("maybeToValidation", () => {
+    it("returns an error when input is empty", () => {
+        expect(simplify(V.maybeToValidation(Nothing(), ["error"]))).toEqual(simplify(V.Invalid(["error"])));
+    });
+    it("returns the value when the input is not empty", () => {
+        fc.assert(
+            fc.property(
+                fc.anything(),
+                (a) => {
+                    expect(simplify(V.maybeToValidation(Just(a), ["error"]))).toEqual(simplify(V.Valid(a)));
+                }));
+    });
+});
+
+describe("eitherToValidation", () => {
+    it("maps Left -> Invalid", () => {
+        fc.assert(
+            fc.property(
+                fc.oneof(fc.array(fc.anything()), fc.object()),
+                (e) => {
+                    expect(simplify(V.eitherToValidation(Left(e)))).toEqual(simplify(V.Invalid(e)));
+                }));
+    });
+    it("returns the value when the input is not empty", () => {
+        fc.assert(
+            fc.property(
+                fc.anything(),
+                (a) => {
+                    expect(simplify(V.eitherToValidation(Right<any[], any>(a)))).toEqual(simplify(V.Valid(a)));
+                }));
+    });
+});
+
 describe("build", () => {
     interface IFoo {
         bar: number;

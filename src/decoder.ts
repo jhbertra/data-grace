@@ -179,7 +179,7 @@ function prefixError(prefix: string, error: DecodeError): DecodeError {
  * @param t the value to return when decoding.
  * @returns a decoder that always returns `t`.
  */
-function constant<T>(t: T): IDecoder<unknown, T> {
+function constant<T>(t: T): IDecoder<any, T> {
     return Decoder(() => V.Valid(t));
 }
 
@@ -202,7 +202,7 @@ const id: IDecoder<unknown, any> = Decoder(V.Valid);
  * @param failure the error to return when decoding.
  * @returns a decoder that always returns `failure`.
  */
-function constantFailure<T>(failure: DecodeError): IDecoder<unknown, T> {
+function constantFailure<T>(failure: DecodeError): IDecoder<any, T> {
     return Decoder(() => V.Invalid(failure));
 }
 
