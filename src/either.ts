@@ -442,11 +442,11 @@ function sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
  * @param as An array of inputs
  */
 function mapAndUnzipWith<A, N extends number, B, P extends any[] & { length: N }>(
-    n: N,
     f: (b: B) => Either<A, P>,
-    bs: B[]): Either<A, MapArray<P>> {
+    bs: B[],
+    n: N = 0 as any): Either<A, MapArray<P>> {
 
-    return mapM(f, bs).map((x) => unzip(n, x));
+    return mapM(f, bs).map((x) => unzip(x, n));
 }
 
 /**

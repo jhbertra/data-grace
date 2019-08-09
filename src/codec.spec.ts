@@ -2,8 +2,9 @@ import * as fc from "fast-check";
 import * as C from "./codec";
 import * as D from "./decoder";
 import * as E from "./encoder";
-import { Just, Maybe, Nothing, toMaybe } from "./maybe";
-import { Equals, id, prove, simplify } from "./prelude";
+import { toMaybe } from "./maybe";
+import { prove, simplify } from "./prelude";
+import { Equals } from "./utilityTypes";
 import { Valid } from "./validation";
 
 /*------------------------------

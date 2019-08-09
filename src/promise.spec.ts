@@ -1,7 +1,8 @@
 import * as fc from "fast-check";
 import { unzip } from "./array";
-import { constant, Equals, prove, simplify } from "./prelude";
+import { prove, simplify } from "./prelude";
 import * as P from "./promise";
+import { Equals } from "./utilityTypes";
 
 /*------------------------------
   TYPE TESTS
@@ -161,8 +162,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(P.mapAndUnzipWith(2, ([x, y]) => Promise.resolve<[string, number]>([y, x]), xys)))
-                        .toEqual(simplify(Promise.resolve(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
+                    expect(simplify(P.mapAndUnzipWith(([x, y]) => Promise.resolve<[string, number]>([y, x]), xys)))
+                        .toEqual(simplify(Promise.resolve(unzip(xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Nothing for any empty results", () => {
@@ -176,7 +177,6 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         P.mapAndUnzipWith(
-                            2,
                             ([[x, y], i]) => empties.find((e) => e === i) != null
                                 ? Promise.reject("error")
                                 : Promise.resolve<[string, number]>([y, x]),

@@ -1,5 +1,6 @@
+import { Curry, Equals } from "./utilityTypes";
+
 export {
-    Equals,
     absurd,
     constant,
     curry,
@@ -9,22 +10,31 @@ export {
     pipe,
     pipeWith,
     prove,
+    proveNever,
     simplify,
 };
 
 // tslint:disable: ban-types
 
 /**
- * A type which proposes equality between two types.
- * If the proposition is true, it can be assigned a
- * value of any type.
+ * A function which can never be called. Can be useful for
+ * demonstrating absurd or impossible scenarios to the compiler.
  */
-type Equals<A, B> = A extends B ? B extends A ? any : never : never;
+function absurd<T>(_: never): T {
+    throw new Error("absurd");
+}
 
 /**
  * Proves a proposition of type equality.
  */
 function prove<A extends Equals<any, any>>(witness: A) { return; }
+
+/**
+ * Proves a type is never.
+ */
+function proveNever<A extends never>() {
+    return;
+}
 
 /**
  * A function which returns its parameter unchanged.
@@ -105,7 +115,12 @@ function pipe<A, B, C, D, E, F, G, H, I, J>(
     n: (i: I) => J): (a: A) => J;
 
 /**
- * Compose functions left-to-right
+ * Compose functions left-to-right.
+ *
+ * ```ts
+ * const f = pipe(Math.sqrt, n => n * 2, n => n.toString());
+ * f(9); // "6"
+ * ```
  */
 function pipe(
     f: Function,
@@ -228,7 +243,11 @@ function pipeWith<A, B, C, D, E, F, G, H, I, J>(
     n: (i: I) => J): J;
 
 /**
- * Compose functions left-to-right and supply an initial value
+ * Compose functions left-to-right and supply an initial value.
+ *
+ * ```ts
+ * pipe(6, Math.sqrt, n => n * 2, n => n.toString()); // "6"
+ * ```
  */
 function pipeWith(
     a: unknown,
@@ -263,23 +282,14 @@ function pipeWith(
   }
 }
 
-type Head<T extends any[]> = T extends [any, ...any[]] ? T[0] : never;
-
-type Tail<T extends any[]> =
-    ((...t: T) => any) extends ((_: any, ...tail: infer TT) => any) ? TT : never;
-
-type HasTail<T extends any[]> =
-    T extends ([] | [any])
-        ? false
-        : true;
-
-type Curry<P extends any[], R> =
-    (arg0: Head<P>) => HasTail<P> extends true
-        ? Curry<Tail<P>, R>
-        : R;
-
 /**
  * Take any function and produced a curried version.
+ *
+ * ```ts
+ * f : (a: number, b: boolean, c: string) => string;
+ * curry(f); // (a: number) => (b: boolean) => (c: string) => string;
+ * f(1)(false)("foo");
+ * ```
  */
 function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
   return curryImpl(f, f.length) as unknown as Curry<P, R>;
@@ -314,14 +324,6 @@ function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]
         result[key] = value;
     }
     return result;
-}
-
-/**
- * A function which can never be called. Can be useful for
- * demonstrating absurd or impossible scenarios to the compiler.
- */
-function absurd<T>(_: never): T {
-    throw new Error("absurd");
 }
 
 function simplify(x: any): any {

@@ -1,7 +1,8 @@
 import * as fc from "fast-check";
 import * as E from "./encoder";
 import { Just, Maybe, Nothing } from "./maybe";
-import { Equals, id, prove } from "./prelude";
+import { id, prove } from "./prelude";
+import { Equals } from "./utilityTypes";
 
 /*------------------------------
   TYPE TESTS

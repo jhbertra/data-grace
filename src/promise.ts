@@ -17,36 +17,12 @@ import { objectFromEntries, objectToEntries } from "./prelude";
   ------------------------------*/
 
 /**
- * A type transformer that homomorphically maps the @see Maybe type
+ * A type transformer that homomorphically maps the [[Promise]] type
  * onto the types of A.
  *
- * @example
- *
- *      // Map the fields of an object
- *      type Foo = { bar: number, baz: string };
- *
- *      // Write a type test that proposes type equality
- *      type PropEquality =
- *          MapPromise<Foo> extends { bar: Promise<number>, baz: Promise<string> }
- *              ? any
- *              : never;
- *
- *      // witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
- *
- * @example
- *
- *      // Map the items of an array
- *      type Foo = string[];
- *
- *      // Write a type test
- *      type PropEquality =
- *          MapPromise<Foo> extends Promise<string>[]
- *              ? any
- *              : never;
- *
- *      // Witness the proof of the proposition (compiles)
- *      const proof : PropEquality = "witness"
+ * ```ts
+ * type Example = MapPromise<{a: string, b: number}> // Example = {a: Promise<string>, b: Promise<number>}
+ * ```
  */
 type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
 
@@ -57,6 +33,19 @@ type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
 /**
  * Creates a promise which calls a function if and when all its arguments
  * are resolved.
+ *
+ * ```ts
+ * function answerTrueFalse(question: string, answer: boolean): string {
+ *     return `${question} ${answer}`;
+ * }
+ *
+ * const ans = await lift(answerTrueFalse, Promise.resolve("The meaning of life is 42."), Promise.resolve(true));
+ * ans === "The meaning of life is 42. true"; // true
+ * ```
+ *
+ * @param f a function to lift to operate on promises
+ * @param args lifted arguments to `f`
+ * @returns the result of evaluating `f` in a promise on the values produced by `args`
  */
 async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
     return f.apply(undefined, (await Promise.all(args)) as P);
@@ -65,6 +54,18 @@ async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromis
 /**
  * Creates a promise which constructs an object if and when all its components
  * are resolved.
+ *
+ * ```ts
+ * type Foo = { bar: string, baz: Maybe<boolean> };
+ *
+ * // foo == { bar: "BAR", baz: { tag: "Just", value: "baz" } }
+ * const foo = await build<Foo>({
+ *     bar: Promise.resolve("BAR"),
+ *     baz: Promise.resolve(Just("baz"))
+ * });
+ * ```
+ *
+ * @param spec an object composed of promises to build the result out of in a promise.
  */
 async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
     const kvpsPromise = Promise.all(objectToEntries(spec).map(
@@ -78,8 +79,12 @@ async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
   ------------------------------*/
 
 /**
- * Maps a function over an array of inputs and produces a @see Promise for each,
- * then aggregates the results inside of a @see Promise.
+ * Maps a function over an array of inputs and produces a [[Promise]] for each,
+ * then aggregates the results inside of a [[Promise]].
+ * 
+ * ```ts
+ * 
+ * ```
  */
 function mapM<A, B>(f: (value: A) => Promise<B>, as: A[]): Promise<B[]> {
     return Promise.all(as.map(f));
@@ -98,15 +103,15 @@ function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
  * @param as An array of inputs
  */
 async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
-    n: N,
     f: (a: A) => Promise<P>,
-    as: A[]): Promise<MapArray<P>> {
+    as: A[],
+    n: N = 0 as any): Promise<MapArray<P>> {
 
-    return unzip(n, await mapM(f, as));
+    return unzip(await mapM(f, as), n);
 }
 
 /**
- * Reads two input arrays in-order and produces a @see Promise for each pair,
+ * Reads two input arrays in-order and produces a [[Promise]] for each pair,
  * then aggregates the results.
  */
 function zipWithM<A, P extends any[], C>(

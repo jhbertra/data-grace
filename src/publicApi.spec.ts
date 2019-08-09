@@ -7,9 +7,11 @@ import * as either from "./either";
 import * as encoder from "./encoder";
 import * as index from "./index";
 import * as maybe from "./maybe";
-import { Equals, prove } from "./prelude";
+import { prove } from "./prelude";
 import * as prelude from "./prelude";
 import * as promise from "./promise";
+import { Equals } from "./utilityTypes";
+import * as utilityTypes from "./utilityTypes";
 import * as validation from "./validation";
 
 describe("package.json", () => {
@@ -40,6 +42,7 @@ prove<Equals<
     encoder: typeof encoder,
     maybe: typeof maybe,
     promise: typeof promise,
+    utilityTypes: typeof utilityTypes,
     validation: typeof validation,
   }
 >>(requireMinor("root API"));
@@ -56,7 +59,7 @@ prove<Equals<typeof array.or, (bools: boolean[]) => boolean>>(requireMajor("arra
 prove<Equals<typeof array.replicate, <N extends number, A>(times: N, a: A) => A[] & { length: N }>>(requireMajor("array.replicate"));
 prove<Equals<typeof array.sum, (nums: number[]) => number>>(requireMajor("array.sum"));
 prove<Equals<typeof array.product, (nums: number[]) => number>>(requireMajor("array.product"));
-prove<Equals<typeof array.unzip, <N extends number, P extends any[] & { length: N }>(n: N, input: P[]) => array.MapArray<P>>>(requireMajor("array.unzip"));
+prove<Equals<typeof array.unzip, <N extends number, P extends any[] & { length: N }>(input: P[], n?: N) => array.MapArray<P>>>(requireMajor("array.unzip"));
 prove<Equals<
   typeof array,
   {
@@ -91,11 +94,11 @@ prove<Equals<
   prove<Equals<typeof iarrayextensions.intersperse, (t: A) => A[]>>(requireMajor("array.intersperse"));
   prove<Equals<typeof iarrayextensions.isEmpty, () => boolean>>(requireMajor("array.isEmpty"));
   prove<Equals<typeof iarrayextensions.isInfixOf, (other: A[]) => boolean>>(requireMajor("array.isInfixOf"));
-  prove<Equals<typeof iarrayextensions.isInfixedBy, (other: A[]) => boolean>>(requireMajor("array.isInfixedBy"));
+  prove<Equals<typeof iarrayextensions.containsRange, (other: A[]) => boolean>>(requireMajor("array.containsRange"));
   prove<Equals<typeof iarrayextensions.isPrefixOf, (other: A[]) => boolean>>(requireMajor("array.isPrefixOf"));
-  prove<Equals<typeof iarrayextensions.isPrefixedBy, (other: A[]) => boolean>>(requireMajor("array.isPrefixedBy"));
+  prove<Equals<typeof iarrayextensions.startsWith, (other: A[]) => boolean>>(requireMajor("array.startsWith"));
   prove<Equals<typeof iarrayextensions.isSuffixOf, (other: A[]) => boolean>>(requireMajor("array.isSuffixOf"));
-  prove<Equals<typeof iarrayextensions.isSuffixedBy, (other: A[]) => boolean>>(requireMajor("array.isSuffixedBy"));
+  prove<Equals<typeof iarrayextensions.endsWith, (other: A[]) => boolean>>(requireMajor("array.endsWith"));
   prove<Equals<typeof iarrayextensions.last, () => A | undefined>>(requireMajor("array.last"));
   prove<Equals<typeof iarrayextensions.partition, (p: (a: A) => boolean) => [A[], A[]]>>(requireMajor("array.partition"));
   prove<Equals<typeof iarrayextensions.scan, <B>(reduce: (b: B, a: A) => B, seed: B) => B[]>>(requireMajor("array.scan"));
@@ -105,7 +108,7 @@ prove<Equals<
   prove<Equals<typeof iarrayextensions.takeWhile, (p: (a: A) => boolean) => A[]>>(requireMajor("array.takeWhile"));
   prove<Equals<typeof iarrayextensions.tail, () => A[] | undefined>>(requireMajor("array.tail"));
   prove<Equals<typeof iarrayextensions.tails, () => A[][]>>(requireMajor("array.tails"));
-  prove<Equals<typeof iarrayextensions.zip, <P extends any[]>(...arr: array.MapArray<P>) => Array<array.Cons<A, P>>>>(requireMajor("array.zip"));
+  prove<Equals<typeof iarrayextensions.zip, <P extends any[]>(...arr: array.MapArray<P>) => Array<utilityTypes.Cons<A, P>>>>(requireMajor("array.zip"));
   prove<Equals<typeof iarrayextensions.zipWith, <P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: array.MapArray<P>) => B[]>>(requireMajor("array.zipWith"));
   prove<Equals<
     typeof iarrayextensions,
@@ -127,11 +130,11 @@ prove<Equals<
       intersperse: typeof iarrayextensions.intersperse;
       isEmpty: typeof iarrayextensions.isEmpty;
       isInfixOf: typeof iarrayextensions.isInfixOf;
-      isInfixedBy: typeof iarrayextensions.isInfixedBy;
+      containsRange: typeof iarrayextensions.containsRange;
       isPrefixOf: typeof iarrayextensions.isPrefixOf;
-      isPrefixedBy: typeof iarrayextensions.isPrefixedBy;
+      startsWith: typeof iarrayextensions.startsWith;
       isSuffixOf: typeof iarrayextensions.isSuffixOf;
-      isSuffixedBy: typeof iarrayextensions.isSuffixedBy;
+      endsWith: typeof iarrayextensions.endsWith;
       last: typeof iarrayextensions.last;
       partition: typeof iarrayextensions.partition;
       scan: typeof iarrayextensions.scan;
@@ -201,7 +204,7 @@ prove<Equals<typeof decoder.forM, <TIn, A, B>(as: A[], f: (a: A) => decoder.Deco
 prove<Equals<typeof decoder.id, decoder.Decoder<any, any>>>(requireMajor("decoder.id"));
 prove<Equals<typeof decoder.lift, <TIn, P extends any[], R>(f: (...args: P) => R, ...args: decoder.MapDecoder<TIn, P>) => decoder.Decoder<TIn, R>>>(requireMajor("decoder.lift"));
 prove<Equals<typeof decoder.makeDecoder, <TIn, A>(_: (_: TIn) => validation.Validation<decoder.DecodeError, A>) => decoder.Decoder<TIn, A>>>(requireMajor("decoder.makeDecoder"));
-prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, N extends number, A, P extends any[] & { length: N }>(n: N, f: (a: A) => decoder.Decoder<TIn, P>, as: A[]) => decoder.Decoder<TIn, array.MapArray<P>>>>(requireMajor("decoder.mapAndUnzipWith"));
+prove<Equals<typeof decoder.mapAndUnzipWith, <TIn, N extends number, A, P extends any[] & { length: N }>(f: (a: A) => decoder.Decoder<TIn, P>, as: A[], n?: N) => decoder.Decoder<TIn, array.MapArray<P>>>>(requireMajor("decoder.mapAndUnzipWith"));
 prove<Equals<typeof decoder.mapM, <TIn, A, B>(f: (a: A) => decoder.Decoder<TIn, B>, as: A[]) => decoder.Decoder<TIn, B[]>>>(requireMajor("decoder.mapM"));
 prove<Equals<typeof decoder.number, decoder.Decoder<any, number>>>(requireMajor("decoder.number"));
 prove<Equals<typeof decoder.oneOf, <T>(...args: Array<decoder.Decoder<any, T>>) => decoder.Decoder<any, T>>>(requireMajor("decoder.oneOf"));
@@ -268,7 +271,7 @@ prove<Equals<typeof either.forM, <L, A, B>(as: A[], f: (a: A) => either.Either<L
 prove<Equals<typeof either.join, <L, A>(_: either.Either<L, either.Either<L, A>>) => either.Either<L, A>>>(requireMajor("either.join"));
 prove<Equals<typeof either.lefts, <L, A>(ms: Array<either.Either<L, A>>) => L[]>>(requireMajor("either.lefts"));
 prove<Equals<typeof either.lift, <L, P extends any[], R>(f: (...args: P) => R, ...args: either.MapEither<L, P>) => either.Either<L, R>>>(requireMajor("either.lift"));
-prove<Equals<typeof either.mapAndUnzipWith, <A, N extends number, B, P extends any[] & { length: N }>(n: N, f: (b: B) => either.Either<A, P>, bs: B[]) => either.Either<A, array.MapArray<P>>>>(requireMajor("either.mapAndUnzipWith"));
+prove<Equals<typeof either.mapAndUnzipWith, <A, N extends number, B, P extends any[] & { length: N }>(f: (b: B) => either.Either<A, P>, bs: B[], n?: N) => either.Either<A, array.MapArray<P>>>>(requireMajor("either.mapAndUnzipWith"));
 prove<Equals<typeof either.mapM, <L, A, B>(f: (a: A) => either.Either<L, B>, as: A[]) => either.Either<L, B[]>>>(requireMajor("either.mapM"));
 prove<Equals<typeof either.reduceM, <L, A, B>(f: (state: B, a: A) => either.Either<L, B>, seed: B, as: A[]) => either.Either<L, B>>>(requireMajor("either.reduceM"));
 prove<Equals<typeof either.rights, <L, A>(ms: Array<either.Either<L, A>>) => A[]>>(requireMajor("either.rights"));
@@ -408,7 +411,7 @@ prove<Equals<typeof maybe.catMaybes, <A>(ms: Array<maybe.Maybe<A>>) => A[]>>(req
 prove<Equals<typeof maybe.forM, <A, B>(as: A[], f: (a: A) => maybe.Maybe<B>) => maybe.Maybe<B[]>>>(requireMajor("maybe.forM"));
 prove<Equals<typeof maybe.join, <A>(_: maybe.Maybe<maybe.Maybe<A>>) => maybe.Maybe<A>>>(requireMajor("maybe.join"));
 prove<Equals<typeof maybe.lift, <P extends any[], R>(f: (...args: P) => R, ...args: maybe.MapMaybe<P>) => maybe.Maybe<R>>>(requireMajor("maybe.lift"));
-prove<Equals<typeof maybe.mapAndUnzipWith, <N extends number, A, P extends any[] & { length: N }>(n: N, f: (a: A) => maybe.Maybe<P>, as: A[]) => maybe.Maybe<array.MapArray<P>>>>(requireMajor("maybe.mapAndUnzipWith"));
+prove<Equals<typeof maybe.mapAndUnzipWith, <N extends number, A, P extends any[] & { length: N }>(f: (a: A) => maybe.Maybe<P>, as: A[], n?: N) => maybe.Maybe<array.MapArray<P>>>>(requireMajor("maybe.mapAndUnzipWith"));
 prove<Equals<typeof maybe.mapM, <A, B>(f: (a: A) => maybe.Maybe<B>, as: A[]) => maybe.Maybe<B[]>>>(requireMajor("maybe.mapM"));
 prove<Equals<typeof maybe.mapMaybe, <A, B>(f: (value: A) => maybe.Maybe<B>, ms: A[]) => B[]>>(requireMajor("maybe.mapMaybe"));
 prove<Equals<typeof maybe.reduceM, <A, B>(f: (state: B, a: A) => maybe.Maybe<B>, seed: B, as: A[]) => maybe.Maybe<B>>>(requireMajor("maybe.reduceM"));
@@ -505,7 +508,7 @@ prove<Equals<typeof validation.build, <L extends object | any[], T extends objec
 prove<Equals<typeof validation.forM, <L extends object | any[], A, B>(as: A[], f: (a: A) => validation.Validation<L, B>) => validation.Validation<L, B[]>>>(requireMajor("validation.forM"));
 prove<Equals<typeof validation.failures, <L extends object | any[], A>(ms: Array<validation.Validation<L, A>>) => L[]>>(requireMajor("validation.failures"));
 prove<Equals<typeof validation.lift, <L extends object | any[], P extends any[], R>(f: (...args: P) => R, ...args: validation.MapValidation<L, P>) => validation.Validation<L, R>>>(requireMajor("validation.lift"));
-prove<Equals<typeof validation.mapAndUnzipWith, <A extends object | any[], N extends number, B, P extends any[] & { length: N }>(n: N, f: (b: B) => validation.Validation<A, P>, bs: B[]) => validation.Validation<A, array.MapArray<P>>>>(requireMajor("validation.mapAndUnzipWith"));
+prove<Equals<typeof validation.mapAndUnzipWith, <A extends object | any[], N extends number, B, P extends any[] & { length: N }>(f: (b: B) => validation.Validation<A, P>, bs: B[], n?: N) => validation.Validation<A, array.MapArray<P>>>>(requireMajor("validation.mapAndUnzipWith"));
 prove<Equals<typeof validation.mapM, <L extends object | any[], A, B>(f: (a: A) => validation.Validation<L, B>, as: A[]) => validation.Validation<L, B[]>>>(requireMajor("validation.mapM"));
 prove<Equals<typeof validation.successful, <L extends object | any[], A>(ms: Array<validation.Validation<L, A>>) => A[]>>(requireMajor("validation.successful"));
 prove<Equals<typeof validation.sequence, <L extends object | any[], A>(mas: Array<validation.Validation<L, A>>) => validation.Validation<L, A[]>>>(requireMajor("validation.sequence"));

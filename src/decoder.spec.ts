@@ -2,7 +2,8 @@ import * as fc from "fast-check";
 import { unzip } from "./array";
 import * as D from "./decoder";
 import { Just, Maybe, Nothing } from "./maybe";
-import { Equals, objectFromEntries, prove, simplify } from "./prelude";
+import { objectFromEntries, prove, simplify } from "./prelude";
+import { Equals } from "./utilityTypes";
 import { Invalid, Valid } from "./validation";
 
 /*------------------------------
@@ -182,8 +183,8 @@ describe("mapAndUnzipWith", () => {
                 (xys: Array<[number, string]>) => {
                     expect(
                         simplify(
-                            D.mapAndUnzipWith(2, ([x, y]) => D.constant<[string, number]>([y, x]), xys).decode(null)))
-                        .toEqual(simplify(Valid(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
+                            D.mapAndUnzipWith(([x, y]) => D.constant<[string, number]>([y, x]), xys).decode(null)))
+                        .toEqual(simplify(Valid(unzip(xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {
@@ -198,7 +199,6 @@ describe("mapAndUnzipWith", () => {
                     expect(simplify(
                         D
                             .mapAndUnzipWith(
-                                2,
                                 ([[x, y], i]) => empties.find((e) => e === i) != null
                                     ? D.constantFailure<[string, number]>({ [i]: "error" })
                                     : D.constant<[string, number]>([y, x]),

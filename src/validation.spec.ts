@@ -2,7 +2,8 @@ import * as fc from "fast-check";
 import { unzip } from "./array";
 import { Left, Right } from "./either";
 import { Just, Nothing } from "./maybe";
-import { Equals, prove, simplify } from "./prelude";
+import { prove, simplify } from "./prelude";
+import { Equals } from "./utilityTypes";
 import * as V from "./validation";
 
 /*------------------------------
@@ -176,8 +177,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(V.mapAndUnzipWith(2, ([x, y]) => V.Valid([y, x] as [string, number]), xys)))
-                        .toEqual(simplify(V.Valid(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
+                    expect(simplify(V.mapAndUnzipWith(([x, y]) => V.Valid([y, x] as [string, number]), xys)))
+                        .toEqual(simplify(V.Valid(unzip(xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Invalid for any Invalid results", () => {
@@ -191,7 +192,6 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         V.mapAndUnzipWith(
-                            2,
                             ([[x, y], i]) => empties.find((e) => e === i) != null
                                 ? V.Invalid<number[], [string, number]>([i])
                                 : V.Valid([y, x] as [string, number]),

@@ -1,6 +1,7 @@
 import * as fc from "fast-check";
 import { and, intercalate, MapArray, maximum, minimum, or, product, replicate, sum, unzip } from "./array";
-import { Equals, id, prove } from "./prelude";
+import { id, prove } from "./prelude";
+import { Equals } from "./utilityTypes";
 
 // Map the fields of an object
 prove<Equals<MapArray<{ bar: number, baz: string }>, { bar: number[], baz: string[] }>>("proof");
@@ -116,7 +117,7 @@ describe("unzip", () => {
         fc.assert(fc.property(
             fc.nat(20),
             (size) => {
-                const unzipped = unzip(size, []as any[][]);
+                const unzipped = unzip([]as any[][], size);
                 return unzipped.length === size && unzipped.all((x) => x.isEmpty());
             }));
     });
@@ -128,7 +129,7 @@ describe("unzip", () => {
                     .array(fc.genericTuple(replicate(size, fc.anything())))
                     .map((arr) => [size, arr] as [number, any[][]])),
             ([size, arr]) => {
-                const unzipped = unzip(size, arr);
+                const unzipped = unzip(arr, size);
                 expect(unzipped.length).toEqual(size);
                 unzipped.map((x, i) => expect(x).toEqual(arr.map((y) => y[i])));
             }));
@@ -423,12 +424,12 @@ describe("IArrayExtensions", () => {
         });
     });
 
-    describe("isInfixedBy", () => {
+    describe("containsRange", () => {
         it("is the reverse of isInfixOf", () => {
             fc.assert(fc.property(
                 fc.array(fc.integer()),
                 fc.array(fc.integer()),
-                (arr1, arr2) => arr1.isInfixedBy(arr2) === arr2.isInfixOf(arr1)));
+                (arr1, arr2) => arr1.containsRange(arr2) === arr2.isInfixOf(arr1)));
         });
     });
 
@@ -449,12 +450,12 @@ describe("IArrayExtensions", () => {
         });
     });
 
-    describe("isPrefixedBy", () => {
+    describe("startsWith", () => {
         it("is the reverse of isSuffixOf", () => {
             fc.assert(fc.property(
                 fc.array(fc.integer()),
                 fc.array(fc.integer()),
-                (arr1, arr2) => arr1.isPrefixedBy(arr2) === arr2.isSuffixOf(arr1)));
+                (arr1, arr2) => arr1.startsWith(arr2) === arr2.isSuffixOf(arr1)));
         });
     });
 
@@ -475,12 +476,12 @@ describe("IArrayExtensions", () => {
         });
     });
 
-    describe("isSuffixedBy", () => {
+    describe("endsWith", () => {
         it("is the reverse of isSuffixOf", () => {
             fc.assert(fc.property(
                 fc.array(fc.integer()),
                 fc.array(fc.integer()),
-                (arr1, arr2) => arr1.isSuffixedBy(arr2) === arr2.isSuffixOf(arr1)));
+                (arr1, arr2) => arr1.endsWith(arr2) === arr2.isSuffixOf(arr1)));
         });
     });
 

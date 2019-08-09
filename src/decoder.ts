@@ -391,7 +391,12 @@ function build<T extends object>(spec: MapDecoder<object, T>): Decoder<unknown, 
 
 /**
  * Maps a function over an array of inputs and produces a decoder for each.
- * @param f A function that produces a new decoder for each input
+ *
+ * ```ts
+ * mapM(url => fetchUrl(url), urls); // Promise<string[]>
+ * ```
+ *
+ * @param f A function that produces a new promise for each input
  * @param as A set of inputs to map over
  */
 function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn, B[]> {
@@ -400,6 +405,10 @@ function mapM<TIn, A, B>(f: (value: A) => Decoder<TIn, B>, as: A[]): Decoder<TIn
 
 /**
  * @see mapM with its arguments reversed.
+ *
+ * ```ts
+ * forM(urls, url => fetchUrl(url)); // Promise<string[]>
+ * ```
  */
 function forM<TIn, A, B>(as: A[], f: (value: A) => Decoder<TIn, B>): Decoder<TIn, B[]> {
     return mapM(f, as);
@@ -419,11 +428,11 @@ function sequence<TIn, A>(das: Array<Decoder<TIn, A>>): Decoder<TIn, A[]> {
  * @param as An array of inputs
  */
 function mapAndUnzipWith<TIn, N extends number, A, P extends any[] & { length: N }>(
-    n: N,
     f: (a: A) => Decoder<TIn, P>,
-    as: A[]): Decoder<TIn, MapArray<P>> {
+    as: A[],
+    n: N = 0 as any): Decoder<TIn, MapArray<P>> {
 
-    return mapM(f, as).map((x) => unzip(n, x));
+    return mapM(f, as).map((x) => unzip(x, n));
 }
 
 /**

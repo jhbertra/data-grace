@@ -406,11 +406,11 @@ function sequence<A extends object | any[], B>(vbs: Array<Validation<A, B>>): Va
  * @param as An array of inputs
  */
 function mapAndUnzipWith<A extends object | any[], N extends number, B, P extends any[] & { length: N }>(
-    n: N,
     f: (b: B) => Validation<A, P>,
-    bs: B[]): Validation<A, MapArray<P>> {
+    bs: B[],
+    n: N = 0 as any): Validation<A, MapArray<P>> {
 
-    return mapM(f, bs).map((x) => unzip(n, x));
+    return mapM(f, bs).map((x) => unzip(x, n));
 }
 
 /**

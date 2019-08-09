@@ -32,12 +32,12 @@ import { id, objectFromEntries, objectToEntries } from "./prelude";
   ------------------------------*/
 
 /**
- * The public methods exposed by the @see Maybe type.
+ * The public methods exposed by the [[Maybe]] type.
  */
 interface IMaybe<A> {
 
     /**
-     * Extract the value of this @see Maybe if it has one, or default to a.
+     * Extract the value of this [[Maybe]] if it has one, or default to a.
      *
      * @example
      *
@@ -47,7 +47,7 @@ interface IMaybe<A> {
     defaultWith(a: A): A;
 
     /**
-     * Remove unwwanted values from this @see Maybe with a predicate.
+     * Remove unwwanted values from this [[Maybe]] with a predicate.
      *
      * @example
      *
@@ -59,7 +59,7 @@ interface IMaybe<A> {
 
     /**
      * Chain a calculation that may also resolve to a nothing value
-     * on the value contained by this @see Maybe
+     * on the value contained by this [[Maybe]]
      *
      * @example
      *
@@ -71,7 +71,7 @@ interface IMaybe<A> {
     chain<B>(f: (a: A) => Maybe<B>): Maybe<B>;
 
     /**
-     * A type guard which determines if this @see Maybe is a @see Just
+     * A type guard which determines if this [[Maybe]] is a @see Just
      *
      * @example
      *
@@ -83,7 +83,7 @@ interface IMaybe<A> {
     isJust(): this is IMaybeJust<A>;
 
     /**
-     * A type guard which determines if this @see Maybe is a @see Nothing
+     * A type guard which determines if this [[Maybe]] is a @see Nothing
      *
      * @example
      *
@@ -95,7 +95,7 @@ interface IMaybe<A> {
     isNothing(): this is IMaybeNothing;
 
     /**
-     * Transform the value contained by this @see Maybe
+     * Transform the value contained by this [[Maybe]]
      *
      * @example
      *
@@ -131,7 +131,7 @@ interface IMaybe<A> {
     or(other: () => Maybe<A>): Maybe<A>;
 
     /**
-     * Replace the value in this @see Maybe with another @see Maybe.
+     * Replace the value in this [[Maybe]] with another [[Maybe]].
      *
      * @example
      *
@@ -143,7 +143,7 @@ interface IMaybe<A> {
     replace<B>(m: Maybe<B>): Maybe<B>;
 
     /**
-     * Replace the value in this @see Maybe with a new value.
+     * Replace the value in this [[Maybe]] with a new value.
      *
      * @example
      *
@@ -153,7 +153,7 @@ interface IMaybe<A> {
     replacePure<B>(b: B): Maybe<B>;
 
     /**
-     * Convert this @see Maybe to an array with either one or
+     * Convert this [[Maybe]] to an array with either one or
      * zero elements.
      *
      * @example
@@ -164,28 +164,28 @@ interface IMaybe<A> {
     toArray(): A[];
 
     /**
-     * Pretty-print this @see Maybe
+     * Pretty-print this [[Maybe]]
      */
     toString(): string;
 
     /**
-     * Discard any value contained by this @see Maybe
+     * Discard any value contained by this [[Maybe]]
      */
     voidOut(): Maybe<[]>;
 
 }
 
 /**
- * Defines the set of functions required to scrutinize the cases of a @see Maybe.
+ * Defines the set of functions required to scrutinize the cases of a [[Maybe]].
  */
 interface IMaybeCaseScrutinizer<A, B> {
     /**
-     * Callback which is called in the case a @see Maybe has a value.
+     * Callback which is called in the case a [[Maybe]] has a value.
      */
     just(a: A): B;
 
     /**
-     * Callback which is called in the case a @see Maybe has no value.
+     * Callback which is called in the case a [[Maybe]] has no value.
      */
     nothing(): B;
 }
@@ -222,7 +222,7 @@ interface IMaybeNothing {
 type Maybe<A> = (IMaybeJust<A> | IMaybeNothing) & IMaybe<A>;
 
 /**
- * A type transformer that homomorphically maps the @see Maybe type
+ * A type transformer that homomorphically maps the [[Maybe]] type
  * onto the types of A.
  */
 type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
@@ -232,7 +232,7 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
   ------------------------------*/
 
 /**
- * Constructs a new @see Maybe that contains a given value.
+ * Constructs a new [[Maybe]] that contains a given value.
  */
 function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
@@ -272,7 +272,7 @@ const staticNothing: Maybe<any> = Object.freeze({
 });
 
 /**
- * Constructs a new @see Maybe that contains no value.
+ * Constructs a new [[Maybe]] that contains no value.
  */
 function Nothing<A>(): Maybe<A> {
     return staticNothing as Maybe<A>;
@@ -283,7 +283,7 @@ function Nothing<A>(): Maybe<A> {
   ------------------------------*/
 
 /**
- * Creates a new @see Maybe from an optional
+ * Creates a new [[Maybe]] from an optional
  * value, either returning a @see Just or a
  * @see Nothing depending if the value is
  * defined or not.
@@ -293,7 +293,7 @@ function toMaybe<A>(value?: A): Maybe<A> {
 }
 
 /**
- * Creates a new @see Maybe that either contains
+ * Creates a new [[Maybe]] that either contains
  * the first element of arr if it exists, or
  * nothing.
  */
@@ -369,8 +369,8 @@ function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): M
 }
 
 /**
- * Composes a @see Maybe by constructing an object out of
- * multiple @see Maybes. If all the components have a value,
+ * Composes a [[Maybe]] by constructing an object out of
+ * multiple [[Maybe]]s. If all the components have a value,
  * the result will also have a value, otherwise nothing will be
  * returned.
  *
@@ -408,8 +408,8 @@ function build<T extends object>(spec: MapMaybe<T>): Maybe<T> {
   ------------------------------*/
 
 /**
- * Maps a function over an array of inputs and produces a @see Maybe for each,
- * then aggregates the results inside of a @see Maybe.
+ * Maps a function over an array of inputs and produces a [[Maybe]] for each,
+ * then aggregates the results inside of a [[Maybe]].
  */
 function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
     return sequence(as.map(f));
@@ -423,7 +423,7 @@ function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
 }
 
 /**
- * Aggregate a sequence of @see Maybes and combine their results.
+ * Aggregate a sequence of [[Maybe]]s and combine their results.
  */
 function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
     return lift((...as: A[]) => as, ...mas);
@@ -435,15 +435,15 @@ function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
  * @param as An array of inputs
  */
 function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
-    n: N,
     f: (a: A) => Maybe<P>,
-    as: A[]): Maybe<MapArray<P>> {
+    as: A[],
+    n: N = 0 as any): Maybe<MapArray<P>> {
 
-    return mapM(f, as).map((x) => unzip(n, x));
+    return mapM(f, as).map((x) => unzip(x, n));
 }
 
 /**
- * Reads two input arrays in-order and produces a @see Maybe for each pair,
+ * Reads two input arrays in-order and produces a [[Maybe]] for each pair,
  * then aggregates the results.
  */
 function zipWithM<A, P extends any[], C>(
@@ -488,7 +488,7 @@ function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe
 const empty = Just([]);
 
 /**
- * Create a @see Maybe that has a value when a condition is
+ * Create a [[Maybe]] that has a value when a condition is
  * true. Slightly more optimal when the condition
  * and value are both known ahead of time. Often useful for
  * ensuring a chain of computations only happens when some condition
@@ -507,7 +507,7 @@ function when(b: boolean): Maybe<[]> {
 }
 
 /**
- * Create a @see Maybe that has a value when a condition is false.
+ * Create a [[Maybe]] that has a value when a condition is false.
  */
 function unless(b: boolean): Maybe<[]> {
     return when(!b);

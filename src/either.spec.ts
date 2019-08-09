@@ -2,7 +2,8 @@ import * as fc from "fast-check";
 import { unzip } from "./array";
 import * as E from "./either";
 import { Just, Nothing } from "./maybe";
-import { Equals, prove, simplify } from "./prelude";
+import { prove, simplify } from "./prelude";
+import { Equals } from "./utilityTypes";
 
 /*------------------------------
   TYPE TESTS
@@ -184,8 +185,8 @@ describe("mapAndUnzipWith", () => {
             fc.property(
                 fc.array(fc.tuple(fc.integer(), fc.string())),
                 (xys: Array<[number, string]>) => {
-                    expect(simplify(E.mapAndUnzipWith(2, ([x, y]) => E.Right<number, [string, number]>([y, x]), xys)))
-                        .toEqual(simplify(E.Right(unzip(2, xys.map(([x, y]) => [y, x] as [string, number])))));
+                    expect(simplify(E.mapAndUnzipWith(([x, y]) => E.Right<number, [string, number]>([y, x]), xys)))
+                        .toEqual(simplify(E.Right(unzip(xys.map(([x, y]) => [y, x] as [string, number])))));
                 }));
     });
     it("is equal to Left for any Left results", () => {
@@ -199,7 +200,6 @@ describe("mapAndUnzipWith", () => {
                 ([xys, empties]) => {
                     expect(simplify(
                         E.mapAndUnzipWith(
-                            2,
                             ([[x, y], i]) => empties.find((e) => e === i) != null
                                 ? E.Left<number, [string, number]>(i)
                                 : E.Right<number, [string, number]>([y, x]),

@@ -7,6 +7,7 @@ export {
     encoder,
     maybe,
     promise,
+    utilityTypes,
     validation,
 };
 
@@ -17,4 +18,5 @@ import * as either from "./either";
 import * as encoder from "./encoder";
 import * as maybe from "./maybe";
 import * as promise from "./promise";
+import * as utilityTypes from "./utilityTypes";
 import * as validation from "./validation";
