@@ -2,5 +2,6 @@
     "exclude": "**/*+(index|.spec).ts",
     "mode": "modules",
     "out": "docs",
-    "theme": "minimal"
+    "theme": "minimal",
+    "target": "es6"
 }
