@@ -1,7 +1,7 @@
 export {
     IMaybe,
-    IMaybeCaseScrutinizer,
-    IMaybeJust,
+    MaybeCaseScrutinizer,
+    MaybeJust,
     Maybe,
     MapMaybe,
     Just,
@@ -90,7 +90,7 @@ interface IMaybe<A> {
      *
      * @returns true if this is a [[Just]], false otherwise.
      */
-    isJust(): this is IMaybeJust<A>;
+    isJust(): this is MaybeJust<A>;
 
     /**
      * A type guard which determines if this [[Maybe]] is a [[Nothing]].
@@ -135,7 +135,7 @@ interface IMaybe<A> {
      * @param cases an object containing callbacks that scrutinize the structure of this [[Maybe]]
      * @returns the result of calling the appropriate callback in `cases`.
      */
-    matchCase<B>(cases: IMaybeCaseScrutinizer<A, B>): B;
+    matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
 
     /**
      * Pick this @Maybe if it has a value otherwise pick the other.
@@ -211,7 +211,7 @@ interface IMaybe<A> {
 /**
  * Defines the set of functions required to scrutinize the cases of a [[Maybe]].
  */
-interface IMaybeCaseScrutinizer<A, B> {
+interface MaybeCaseScrutinizer<A, B> {
     /**
      * Callback which is called in the case a [[Maybe]] has a value.
      */
@@ -226,7 +226,7 @@ interface IMaybeCaseScrutinizer<A, B> {
 /**
  * The type of an object constructed using the [[Just]] case.
  */
-interface IMaybeJust<A> {
+interface MaybeJust<A> {
 
     /**
      * The payload of this [[Maybe]]
@@ -239,7 +239,7 @@ interface IMaybeJust<A> {
  * It can either have a value of "just A", or "nothing".
  */
 type Maybe<A> = IMaybe<A> & (
-    | Case<"Just"> & IMaybeJust<A>
+    | Case<"Just"> & MaybeJust<A>
     | Case<"Nothing">
 );
 

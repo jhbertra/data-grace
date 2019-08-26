@@ -24,7 +24,7 @@ prove<Equals<D.MapDecoder<any, string[]>, Array<D.IDecoder<any, string>>>>("proo
   ------------------------------*/
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -39,7 +39,7 @@ describe("build", () => {
                 (bar: number, baz: boolean, qux: string) => {
                     expect(
                         simplify(D
-                            .build<IFoo>({
+                            .build<Foo>({
                                 bar: D.constant(bar),
                                 baz: D.constant(baz),
                                 qux: D.constant(qux),
@@ -67,7 +67,7 @@ describe("build", () => {
                     }
                     expect(
                         simplify(D
-                            .build<IFoo>({
+                            .build<Foo>({
                                 bar: getComponent("bar", bar),
                                 baz: getComponent("baz", baz),
                                 qux: getComponent("qux", qux),
@@ -86,7 +86,7 @@ describe("build", () => {
                 (input) => {
                     expect(
                         simplify(D
-                            .build<IFoo>({
+                            .build<Foo>({
                                 bar: D.constant(1),
                                 baz: D.constant(true),
                                 qux: D.constant("qux"),

@@ -23,7 +23,7 @@ prove<MapPromiseArray>("proof");
   ------------------------------*/
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -36,7 +36,7 @@ describe("build", () => {
                 fc.boolean(),
                 fc.string(),
                 (bar: number, baz: boolean, qux: string) => {
-                    expect(simplify(P.build<IFoo>({
+                    expect(simplify(P.build<Foo>({
                         bar: Promise.resolve(bar),
                         baz: Promise.resolve(baz),
                         qux: Promise.resolve(qux),
@@ -60,7 +60,7 @@ describe("build", () => {
                             ? Promise.reject("error")
                             : Promise.resolve(value);
                     }
-                    expect(simplify(P.build<IFoo>({
+                    expect(simplify(P.build<Foo>({
                         bar: getComponent(0, bar),
                         baz: getComponent(1, baz),
                         qux: getComponent(2, qux),

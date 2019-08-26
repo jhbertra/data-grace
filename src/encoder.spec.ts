@@ -22,7 +22,7 @@ prove<Equals<E.MapEncoder<any, string[]>, Array<E.IEncoder<any, string>>>>("proo
   ------------------------------*/
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -36,7 +36,7 @@ describe("build", () => {
                 (bar: number, baz: boolean, qux: string) => {
                     expect(
                         E
-                            .build<IFoo>({
+                            .build<Foo>({
                                 bar: E.property("bar", E.number),
                                 baz: E.property("baz", E.boolean),
                                 qux: E.property("qux", E.string),

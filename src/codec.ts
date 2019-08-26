@@ -12,9 +12,9 @@ export {
     tuple,
 };
 
-import { IDecoder } from "./decoder";
+import { Decoder } from "./decoder";
 import * as D from "./decoder";
-import { IEncoder } from "./encoder";
+import { Encoder } from "./encoder";
 import * as E from "./encoder";
 import { Maybe } from "./maybe";
 import { objectFromEntries, objectToEntries } from "./prelude";
@@ -49,7 +49,7 @@ interface ICodec<TRaw, A> {
 
 /**
  * A codec is a pair of bidirectional conversion functions. It
- * is comprised of an [[IDecoder]] and an [[IEncoder]], which
+ * is comprised of an [[Decoder]] and an [[Encoder]], which
  * convert data between a rich data format and a raw data format.
  *
  * An additional requirement of codecs is that their components must
@@ -62,7 +62,7 @@ interface ICodec<TRaw, A> {
  * codec.encode(codec.decode(rawData)) === rawData
  * ```
  */
-type Codec<TRaw, A> = { decoder: IDecoder<TRaw, A>, encoder: IEncoder<TRaw, A> } & ICodec<TRaw, A>;
+type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A> } & ICodec<TRaw, A>;
 
 /**
  * A type transformer that homomorphically maps the [[Codec]]
@@ -82,7 +82,7 @@ type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 /**
  * Creates a new codec that uses the give decoder / encoder pair.
  */
-function makeCodec<TRaw, A>(decoder: IDecoder<TRaw, A>, encoder: IEncoder<TRaw, A>): Codec<TRaw, A> {
+function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>): Codec<TRaw, A> {
     return Object.freeze({
         decode: decoder.decode,
         decoder,

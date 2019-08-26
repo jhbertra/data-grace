@@ -51,7 +51,7 @@ describe("maybeToEither", () => {
 });
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -64,7 +64,7 @@ describe("build", () => {
                 fc.boolean(),
                 fc.string(),
                 (bar: number, baz: boolean, qux: string) => {
-                    expect(simplify(E.build<string, IFoo>({
+                    expect(simplify(E.build<string, Foo>({
                         bar: E.Right(bar),
                         baz: E.Right(baz),
                         qux: E.Right(qux),
@@ -88,7 +88,7 @@ describe("build", () => {
                             ? E.Left(i)
                             : E.Right(value);
                     }
-                    expect(simplify(E.build<number, IFoo>({
+                    expect(simplify(E.build<number, Foo>({
                         bar: getComponent(0, bar),
                         baz: getComponent(1, baz),
                         qux: getComponent(2, qux),

@@ -1,8 +1,8 @@
 export {
     IEither,
-    IEitherCaseScrutinizer,
-    IEitherLeft,
-    IEitherRight,
+    EitherCaseScrutinizer,
+    EitherLeft,
+    EitherRight,
     Either,
     MapEither,
     Left,
@@ -26,7 +26,7 @@ export {
 
 import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
-import { constant, id, objectFromEntries, objectToEntries, Case } from "./prelude";
+import { Case, constant, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -92,7 +92,7 @@ interface IEither<A, B> {
      *
      * @returns true if this is a [[Left]], false otherwise.
      */
-    isLeft(): this is IEitherLeft<A>;
+    isLeft(): this is EitherLeft<A>;
 
     /**
      * A type guard which determines if this [[Either]] is a [[Right]]
@@ -106,7 +106,7 @@ interface IEither<A, B> {
      *
      * @returns true if this is a [[Right]], false otherwise.
      */
-    isRight(): this is IEitherRight<B>;
+    isRight(): this is EitherRight<B>;
 
     /**
      * Modify the data in the [[Right]] case.
@@ -150,7 +150,7 @@ interface IEither<A, B> {
      * @param cases an object containing callbacks that scrutinize the structure of this [[Either]]
      * @returns the result of calling the appropriate callback in `cases`.
      */
-    matchCase<C>(cases: IEitherCaseScrutinizer<A, B, C>): C;
+    matchCase<C>(cases: EitherCaseScrutinizer<A, B, C>): C;
 
     /**
      * Pick this [[Either]] if it is [[Right]] otherwise pick the other.
@@ -242,7 +242,7 @@ interface IEither<A, B> {
 /**
  * Defines the set of functions required to scrutinize the cases of an [[Either]].
  */
-interface IEitherCaseScrutinizer<A, B, C> {
+interface EitherCaseScrutinizer<A, B, C> {
 
     /**
      * Callback which is called in the case of a [[Left]].
@@ -258,14 +258,14 @@ interface IEitherCaseScrutinizer<A, B, C> {
 /**
  * The type of an object constructed using the [[Left]] case.
  */
-interface IEitherLeft<A> {
+interface EitherLeft<A> {
     readonly value: A;
 }
 
 /**
  * The type of an object constructed using the [[Right]] case.
  */
-interface IEitherRight<B> {
+interface EitherRight<B> {
     readonly value: B;
 }
 
@@ -279,8 +279,8 @@ interface IEitherRight<B> {
  * constructor.
  */
 type Either<A, B> = IEither<A, B> & (
-    | Case<"Left"> & IEitherLeft<A>
-    | Case<"Right"> & IEitherRight<B>
+    | Case<"Left"> & EitherLeft<A>
+    | Case<"Right"> & EitherRight<B>
 );
 
 /**

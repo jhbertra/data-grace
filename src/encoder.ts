@@ -1,10 +1,10 @@
 export {
     Encoder,
-    IEncoder,
     MapEncoder,
     array,
     boolean,
     build,
+    makeEncoder,
     number,
     optional,
     property,
@@ -20,9 +20,9 @@ import { id, objectFromEntries, objectToEntries } from "./prelude";
   ------------------------------*/
 
 /**
- * The public methods exposed by the [[IEncoder]] type.
+ * The public methods exposed by the [[Encoder]] type.
  */
-interface IEncoder<TOut, A> {
+interface Encoder<TOut, A> {
 
     /**
      * Consume an instance of `A` and produce a `TOut`.
@@ -33,42 +33,42 @@ interface IEncoder<TOut, A> {
     encode(a: A): TOut;
 
     /**
-     * Obtain the input for this [[IEncoder]] from a different
-     * type before running the [[IEncoder]].
+     * Obtain the input for this [[Encoder]] from a different
+     * type before running the [[Encoder]].
      *
      * ```ts
      * string.contramap(n => n.ToString()).encode(12); // "12"
      * ```
      *
-     * @param f a function that modifies values before they are consumed by this [[IEncoder]].
-     * @returns an [[IEncoder]] that accepts values which are transformed and fed to this [[IEncoder]].
+     * @param f a function that modifies values before they are consumed by this [[Encoder]].
+     * @returns an [[Encoder]] that accepts values which are transformed and fed to this [[Encoder]].
      */
-    contramap<B>(f: (b: B) => A): IEncoder<TOut, B>;
+    contramap<B>(f: (b: B) => A): Encoder<TOut, B>;
 }
 
 /**
- * A type transformer that homomorphically maps the [[IEncoder]]
+ * A type transformer that homomorphically maps the [[Encoder]]
  * onto the types of A.
  *
  * ```ts
- * // Example = {a: IEncoder<unknown, string>, b: IEncoder<unknown, number>}
+ * // Example = {a: Encoder<unknown, string>, b: Encoder<unknown, number>}
  * type Example = MapEncoder<unknown, {a: string, b: number}>
  * ```
  */
-type MapEncoder<TOut, A> = { [K in keyof A]: IEncoder<TOut, A[K]> };
+type MapEncoder<TOut, A> = { [K in keyof A]: Encoder<TOut, A[K]> };
 
 /*------------------------------
   CONSTRUCTORS
   ------------------------------*/
 
 /**
- * Creates an [[IEncoder]] that runs the given encoding function.
+ * Creates an [[Encoder]] that runs the given encoding function.
  */
-function Encoder<TOut, A>(encode: (a: A) => TOut): IEncoder<TOut, A> {
+function makeEncoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
     return Object.freeze({
-        contramap: (f) => Encoder((x) => encode(f(x as any))),
+        contramap: (f) => makeEncoder((x) => encode(f(x as any))),
         encode: (x) => encode(x),
-    }) as IEncoder<TOut, A>;
+    }) as Encoder<TOut, A>;
 }
 
 /*------------------------------
@@ -79,25 +79,25 @@ function Encoder<TOut, A>(encode: (a: A) => TOut): IEncoder<TOut, A> {
  * Conversion from booleans to raw data.
  */
 // tslint:disable-next-line: variable-name
-const boolean: IEncoder<unknown, boolean> = Encoder(id);
+const boolean: Encoder<unknown, boolean> = makeEncoder(id);
 
 /**
  * Conversion from numbers to raw data.
  */
 // tslint:disable-next-line: variable-name
-const number: IEncoder<unknown, number> = Encoder(id);
+const number: Encoder<unknown, number> = makeEncoder(id);
 
 /**
  * Conversion from strings to raw data.
  */
 // tslint:disable-next-line: variable-name
-const string: IEncoder<unknown, string> = Encoder(id);
+const string: Encoder<unknown, string> = makeEncoder(id);
 
 /**
  * Encodes an array of items into a raw form.
  */
-function array<T>(convert: IEncoder<unknown, T>): IEncoder<unknown, T[]> {
-    return Encoder((x) => x.map(convert.encode));
+function array<T>(convert: Encoder<unknown, T>): Encoder<unknown, T[]> {
+    return makeEncoder((x) => x.map(convert.encode));
 }
 
 /**
@@ -108,8 +108,8 @@ function array<T>(convert: IEncoder<unknown, T>): IEncoder<unknown, T[]> {
  * optional(string).encode(Just(12)); // 12
  * ```
  */
-function optional<T>(convert: IEncoder<unknown, T>): IEncoder<unknown, Maybe<T>> {
-    return Encoder((x) => x.matchCase({ just: convert.encode, nothing: () => undefined }));
+function optional<T>(convert: Encoder<unknown, T>): Encoder<unknown, Maybe<T>> {
+    return makeEncoder((x) => x.matchCase({ just: convert.encode, nothing: () => undefined }));
 }
 
 /**
@@ -119,15 +119,15 @@ function optional<T>(convert: IEncoder<unknown, T>): IEncoder<unknown, Maybe<T>>
  * property("foo", string).encode("bar"); // { foo: "bar" }
  * ```
  */
-function property<T>(name: string, convert: IEncoder<unknown, T>): IEncoder<object, T> {
-    return Encoder((value) => ({ [name]: convert.encode(value) }));
+function property<T>(name: string, convert: Encoder<unknown, T>): Encoder<object, T> {
+    return makeEncoder((value) => ({ [name]: convert.encode(value) }));
 }
 
 /**
  * Encode the elements within a tuple.
  */
-function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): IEncoder<unknown, T> {
-    return Encoder((t) => converters.zipWith((convert, elem) => convert.encode(elem), t));
+function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): Encoder<unknown, T> {
+    return makeEncoder((t) => converters.zipWith((convert, elem) => convert.encode(elem), t));
 }
 
 /*------------------------------
@@ -142,7 +142,7 @@ function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): IEncoder
  * ```ts
  * type Foo = { bar: string, baz: Maybe<boolean> };
  *
- * const fooEncoder: IEncoder<object, Foo> = build<Foo>({
+ * const fooEncoder: Encoder<object, Foo> = build<Foo>({
  *     bar: property("bar", string),
  *     baz: property("baz", optional(boolean))
  * });
@@ -150,8 +150,8 @@ function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): IEncoder
  * fooEncoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  * ```
  */
-function build<T extends object>(spec: MapEncoder<object, T>): IEncoder<unknown, T> {
-    return Encoder((obj) => objectFromEntries(
+function build<T extends object>(spec: MapEncoder<object, T>): Encoder<unknown, T> {
+    return makeEncoder((obj) => objectFromEntries(
         objectToEntries(spec)
             .map(([key, convert]) => convert.encode(obj[key]))
             .chain(objectToEntries)));

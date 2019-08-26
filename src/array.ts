@@ -1,7 +1,7 @@
 import { Cons } from "./utilityTypes";
 
 export {
-    IArrayExtensions,
+    ArrayExtensions,
     MapArray,
     and,
     intercalate,
@@ -17,7 +17,7 @@ export {
 /**
  * Extension methods for the JavaScript [[Array]] type.
  */
-interface IArrayExtensions<A> {
+interface ArrayExtensions<A> {
 
     /**
      * Determines whether all elements of the array satisfy a predicate.
@@ -646,7 +646,7 @@ declare global {
      * Declares modifications to the global [[Array]] interface.
      */
     // tslint:disable-next-line:interface-name
-    interface Array<T> extends IArrayExtensions<T> { }
+    interface Array<T> extends ArrayExtensions<T> { }
 }
 
 Array.prototype.all = function allForArray(p) {

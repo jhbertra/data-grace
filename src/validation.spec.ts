@@ -71,7 +71,7 @@ describe("eitherToValidation", () => {
 });
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -84,7 +84,7 @@ describe("build", () => {
                 fc.boolean(),
                 fc.string(),
                 (bar: number, baz: boolean, qux: string) => {
-                    expect(simplify(V.build<[string], IFoo>({
+                    expect(simplify(V.build<[string], Foo>({
                         bar: V.Valid(bar),
                         baz: V.Valid(baz),
                         qux: V.Valid(qux),
@@ -108,7 +108,7 @@ describe("build", () => {
                             ? V.Invalid({ [prop]: "error" })
                             : V.Valid(value);
                     }
-                    expect(simplify(V.build<object, IFoo>({
+                    expect(simplify(V.build<object, Foo>({
                         bar: getComponent("bar", bar),
                         baz: getComponent("baz", baz),
                         qux: getComponent("qux", qux),

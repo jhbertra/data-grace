@@ -1,8 +1,8 @@
 export {
     IValidation,
-    IValidationCaseScrutinizer,
-    IValidationInvalid,
-    IValidationValid,
+    ValidationCaseScrutinizer,
+    ValidationInvalid,
+    ValidationValid,
     Validation,
     MapValidation,
     Valid,
@@ -60,7 +60,7 @@ interface IValidation<A extends object | any[], B> {
      *
      * @returns true if this is a [[Invalid]], false otherwise.
      */
-    isInvalid(): this is IValidationInvalid<A>;
+    isInvalid(): this is ValidationInvalid<A>;
 
     /**
      * A type guard which determines if this [[Validation]] is a [[Valid]].
@@ -74,7 +74,7 @@ interface IValidation<A extends object | any[], B> {
      *
      * @returns true if this is a [[Valid]], false otherwise.
      */
-    isValid(): this is IValidationValid<B>;
+    isValid(): this is ValidationValid<B>;
 
     /**
      * Modify the data in the [[Valid]] case.
@@ -118,7 +118,7 @@ interface IValidation<A extends object | any[], B> {
      * @param cases an object containing callbacks that scrutinize the structure of this [[Validation]]
      * @returns the result of calling the appropriate callback in `cases`.
      */
-    matchCase<C>(cases: IValidationCaseScrutinizer<A, B, C>): C;
+    matchCase<C>(cases: ValidationCaseScrutinizer<A, B, C>): C;
 
     /**
      * Pick this [[Validation]] if it is [[Valid]] otherwise pick the other.
@@ -224,7 +224,7 @@ interface IValidation<A extends object | any[], B> {
 /**
  * Defines the set of functions required to scrutinize the cases of a [[Validation]].
  */
-interface IValidationCaseScrutinizer<A extends object | any[], B, C> {
+interface ValidationCaseScrutinizer<A extends object | any[], B, C> {
     /**
      * Callback which is called in the case of [[Invalid]].
      */
@@ -239,12 +239,12 @@ interface IValidationCaseScrutinizer<A extends object | any[], B, C> {
 /**
  * The type of an object constructed using the [[Invalid]] case.
  */
-interface IValidationInvalid<A extends object | any[]> { readonly failure: A; }
+interface ValidationInvalid<A extends object | any[]> { readonly failure: A; }
 
 /**
  * The type of an object constructed using the [[Valid]] case.
  */
-interface IValidationValid<B> { readonly value: B; }
+interface ValidationValid<B> { readonly value: B; }
 
 /**
  * A data type that represents a calculation which can fail. The primary
@@ -254,8 +254,8 @@ interface IValidationValid<B> { readonly value: B; }
  * to do sequential validation with chain like one would do with [[Either]].
  */
 type Validation<A extends object | any[], B> = IValidation<A, B> & (
-    | Case<"Invalid"> & IValidationInvalid<A>
-    | Case<"Valid"> & IValidationValid<B>
+    | Case<"Invalid"> & ValidationInvalid<A>
+    | Case<"Valid"> & ValidationValid<B>
 );
 
 /**

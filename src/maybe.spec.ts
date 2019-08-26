@@ -37,7 +37,7 @@ describe("arrayToMaybe", () => {
 });
 
 describe("build", () => {
-    interface IFoo {
+    interface Foo {
         bar: number;
         baz: boolean;
         qux: string;
@@ -50,7 +50,7 @@ describe("build", () => {
                 fc.boolean(),
                 fc.string(),
                 (bar: number, baz: boolean, qux: string) => {
-                    expect(simplify(M.build<IFoo>({
+                    expect(simplify(M.build<Foo>({
                         bar: M.Just(bar),
                         baz: M.Just(baz),
                         qux: M.Just(qux),
@@ -74,7 +74,7 @@ describe("build", () => {
                             ? M.Nothing()
                             : M.Just(value);
                     }
-                    expect(simplify(M.build<IFoo>({
+                    expect(simplify(M.build<Foo>({
                         bar: getComponent(0, bar),
                         baz: getComponent(1, baz),
                         qux: getComponent(2, qux),
