@@ -300,13 +300,13 @@ function array<T>(convert: Decoder<unknown, T>): Decoder<unknown, T[]> {
 /**
  * Runs the decoder when the __case property matches.
  */
-function $case<Tag extends string, TCase extends object, T extends Case<Tag> & TCase>(
+function $case<Tag extends string, TCase extends Omit<T, "__case">, T extends object>(
     tag: Tag,
     convert?: Decoder<unknown, TCase>,
 ): Decoder<object, T> {
     return makeDecoder((input) => input.hasOwnProperty("__case") && (input as any).__case === tag
         ? (convert || constant({})).decode(input).map((x) => ({ ...x, __case: tag } as T))
-        : V.Invalid({ $: `Expected __case: ${tag}`}));
+        : V.Invalid({ __case: `Expected ${tag}`}));
 }
 
 /**

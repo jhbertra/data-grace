@@ -135,15 +135,15 @@ function array<T>(convert: Encoder<unknown, T>): Encoder<unknown, T[]> {
  * Runs the first encoder that satisfies its paired predicate. Else
  * throws an exception.
  */
-function $case<Tag extends string, TCase extends object, T extends Case<Tag> & TCase>(
+function $case<Tag extends string, TCase extends Omit<T, "__case">, T extends object>(
     tag: Tag,
     convert?: Encoder<unknown, TCase>,
-): [(_: T) => boolean, Encoder<object, T>] {
+): [(t: T) => boolean, Encoder<object, T>] {
     return [
-        ({ __case }) => __case === tag,
+        (x) => (x as any).__case === tag,
         makeEncoder((t) => {
             const encoder = convert || makeEncoder(() => ({}));
-            const value = encoder.encode(t);
+            const value = encoder.encode(t as any);
             return {
                 __case: tag,
                 ...(typeof(value) === "object" && value != null ? value : {}),

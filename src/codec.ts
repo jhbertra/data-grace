@@ -175,7 +175,7 @@ function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
 /**
  * Conversion within the context of a union case.
  */
-function $case<Tag extends string, TCase extends object, T extends Case<Tag> & TCase>(
+function $case<Tag extends string, TCase extends Omit<T, "__case">, T extends object>(
     tag: Tag,
     innerCodec?: Codec<unknown, TCase>,
 ): [(_: T) => boolean, Codec<object, T>] {

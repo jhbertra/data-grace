@@ -75,7 +75,8 @@ describe("$case", () => {
 
 describe("oneOf", () => {
     it("Runs the first matching encoder.", () => {
-        const encoder = E.oneOf<Case<"Foo"> & { bar: string } | Case<"Baz"> |  Case<"Qux">>(
+        type Test = Case<"Foo"> & { bar: string } | Case<"Baz"> |  Case<"Qux">;
+        const encoder = E.oneOf<Test>(
             E.$case("Foo", E.build({ bar: E.property("bar", E.string) })),
             E.$case("Baz"));
 

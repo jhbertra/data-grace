@@ -382,7 +382,7 @@ describe("$case", () => {
     it("fails items of the correct case", () => {
         const decoder = D.$case("Foo", D.build<{ bar: string }>({ bar: D.property("bar", D.string) }));
         expect(simplify(decoder.decode({ bar: "foo" })))
-            .toEqual(simplify(Valid({bar: "foo" })));
+            .toEqual(simplify(Invalid({ __case: "Expected Foo" })));
     });
 });
 
