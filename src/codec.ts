@@ -2,10 +2,12 @@ export {
     ICodec,
     MapCodec,
     Codec,
+    $case,
     array,
     boolean,
     makeCodec,
     number,
+    oneOf,
     optional,
     property,
     string,
@@ -17,7 +19,7 @@ import * as D from "./decoder";
 import { Encoder } from "./encoder";
 import * as E from "./encoder";
 import { Maybe } from "./maybe";
-import { objectFromEntries, objectToEntries } from "./prelude";
+import { Case, objectFromEntries, objectToEntries } from "./prelude";
 import { Validation } from "./validation";
 
 /*------------------------------
@@ -168,6 +170,30 @@ const string: Codec<unknown, string> = makeCodec(D.string, E.string);
  */
 function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
     return makeCodec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
+}
+
+/**
+ * Conversion within the context of a union case.
+ */
+function $case<Tag extends string, TCase, T extends Case<Tag> & TCase>(
+    tag: Tag,
+    innerCodec: Codec<object, TCase>,
+): [(_: T) => boolean, Codec<object, T>] {
+    const [p, encoder] = E.$case(tag, innerCodec.encoder);
+    return [
+        p,
+        makeCodec(D.$case(tag, innerCodec.decoder), encoder) as any,
+    ];
+}
+
+/**
+ * Runs the first encoder that satisfies its paired predicate. Else
+ * throws an exception.
+ */
+function oneOf<T>(...choices: Array<[(t: T) => boolean, Codec<unknown, T>]>): Codec<unknown, T> {
+    return makeCodec(
+        D.oneOf(...choices.map(([_, c]) => c.decoder)),
+        E.oneOf(...choices.map(([p, c]) => [p, c.encoder] as [(t: T) => boolean, Encoder<unknown, T>])));
 }
 
 /**

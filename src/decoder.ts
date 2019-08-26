@@ -2,6 +2,7 @@ export {
     Decoder,
     DecodeError,
     MapDecoder,
+    $case,
     array,
     boolean,
     build,
@@ -26,7 +27,7 @@ export {
 
 import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
-import { id as preludeId, objectFromEntries, objectToEntries } from "./prelude";
+import { Case, id as preludeId, objectFromEntries, objectToEntries } from "./prelude";
 import { Validation } from "./validation";
 import * as V from "./validation";
 
@@ -297,6 +298,18 @@ function array<T>(convert: Decoder<unknown, T>): Decoder<unknown, T[]> {
 }
 
 /**
+ * Runs the decoder when the __case property matches.
+ */
+function $case<Tag extends string, TCase, T extends Case<Tag> & TCase>(
+    tag: Tag,
+    convert: Decoder<object, TCase>,
+): Decoder<object, T> {
+    return makeDecoder((input) => input.hasOwnProperty("__case") && (input as any).__case === tag
+        ? convert.decode(input).map((x) => ({ ...x, __case: tag } as T))
+        : V.Invalid({ $: `Expected __case: ${tag}`}));
+}
+
+/**
  * Conversion from unknown data to a finite set of values.
  *
  * ```ts
@@ -309,8 +322,8 @@ function array<T>(convert: Decoder<unknown, T>): Decoder<unknown, T[]> {
  * @param choices additional decoders to try until one succeeds, or all fail.
  * @returns An [[Decoder]] which tries all decoders in sequence until one succeeds, or all fail.
  */
-function oneOf<T>(firstChoice: Decoder<unknown, T>, ...choices: Array<Decoder<unknown, T>>): Decoder<unknown, T> {
-    return choices.reduce((state, d) => state.or(d), firstChoice);
+function oneOf<T>(...choices: Array<Decoder<unknown, T>>): Decoder<unknown, T> {
+    return choices.reduce((state, d) => state.or(d), constantFailure({ $: "There are no valid choices." }));
 }
 
 /**

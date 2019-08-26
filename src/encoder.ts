@@ -1,11 +1,13 @@
 export {
     Encoder,
     MapEncoder,
+    $case,
     array,
     boolean,
     build,
     makeEncoder,
     number,
+    oneOf,
     optional,
     property,
     string,
@@ -13,7 +15,7 @@ export {
 };
 
 import { Maybe } from "./maybe";
-import { id, objectFromEntries, objectToEntries } from "./prelude";
+import { Case, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -127,6 +129,38 @@ const string: Encoder<unknown, string> = makeEncoder(id);
  */
 function array<T>(convert: Encoder<unknown, T>): Encoder<unknown, T[]> {
     return makeEncoder((x) => x.map(convert.encode));
+}
+
+/**
+ * Runs the first encoder that satisfies its paired predicate. Else
+ * throws an exception.
+ */
+function $case<Tag extends string, TCase, T extends Case<Tag> & TCase>(
+    tag: Tag,
+    convert: Encoder<object, TCase>,
+): [(_: T) => boolean, Encoder<object, T>] {
+    return [
+        ({ __case }) => __case === tag,
+        makeEncoder((t) => ({
+            __case: tag,
+            ...convert.encode(t),
+        })),
+    ];
+}
+
+/**
+ * Runs the first encoder that satisfies its paired predicate. Else
+ * throws an exception.
+ */
+function oneOf<T>(...choices: Array<[(t: T) => boolean, Encoder<unknown, T>]>): Encoder<unknown, T> {
+    return makeEncoder((x) => {
+        const encoder = choices.find(([p, _]) => p(x));
+        if (!encoder) {
+            throw new Error(`Cannot encode value ${JSON.stringify(x)}`);
+        } else {
+            return encoder[1].encode(x);
+        }
+    });
 }
 
 /**
