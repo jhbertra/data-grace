@@ -2,7 +2,6 @@ export {
     IMaybe,
     IMaybeCaseScrutinizer,
     IMaybeJust,
-    IMaybeNothing,
     Maybe,
     MapMaybe,
     Just,
@@ -25,7 +24,7 @@ export {
 };
 
 import { MapArray, unzip } from "./array";
-import { id, objectFromEntries, objectToEntries } from "./prelude";
+import { Case, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -105,7 +104,7 @@ interface IMaybe<A> {
      *
      * @returns true if this is a [[Nothing]], false otherwise.
      */
-    isNothing(): this is IMaybeNothing;
+    isNothing(): this is Case<"Nothing">;
 
     /**
      * Transform the value contained by this [[Maybe]].
@@ -228,10 +227,6 @@ interface IMaybeCaseScrutinizer<A, B> {
  * The type of an object constructed using the [[Just]] case.
  */
 interface IMaybeJust<A> {
-    /**
-     * Data used to identify the type.
-     */
-    readonly tag: "Just";
 
     /**
      * The payload of this [[Maybe]]
@@ -240,20 +235,13 @@ interface IMaybeJust<A> {
 }
 
 /**
- * The type of an object constructed using the [[Nothing]] case.
- */
-interface IMaybeNothing {
-    /**
-     * Data used to identify the type.
-     */
-    readonly tag: "Nothing";
-}
-
-/**
  * A data type that represents an optional / nullable value.
  * It can either have a value of "just A", or "nothing".
  */
-type Maybe<A> = (IMaybeJust<A> | IMaybeNothing) & IMaybe<A>;
+type Maybe<A> = IMaybe<A> & (
+    | Case<"Just"> & IMaybeJust<A>
+    | Case<"Nothing">
+);
 
 /**
  * A type transformer that homomorphically maps the [[Maybe]] type
@@ -274,6 +262,7 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
  */
 function Just<A>(value: A): Maybe<A> {
     return Object.freeze({
+        __case: "Just",
         defaultWith() { return value; },
         filter(p) { return p(value) ? this : staticNothing; },
         chain(f) { return f(value); },
@@ -284,7 +273,6 @@ function Just<A>(value: A): Maybe<A> {
         or() { return this; },
         replace: id,
         replacePure: Just,
-        tag: "Just",
         toArray() { return [value]; },
         toString() { return `Just (${value})`; },
         value,
@@ -293,6 +281,7 @@ function Just<A>(value: A): Maybe<A> {
 }
 
 const staticNothing: Maybe<any> = Object.freeze({
+    __case: "Nothing",
     defaultWith: id,
     filter() { return this; },
     chain() { return this; },
@@ -303,7 +292,6 @@ const staticNothing: Maybe<any> = Object.freeze({
     or(m2) { return m2; },
     replace() { return this; },
     replacePure() { return this; },
-    tag: "Nothing",
     toArray() { return []; },
     toString() { return `Nothing`; },
     voidOut() { return staticNothing; },
@@ -454,7 +442,7 @@ function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): M
  *     baz: Nothing()
  * });
  *
- * // Just ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
+ * // Just ({ bar: "BAR", baz: { __case: "Just", value: "baz" } })
  * build<Foo>({
  *     bar: Just("BAR"),
  *     baz: Just(Just("baz"))

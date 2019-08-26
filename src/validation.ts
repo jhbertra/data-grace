@@ -24,7 +24,7 @@ export {
 import { MapArray, unzip } from "./array";
 import { Either, Left, Right } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
+import { Case, constant, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -239,12 +239,12 @@ interface IValidationCaseScrutinizer<A extends object | any[], B, C> {
 /**
  * The type of an object constructed using the [[Invalid]] case.
  */
-interface IValidationInvalid<A extends object | any[]> { readonly tag: "Invalid"; readonly failure: A; }
+interface IValidationInvalid<A extends object | any[]> { readonly failure: A; }
 
 /**
  * The type of an object constructed using the [[Valid]] case.
  */
-interface IValidationValid<B> { readonly tag: "Valid"; readonly value: B; }
+interface IValidationValid<B> { readonly value: B; }
 
 /**
  * A data type that represents a calculation which can fail. The primary
@@ -253,7 +253,10 @@ interface IValidationValid<B> { readonly tag: "Valid"; readonly value: B; }
  * way that failures will accumulate, and as a consequence it is not possible
  * to do sequential validation with chain like one would do with [[Either]].
  */
-type Validation<A extends object | any[], B> = (IValidationInvalid<A> | IValidationValid<B>) & IValidation<A, B>;
+type Validation<A extends object | any[], B> = IValidation<A, B> & (
+    | Case<"Invalid"> & IValidationInvalid<A>
+    | Case<"Valid"> & IValidationValid<B>
+);
 
 /**
  * A type transformer that homomorphically maps the [[Validation]] type
@@ -276,6 +279,7 @@ type MapValidation<A extends object | any[], B> = { [K in keyof B]: Validation<A
  */
 function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
     return Object.freeze({
+        __case: "Valid",
         defaultWith: constant(value),
         isInvalid() { return false; },
         isValid() { return true; },
@@ -285,7 +289,6 @@ function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
         or() { return this; },
         replace: id,
         replacePure: Valid,
-        tag: "Valid",
         toArray() { return [value]; },
         toEither() { return Right<A, B>(value); },
         toMaybe() { return Just<B>(value); },
@@ -301,6 +304,7 @@ function Valid<A extends object | any[], B>(value: B): Validation<A, B> {
  */
 function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
     return Object.freeze({
+        __case: "Invalid",
         defaultWith: id,
         failure,
         isInvalid() { return true; },
@@ -316,7 +320,6 @@ function Invalid<A extends object | any[], B>(failure: A): Validation<A, B> {
             });
         },
         replacePure() { return this; },
-        tag: "Invalid",
         toArray() { return []; },
         toEither() { return Left<A, B>(failure); },
         toMaybe() { return Nothing<B>(); },
@@ -487,7 +490,7 @@ function lift<A extends object | any[], P extends any[], R>(
  *     baz: Invalid({ baz: "invalid" })
  * });
  *
- * // Valid ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
+ * // Valid ({ bar: "BAR", baz: { __case: "Just", value: "baz" } })
  * build<object, Foo>({
  *     bar: Valid("BAR"),
  *     baz: Valid(Just("baz"))

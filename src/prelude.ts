@@ -1,9 +1,13 @@
 import { Curry, Equals } from "./utilityTypes";
 
 export {
+    Case,
+    Gadt,
+    MultiParamGadt,
     absurd,
     constant,
     curry,
+    gadt,
     id,
     objectFromEntries,
     objectToEntries,
@@ -19,15 +23,30 @@ interface Case<Tag extends string> {
     __case: Tag;
 }
 
-interface Iso<A, B> {
-    to(a: A): B;
-    from(b: B): A;
+interface Gadt<TCase, T> {
+    toGeneric(tcase: TCase): T;
+    fromGeneric(t: T): TCase;
 }
 
-interface Gadt<TCase, T> extends Iso<TCase, T> { }
-
 interface MultiParamGadt<Ts extends Array<[any, any]>> {
-    iso<I extends keyof Ts & number = 0>(i?: I): Iso<Ts[I][0], Ts[I][1]>;
+    toGeneric<I extends keyof Ts & number = 0>(tCase: Ts[I][0]): Ts[I][1];
+    fromGeneric<I extends keyof Ts & number = 0>(t: Ts[I][1]): Ts[I][0];
+}
+
+function gadt<TObject, TCase, T>(spec: TObject): TObject & Gadt<TCase, T> {
+    return {
+        ...spec,
+        fromGeneric: (x) => x as Equals<T, TCase>,
+        toGeneric: (x) => x as Equals<TCase, T>,
+    };
+}
+
+function multiParamGadt<TObject, Ts extends Array<[any, any]>(spec: TObject): TObject & MultiParamGadt<Ts> {
+    return {
+        ...spec,
+        fromGeneric: id,
+        toGeneric: id,
+    };
 }
 
 /**
@@ -151,35 +170,35 @@ function pipe(
             return f;
         case 2:
             return function(this: unknown) {
-              return g!(f.apply(this, arguments));
+                return g!(f.apply(this, arguments));
             };
         case 3:
             return function(this: unknown) {
-              return h!(g!(f.apply(this, arguments)));
+                return h!(g!(f.apply(this, arguments)));
             };
         case 4:
             return function(this: unknown) {
-              return i!(h!(g!(f.apply(this, arguments))));
+                return i!(h!(g!(f.apply(this, arguments))));
             };
         case 5:
             return function(this: unknown) {
-              return j!(i!(h!(g!(f.apply(this, arguments)))));
+                return j!(i!(h!(g!(f.apply(this, arguments)))));
             };
         case 6:
             return function(this: unknown) {
-              return k!(j!(i!(h!(g!(f.apply(this, arguments))))));
+                return k!(j!(i!(h!(g!(f.apply(this, arguments))))));
             };
         case 7:
             return function(this: unknown) {
-              return l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))));
+                return l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))));
             };
         case 8:
             return function(this: unknown) {
-              return m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments))))))));
+                return m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments))))))));
             };
         case 9:
             return function(this: unknown) {
-              return n!(m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))))));
+                return n!(m!(l!(k!(j!(i!(h!(g!(f.apply(this, arguments)))))))));
             };
     }
 }
@@ -293,7 +312,7 @@ function pipeWith(
             return m!(l!(k!(j!(i!(h!(g!(f.apply(undefined, arguments))))))));
         case 9:
             return n!(m!(l!(k!(j!(i!(h!(g!(f.apply(undefined, arguments)))))))));
-  }
+    }
 }
 
 /**
@@ -306,14 +325,14 @@ function pipeWith(
  * ```
  */
 function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
-  return curryImpl(f, f.length) as unknown as Curry<P, R>;
+    return curryImpl(f, f.length) as unknown as Curry<P, R>;
 }
 
 // tslint:disable-next-line: ban-types
 function curryImpl(f: Function, arity: number): Function {
     return arity === 1
-      ? f
-      : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
+        ? f
+        : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
 }
 
 /**
@@ -333,7 +352,7 @@ function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]
  * Convert an array of key-value pairs to an object.
  */
 function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
-    const result =  {} as T;
+    const result = {} as T;
     for (const [key, value] of entries) {
         result[key] = value;
     }

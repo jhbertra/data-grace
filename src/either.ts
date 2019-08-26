@@ -26,7 +26,7 @@ export {
 
 import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
-import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
+import { constant, id, objectFromEntries, objectToEntries, Case } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -259,7 +259,6 @@ interface IEitherCaseScrutinizer<A, B, C> {
  * The type of an object constructed using the [[Left]] case.
  */
 interface IEitherLeft<A> {
-    readonly tag: "Left";
     readonly value: A;
 }
 
@@ -267,7 +266,6 @@ interface IEitherLeft<A> {
  * The type of an object constructed using the [[Right]] case.
  */
 interface IEitherRight<B> {
-    readonly tag: "Right";
     readonly value: B;
 }
 
@@ -280,7 +278,10 @@ interface IEitherRight<B> {
  * answer, and error results are constructed with the [[Left]] case
  * constructor.
  */
-type Either<A, B> = (IEitherLeft<A> | IEitherRight<B>) & IEither<A, B>;
+type Either<A, B> = IEither<A, B> & (
+    | Case<"Left"> & IEitherLeft<A>
+    | Case<"Right"> & IEitherRight<B>
+);
 
 /**
  * A type transformer that homomorphically maps the [[Either]] type
@@ -303,6 +304,7 @@ type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
  */
 function Left<A, B>(value: A): Either<A, B> {
     return Object.freeze({
+        __case: "Left",
         defaultLeftWith: constant(value),
         defaultRightWith: id,
         chain() { return this; },
@@ -314,7 +316,6 @@ function Left<A, B>(value: A): Either<A, B> {
         or(x) { return x; },
         replace() { return this; },
         replacePure() { return this; },
-        tag: "Left",
         toArray() { return []; },
         toMaybe() { return Nothing<B>(); },
         toString() { return `Left (${value})`; },
@@ -329,6 +330,7 @@ function Left<A, B>(value: A): Either<A, B> {
  */
 function Right<A, B>(value: B): Either<A, B> {
     return Object.freeze({
+        __case: "Right",
         defaultLeftWith: id,
         defaultRightWith: constant(value),
         chain(f) { return f(value); },
@@ -340,7 +342,6 @@ function Right<A, B>(value: B): Either<A, B> {
         or() { return this; },
         replace: id,
         replacePure: Right,
-        tag: "Right",
         toArray() { return [value]; },
         toMaybe() { return Just(value); },
         toString() { return `Right (${value})`; },
@@ -495,7 +496,7 @@ function lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A,
  *     baz: Left("invalid baz")
  * });
  *
- * // Right ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
+ * // Right ({ bar: "BAR", baz: { __case: "Just", value: "baz" } })
  * build<string, Foo>({
  *     bar: Right("BAR"),
  *     baz: Right(Just("baz"))

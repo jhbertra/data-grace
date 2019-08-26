@@ -59,7 +59,7 @@ async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromis
  * ```ts
  * type Foo = { bar: string, baz: Maybe<boolean> };
  *
- * // foo == { bar: "BAR", baz: { tag: "Just", value: "baz" } }
+ * // foo == Promise.resolve({ bar: "BAR", baz: { __case: "Just", value: "baz" } });
  * const foo = await build<Foo>({
  *     bar: Promise.resolve("BAR"),
  *     baz: Promise.resolve(Just("baz"))

@@ -344,23 +344,19 @@ prove<Equals<
 }());
 
 const ieitherleft: either.IEitherLeft<string> = undefined as any;
-prove<Equals<typeof ieitherleft.tag, "Left">>(requireMajor("either.IEitherLeft.tag"));
 prove<Equals<typeof ieitherleft.value, string>>(requireMajor("either.IEitherLeft.value"));
 prove<Equals<
   typeof ieitherleft,
   {
-    tag: typeof ieitherleft.tag;
     value: typeof ieitherleft.value;
   }
 >>(requireMinor("either.IEitherLeft"));
 
 const ieitherright: either.IEitherRight<string> = undefined as any;
-prove<Equals<typeof ieitherright.tag, "Right">>(requireMajor("either.IEitherRight.tag"));
 prove<Equals<typeof ieitherright.value, string>>(requireMajor("either.IEitherRight.value"));
 prove<Equals<
   typeof ieitherright,
   {
-    tag: typeof ieitherright.tag;
     value: typeof ieitherright.value;
   }
 >>(requireMinor("either.IEitherRight"));
@@ -485,22 +481,20 @@ prove<Equals<
 }());
 
 const imaybejust: maybe.IMaybeJust<string> = undefined as any;
-prove<Equals<typeof imaybejust.tag, "Just">>(requireMajor("maybe.IMaybeJust.tag"));
 prove<Equals<typeof imaybejust.value, string>>(requireMajor("maybe.IMaybeJust.value"));
 prove<Equals<
   typeof imaybejust,
   {
-    tag: typeof imaybejust.tag;
     value: typeof imaybejust.value;
   }
 >>(requireMinor("maybe.IMaybeJust"));
 
 const imaybenothing: maybe.IMaybeNothing = undefined as any;
-prove<Equals<typeof imaybenothing.tag, "Nothing">>(requireMajor("maybe.IMaybeNothing.tag"));
+prove<Equals<typeof imaybenothing.__case, "Nothing">>(requireMajor("maybe.IMaybeNothing.__case"));
 prove<Equals<
   typeof imaybenothing,
   {
-    tag: typeof imaybenothing.tag;
+    __case: typeof imaybenothing.__case;
   }
 >>(requireMinor("maybe.IMaybeNothing"));
 
@@ -576,23 +570,19 @@ prove<Equals<
 }());
 
 const ivalidationvalid: validation.IValidationInvalid<string[]> = undefined as any;
-prove<Equals<typeof ivalidationvalid.tag, "Invalid">>(requireMajor("validation.IValidationInvalid.tag"));
 prove<Equals<typeof ivalidationvalid.failure, string[]>>(requireMajor("validation.IValidationInvalid.failure"));
 prove<Equals<
   typeof ivalidationvalid,
   {
-    tag: typeof ivalidationvalid.tag;
     failure: typeof ivalidationvalid.failure;
   }
 >>(requireMinor("validation.IValidationInvalid"));
 
 const ivalidationinvalid: validation.IValidationValid<string> = undefined as any;
-prove<Equals<typeof ivalidationinvalid.tag, "Valid">>(requireMajor("validation.IValidationValid.tag"));
 prove<Equals<typeof ivalidationinvalid.value, string>>(requireMajor("validation.IValidationValid.value"));
 prove<Equals<
   typeof ivalidationinvalid,
   {
-    tag: typeof ivalidationinvalid.tag;
     value: typeof ivalidationinvalid.value;
   }
 >>(requireMinor("validation.IValidationValid"));
