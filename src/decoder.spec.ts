@@ -372,6 +372,20 @@ describe("array", () => {
     });
 });
 
+describe("$case", () => {
+    it("decodes items of the correct case", () => {
+        const decoder = D.$case("Foo", D.build<{ bar: string }>({ bar: D.property("bar", D.string) }));
+        expect(simplify(decoder.decode({ __case: "Foo", bar: "foo" })))
+            .toEqual(simplify(Valid({ __case: "Foo", bar: "foo" })));
+    });
+
+    it("fails items of the correct case", () => {
+        const decoder = D.$case("Foo", D.build<{ bar: string }>({ bar: D.property("bar", D.string) }));
+        expect(simplify(decoder.decode({ bar: "foo" })))
+            .toEqual(simplify(Valid({bar: "foo" })));
+    });
+});
+
 describe("oneOf", () => {
     it("decodes allowed items", () => {
         fc.assert(

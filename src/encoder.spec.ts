@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import * as E from "./encoder";
 import { Just, Maybe, Nothing } from "./maybe";
-import { id, prove } from "./prelude";
+import { Case, id, prove } from "./prelude";
 import { Equals } from "./utilityTypes";
 
 /*------------------------------
@@ -51,6 +51,37 @@ describe("boolean", () => {
     it("encodes booleans", () => {
         expect(E.boolean.encode(true)).toEqual(true);
         expect(E.boolean.encode(false)).toEqual(false);
+    });
+});
+
+describe("$case", () => {
+    it("Returns a predicate that requires the correct tag.", () => {
+        const [p, _] = E.$case<string, { bar: string }, Case<string> & { bar: string }>(
+            "Foo",
+            E.build({ bar: E.property("bar", E.string) }));
+
+        expect(p({ __case: "Foo", bar: "foo" })).toEqual(true);
+        expect(p({ __case: "Qux", bar: "foo" })).toEqual(false);
+    });
+
+    it("Returns an encoder that encodes the object including the case.", () => {
+        const [_, e] = E.$case<string, { bar: string }, Case<string> & { bar: string }>(
+            "Foo",
+            E.build({ bar: E.property("bar", E.string) }));
+
+        expect(e.encode({ __case: "Foo", bar: "foo" })).toEqual({ __case: "Foo", bar: "foo" });
+    });
+});
+
+describe("oneOf", () => {
+    it("Runs the first matching encoder.", () => {
+        const encoder = E.oneOf<Case<"Foo"> & { bar: string } | Case<"Baz"> |  Case<"Qux">>(
+            E.$case("Foo", E.build({ bar: E.property("bar", E.string) })),
+            E.$case("Baz"));
+
+        expect(encoder.encode({ __case: "Foo", bar: "bar" })).toEqual({ __case: "Foo", bar: "bar" });
+        expect(encoder.encode({ __case: "Baz" })).toEqual({ __case: "Baz" });
+        expect(() => encoder.encode({ __case: "Qux" })).toThrow();
     });
 });
 

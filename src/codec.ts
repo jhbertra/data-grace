@@ -175,14 +175,14 @@ function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
 /**
  * Conversion within the context of a union case.
  */
-function $case<Tag extends string, TCase, T extends Case<Tag> & TCase>(
+function $case<Tag extends string, TCase extends object, T extends Case<Tag> & TCase>(
     tag: Tag,
-    innerCodec: Codec<object, TCase>,
+    innerCodec?: Codec<unknown, TCase>,
 ): [(_: T) => boolean, Codec<object, T>] {
-    const [p, encoder] = E.$case(tag, innerCodec.encoder);
+    const [p, encoder] = E.$case(tag, innerCodec ? innerCodec.encoder : undefined);
     return [
         p,
-        makeCodec(D.$case(tag, innerCodec.decoder), encoder) as any,
+        makeCodec(D.$case(tag, innerCodec ? innerCodec.decoder : undefined), encoder) as any,
     ];
 }
 

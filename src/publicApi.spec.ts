@@ -165,11 +165,13 @@ prove<Equals<typeof codec.tuple, <T extends any[]>(...converters: codec.MapCodec
 prove<Equals<
   typeof codec,
   {
+    $case: typeof codec.$case,
     array: typeof codec.array,
     boolean: typeof codec.boolean,
     build: typeof codec.build,
     makeCodec: typeof codec.makeCodec,
     number: typeof codec.number,
+    oneOf: typeof codec.oneOf,
     optional: typeof codec.optional,
     property: typeof codec.property,
     string: typeof codec.string,
@@ -220,6 +222,7 @@ prove<Equals<typeof decoder.zipWithM, <TIn, A, P extends any[], C>(f: (a: A, ...
 prove<Equals<
   typeof decoder,
   {
+    $case: typeof decoder.$case,
     array: typeof decoder.array,
     boolean: typeof decoder.boolean,
     build: typeof decoder.build,
@@ -380,11 +383,13 @@ prove<Equals<typeof encoder.tuple, <T extends any[]>(...converters: encoder.MapE
 prove<Equals<
   typeof encoder,
   {
+    $case: typeof encoder.$case,
     array: typeof encoder.array,
     boolean: typeof encoder.boolean,
     build: typeof encoder.build,
     makeEncoder: typeof encoder.makeEncoder,
     number: typeof encoder.number,
+    oneOf: typeof encoder.oneOf,
     optional: typeof encoder.optional,
     property: typeof encoder.property,
     string: typeof encoder.string,
