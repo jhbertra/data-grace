@@ -15,6 +15,20 @@ export {
 };
 
 // tslint:disable: ban-types
+interface Case<Tag extends string> {
+    __case: Tag;
+}
+
+interface Iso<A, B> {
+    to(a: A): B;
+    from(b: B): A;
+}
+
+interface Gadt<TCase, T> extends Iso<TCase, T> { }
+
+interface MultiParamGadt<Ts extends Array<[any, any]>> {
+    iso<I extends keyof Ts & number = 0>(i?: I): Iso<Ts[I][0], Ts[I][1]>;
+}
 
 /**
  * A function which can never be called. Can be useful for
