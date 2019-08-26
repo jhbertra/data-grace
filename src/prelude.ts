@@ -9,6 +9,7 @@ export {
     curry,
     gadt,
     id,
+    multiParamGadt,
     objectFromEntries,
     objectToEntries,
     pipe,
@@ -41,7 +42,7 @@ function gadt<TObject, TCase, T>(spec: TObject): TObject & Gadt<TCase, T> {
     };
 }
 
-function multiParamGadt<TObject, Ts extends Array<[any, any]>(spec: TObject): TObject & MultiParamGadt<Ts> {
+function multiParamGadt<TObject, Ts extends Array<[any, any]>>(spec: TObject): TObject & MultiParamGadt<Ts> {
     return {
         ...spec,
         fromGeneric: id,
