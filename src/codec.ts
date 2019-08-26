@@ -34,7 +34,25 @@ interface ICodec<TRaw, A> {
      * The bidirectional mapping requires that any transformation must
      * be "undoable" (i.e. `A` and `B` are isomorphic).
      */
-    invmap<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
+    invmapRich<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
+
+    /**
+     * Map invariantly over the raw data format of the codec.
+     * The bidirectional mapping requires that any transformation must
+     * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic).
+     */
+    invmapRaw<TRaw2>(f: (a: TRaw) => TRaw2, g: (b: TRaw2) => TRaw): Codec<TRaw2, A>;
+
+    /**
+     * Map invariantly over the both the raw and the rich data formats of the codec.
+     * The bidirectional mapping requires that any transformation must
+     * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic, as must `A` and `B`).
+     */
+    invmapBoth<TRaw2, B>(
+        f: (a: TRaw) => TRaw2,
+        g: (b: TRaw2) => TRaw,
+        h: (a: A) => B,
+        i: (b: B) => A): Codec<TRaw2, B>;
 
     /**
      * Decode raw data into a rich format.
@@ -88,7 +106,9 @@ function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>
         decoder,
         encode: encoder.encode,
         encoder,
-        invmap: (f, g) => makeCodec(decoder.map(f), encoder.contramap(g)),
+        invmapBoth: (f, g, h, i) => makeCodec(decoder.dimap(g, h), encoder.dimap(i, f)),
+        invmapRaw: (f, g) => makeCodec(decoder.contramap(g), encoder.map(f)),
+        invmapRich: (f, g) => makeCodec(decoder.map(f), encoder.contramap(g)),
     }) as Codec<TRaw, A>;
 }
 

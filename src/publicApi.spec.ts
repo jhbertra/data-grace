@@ -181,13 +181,15 @@ prove<Equals<
   const idecoder: codec.ICodec<TIn, A> = undefined as any;
   prove<Equals<typeof idecoder.decode, (t: TIn) => validation.Validation<decoder.DecodeError, A>>>(requireMajor("codec.ICodec.decode"));
   prove<Equals<typeof idecoder.encode, (a: A) => TIn>>(requireMajor("codec.ICodec.encode"));
-  prove<Equals<typeof idecoder.invmap, <B>(f: (a: A) => B, g: (b: B) => A) => codec.Codec<TIn, B>>>(requireMajor("codec.ICodec.invmap"));
+  prove<Equals<typeof idecoder.invmapRich, <B>(f: (a: A) => B, g: (b: B) => A) => codec.Codec<TIn, B>>>(requireMajor("codec.ICodec.invmap"));
   prove<Equals<
     typeof idecoder,
     {
       decode: typeof idecoder.decode,
       encode: typeof idecoder.encode,
-      invmap: typeof idecoder.invmap,
+      invmapBoth: typeof idecoder.invmapBoth,
+      invmapRaw: typeof idecoder.invmapRaw,
+      invmapRich: typeof idecoder.invmapRich,
     }
   >>(requireMinor("codec.ICodec"));
 }());
@@ -253,6 +255,8 @@ prove<Equals<
     typeof idecoder,
     {
       decode: typeof idecoder.decode,
+      contramap: typeof idecoder.contramap,
+      dimap: typeof idecoder.dimap,
       map: typeof idecoder.map,
       or: typeof idecoder.or,
       replace: typeof idecoder.replace,
@@ -397,6 +401,8 @@ prove<Equals<
     {
       encode: typeof idecoder.encode,
       contramap: typeof idecoder.contramap,
+      dimap: typeof idecoder.dimap,
+      map: typeof idecoder.map,
     }
   >>(requireMinor("encoder.Encoder"));
 }());

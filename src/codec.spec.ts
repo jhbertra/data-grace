@@ -221,7 +221,7 @@ describe("tuple", () => {
 describe("ICodec", () => {
     describe("invmap", () => {
         it("transforms the input and output", () => {
-            const codec = C.number.invmap((x) => x.toString(), Number.parseInt);
+            const codec = C.number.invmapRich((x) => x.toString(), Number.parseInt);
             expect(codec.encode("12")).toEqual(12);
             expect(simplify(codec.decode(12))).toEqual(simplify(Valid("12")));
         });

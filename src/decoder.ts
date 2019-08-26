@@ -40,11 +40,39 @@ import * as V from "./validation";
 interface Decoder<TIn, A> {
 
     /**
+     * Apply a transformation to all input by this [[Decoder]].
+     *
+     * ```ts
+     * string.contramap(s => s === "BOB" ? "sue" : "bab").decode("sue").toString(); // "Valid (bob)"
+     * string.contramap(s => s === "BOB" ? "sue" : "bab").decode(12).toString(); // "Valid (sue)"
+     * ```
+     *
+     * @param f a function that modifies values read by this [[Decoder]].
+     * @returns an [[Decoder]] that transforms its values.
+     */
+    contramap<TIn2>(f: (tin: TIn2) => TIn): Decoder<TIn2, A>;
+
+    /**
      * Try to convert `input` to an instance of `A`
      * @param input The raw input to decode.
      * @returns A [[Validation]] possibly containing a decoded value.
      */
     decode(input: TIn): Validation<DecodeError, A>;
+
+    /**
+     *  Transform both the input and the output of this [[Decoder]].
+     *
+     * ```ts
+     * string.dimap(f, g);
+     * // equivalent to
+     * string.contramap(f).map(g);
+     * ```
+     *
+     * @param f a function that modifies values read by this [[Decoder]].
+     * @param g a function that modifies values decoded by this [[Decoder]].
+     * @returns an [[Decoder]] that transforms its input and output.
+     */
+    dimap<TIn2, B>(f: (tin: TIn2) => TIn, g: (a: A) => B): Decoder<TIn2, B>;
 
     /**
      * Apply a transformation to all data produced by this [[Decoder]].
@@ -143,6 +171,8 @@ type MapDecoder<TIn, A> = { [K in keyof A]: Decoder<TIn, A[K]> };
 function makeDecoder<TIn, A>(decode: (input: TIn) => Validation<DecodeError, A>): Decoder<TIn, A> {
     return Object.freeze({
         decode,
+        contramap(f) { return makeDecoder((x) => decode(f(x as any))); },
+        dimap(f, g) { return makeDecoder((x) => decode(f(x as any)).map(g)); },
         map(f) { return makeDecoder((x) => decode(x).map(f)); },
         or(d) { return makeDecoder((x) => decode(x).or(d.decode(x))); },
         replace(d) { return makeDecoder((x) => decode(x).replace(d.decode(x))); },

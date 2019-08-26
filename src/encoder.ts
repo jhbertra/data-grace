@@ -44,6 +44,33 @@ interface Encoder<TOut, A> {
      * @returns an [[Encoder]] that accepts values which are transformed and fed to this [[Encoder]].
      */
     contramap<B>(f: (b: B) => A): Encoder<TOut, B>;
+
+    /**
+     *  Transform both the input and the output of this [[Encoder]].
+     *
+     * ```ts
+     * string.dimap(f, g);
+     * // equivalent to
+     * string.contramap(f).map(g);
+     * ```
+     *
+     * @param f a function that modifies values read by this [[Encoder]].
+     * @param g a function that modifies values produced by this [[Encoder]].
+     * @returns an [[Encoder]] that transforms its input and output.
+     */
+    dimap<TOut2, B>(f: (b: B) => A, g: (b: TOut) => TOut2): Encoder<TOut2, B>;
+
+    /**
+     * Transform values produced by the [[Encoder]].
+     *
+     * ```ts
+     * string.map(Number.parseInt).encode("12"); // 12
+     * ```
+     *
+     * @param f a function that modifies values produced by this [[Encoder]].
+     * @returns an [[Encoder]] that transforms the output of this [[Encoder]].
+     */
+    map<TOut2>(f: (b: TOut) => TOut2): Encoder<TOut2, A>;
 }
 
 /**
@@ -67,7 +94,9 @@ type MapEncoder<TOut, A> = { [K in keyof A]: Encoder<TOut, A[K]> };
 function makeEncoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
     return Object.freeze({
         contramap: (f) => makeEncoder((x) => encode(f(x as any))),
+        dimap: (f, g) => makeEncoder((x) => g(encode(f(x as any)))),
         encode: (x) => encode(x),
+        map: (f) => makeEncoder((x) => f(encode(x))),
     }) as Encoder<TOut, A>;
 }
 
