@@ -6,7 +6,6 @@
     "outDir": "./lib",
     "strict": true,
     "sourceMap": true,
-    "removeComments": true,
     "resolveJsonModule": true
   },
   "include": ["src"],
