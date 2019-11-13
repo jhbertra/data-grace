@@ -2,10 +2,10 @@ import { prove, proveNever } from "./prelude";
 import { Cons, Curry, Equals, Head, IsEmpty, Tail } from "./utilityTypes";
 
 prove<Equals<Cons<string, [number, boolean]>, [string, number, boolean]>>(
-  "proof"
+  "proof",
 );
 prove<Equals<Cons<string, [number, boolean]>, [string, number, boolean]>>(
-  "proof"
+  "proof",
 );
 prove<
   Equals<

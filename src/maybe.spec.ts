@@ -33,8 +33,8 @@ describe("arrayToMaybe", () => {
         fc.array(fc.integer()).filter(x => x.length > 0),
         (xs: number[]) => {
           expect(simplify(M.arrayToMaybe(xs))).toEqual(simplify(M.Just(xs[0])));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -58,20 +58,20 @@ describe("build", () => {
               M.build<Foo>({
                 bar: M.Just(bar),
                 baz: M.Just(baz),
-                qux: M.Just(qux)
-              })
-            )
+                qux: M.Just(qux),
+              }),
+            ),
           ).toEqual(
             simplify(
               M.Just({
                 bar,
                 baz,
-                qux
-              })
-            )
+                qux,
+              }),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Nothing when any components have no value", () => {
@@ -92,12 +92,12 @@ describe("build", () => {
               M.build<Foo>({
                 bar: getComponent(0, bar),
                 baz: getComponent(1, baz),
-                qux: getComponent(2, qux)
-              })
-            )
+                qux: getComponent(2, qux),
+              }),
+            ),
           ).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -107,14 +107,14 @@ describe("catMaybes", () => {
     fc.assert(
       fc.property(
         fc.array(
-          fc.oneof(fc.constant(M.Nothing<number>()), fc.integer().map(M.Just))
+          fc.oneof(fc.constant(M.Nothing<number>()), fc.integer().map(M.Just)),
         ),
         (xs: Array<M.Maybe<number>>) => {
           expect(M.catMaybes(xs)).toEqual(
-            xs.filter(x => x.isJust()).map(x => (x as any).value)
+            xs.filter(x => x.isJust()).map(x => (x as any).value),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -127,7 +127,7 @@ describe("mapM and forM", () => {
         const resultMapM = simplify(M.mapM(x => M.Just(x.toString()), xs));
         expect(resultForM).toEqual(resultMapM);
         expect(resultMapM).toEqual(simplify(M.Just(xs.map(x => x.toString()))));
-      })
+      }),
     );
   });
   it("is equal to nothing for any empty results", () => {
@@ -138,7 +138,7 @@ describe("mapM and forM", () => {
           .chain(size =>
             fc
               .array(fc.integer(0, size - 1), 1, size)
-              .map(empties => [size, empties] as [number, number[]])
+              .map(empties => [size, empties] as [number, number[]]),
           ),
         ([size, empties]) => {
           const input = [];
@@ -156,8 +156,8 @@ describe("mapM and forM", () => {
           const resultMapM = simplify(M.mapM(mapping, input));
           expect(resultForM).toEqual(resultMapM);
           expect(resultMapM).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -168,7 +168,7 @@ describe("join", () => {
   });
   it("equals Nothing when inner is empty", () => {
     expect(simplify(M.join(M.Just(M.Nothing())))).toEqual(
-      simplify(M.Nothing())
+      simplify(M.Nothing()),
     );
   });
   it("equals inner when both levels non-empty", () => {
@@ -186,10 +186,10 @@ describe("lift", () => {
         fc.string(),
         (a: number, b: boolean, c: string) => {
           expect(simplify(M.lift(f, M.Just(a), M.Just(b), M.Just(c)))).toEqual(
-            simplify(M.Just(f(a, b, c)))
+            simplify(M.Just(f(a, b, c))),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Nothing when any arguments have no value", () => {
@@ -207,10 +207,10 @@ describe("lift", () => {
           }
 
           expect(
-            simplify(M.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)))
+            simplify(M.lift(f, getArg(0, a), getArg(1, b), getArg(2, c))),
           ).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -225,16 +225,16 @@ describe("mapAndUnzipWith", () => {
             simplify(
               M.mapAndUnzipWith(
                 ([x, y]) => M.Just<[string, number]>([y, x]),
-                xys
-              )
-            )
+                xys,
+              ),
+            ),
           ).toEqual(
             simplify(
-              M.Just(unzip(xys.map(([x, y]) => [y, x] as [string, number])))
-            )
+              M.Just(unzip(xys.map(([x, y]) => [y, x] as [string, number]))),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -246,8 +246,9 @@ describe("mapAndUnzipWith", () => {
             fc
               .array(fc.integer(0, xys.length - 1), 1, xys.length)
               .map(
-                empties => [xys, empties] as [Array<[number, string]>, number[]]
-              )
+                empties =>
+                  [xys, empties] as [Array<[number, string]>, number[]],
+              ),
           ),
         ([xys, empties]) => {
           expect(
@@ -257,12 +258,12 @@ describe("mapAndUnzipWith", () => {
                   empties.find(e => e === i) != null
                     ? M.Nothing<[string, number]>()
                     : M.Just<[string, number]>([y, x]),
-                xys.map((xy, i) => [xy, i] as [[number, string], number])
-              )
-            )
+                xys.map((xy, i) => [xy, i] as [[number, string], number]),
+              ),
+            ),
           ).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -272,9 +273,9 @@ describe("mapMaybe", () => {
     fc.assert(
       fc.property(fc.array(fc.string()), (strs: string[]) => {
         expect(M.mapMaybe(str => M.Just(str.length), strs)).toEqual(
-          strs.map(str => str.length)
+          strs.map(str => str.length),
         );
-      })
+      }),
     );
   });
   it("is equal to filter + map for discarding results", () => {
@@ -289,9 +290,9 @@ describe("mapMaybe", () => {
                 empties =>
                   [strs.map((s, i) => [s, i]), empties] as [
                     Array<[string, number]>,
-                    number[]
-                  ]
-              )
+                    number[],
+                  ],
+              ),
           ),
         ([strs, empties]) => {
           const predicate = ([s, i]: [string, number]) =>
@@ -299,11 +300,11 @@ describe("mapMaybe", () => {
           expect(
             M.mapMaybe(
               str => (predicate(str) ? M.Just(str.length) : M.Nothing()),
-              strs
-            )
+              strs,
+            ),
           ).toEqual(strs.filter(predicate).map(str => str.length));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -314,12 +315,12 @@ describe("reduceM", () => {
       fc.property(fc.array(fc.string()), (strs: string[]) => {
         expect(
           simplify(
-            M.reduceM((state, str) => M.Just(state.concat(str)), "", strs)
-          )
+            M.reduceM((state, str) => M.Just(state.concat(str)), "", strs),
+          ),
         ).toEqual(
-          simplify(M.Just(strs.reduce((state, str) => state.concat(str), "")))
+          simplify(M.Just(strs.reduce((state, str) => state.concat(str), ""))),
         );
-      })
+      }),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -334,9 +335,9 @@ describe("reduceM", () => {
                 empties =>
                   [strs.map((s, i) => [s, i]), empties] as [
                     Array<[string, number]>,
-                    number[]
-                  ]
-              )
+                    number[],
+                  ],
+              ),
           ),
         ([strs, empties]) => {
           const predicate = ([s, i]: [string, number]) =>
@@ -347,12 +348,12 @@ describe("reduceM", () => {
                 (state, str) =>
                   predicate(str) ? M.Just(state.concat(str[0])) : M.Nothing(),
                 "",
-                strs
-              )
-            )
+                strs,
+              ),
+            ),
           ).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -362,9 +363,9 @@ describe("sequence", () => {
     fc.assert(
       fc.property(fc.array(fc.string()), (strs: string[]) => {
         expect(simplify(M.sequence(strs.map(M.Just)))).toEqual(
-          simplify(M.Just(strs))
+          simplify(M.Just(strs)),
         );
-      })
+      }),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -379,9 +380,9 @@ describe("sequence", () => {
                 empties =>
                   [strs.map((s, i) => [s, i]), empties] as [
                     Array<[string, number]>,
-                    number[]
-                  ]
-              )
+                    number[],
+                  ],
+              ),
           ),
         ([strs, empties]) => {
           const predicate = ([s, i]: [string, number]) =>
@@ -389,12 +390,14 @@ describe("sequence", () => {
           expect(
             simplify(
               M.sequence(
-                strs.map(str => (predicate(str) ? M.Just(str[0]) : M.Nothing()))
-              )
-            )
+                strs.map(str =>
+                  predicate(str) ? M.Just(str[0]) : M.Nothing(),
+                ),
+              ),
+            ),
           ).toEqual(simplify(M.Nothing()));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -409,8 +412,8 @@ describe("toMaybe", () => {
   it("produces a value for values", () => {
     fc.assert(
       fc.property(fc.integer(), (n: number) =>
-        expect(simplify(M.toMaybe(n))).toEqual(simplify(M.Just(n)))
-      )
+        expect(simplify(M.toMaybe(n))).toEqual(simplify(M.Just(n))),
+      ),
     );
   });
 });
@@ -441,12 +444,12 @@ describe("zipWithM", () => {
         fc.array(fc.integer()),
         (strs: string[], ns: number[]) => {
           expect(
-            simplify(M.zipWithM((str, n) => M.Just(str.length + n), strs, ns))
+            simplify(M.zipWithM((str, n) => M.Just(str.length + n), strs, ns)),
           ).toEqual(
-            simplify(M.Just(strs.zipWith((str, n) => str.length + n, ns)))
+            simplify(M.Just(strs.zipWith((str, n) => str.length + n, ns))),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -459,9 +462,9 @@ describe("zipWithM", () => {
             ns =>
               [strs.map((s, i) => [s, i]), ns] as [
                 Array<[string, number]>,
-                number[]
-              ]
-          )
+                number[],
+              ],
+          ),
       )
       .chain(([strs, ns]) => {
         const size = Math.min(strs.length, ns.length);
@@ -472,8 +475,8 @@ describe("zipWithM", () => {
               [strs, ns, empties] as [
                 Array<[string, number]>,
                 number[],
-                number[]
-              ]
+                number[],
+              ],
           );
       });
 
@@ -486,11 +489,11 @@ describe("zipWithM", () => {
               ([str, i], n) =>
                 predicate(i) ? M.Just(str.length + n) : M.Nothing(),
               strs,
-              ns
-            )
-          )
+              ns,
+            ),
+          ),
         ).toEqual(simplify(M.Nothing()));
-      })
+      }),
     );
   });
 });
@@ -504,7 +507,7 @@ describe("IMaybe", () => {
     fc.assert(
       fc.property(fc.string(), s => {
         expect(simplify(M.Just(s).chain(k))).toEqual(simplify(k(s)));
-      })
+      }),
     );
   });
 
@@ -514,8 +517,8 @@ describe("IMaybe", () => {
         fc.oneof(fc.constant(M.Nothing()), fc.string().map(M.Just)),
         m => {
           expect(simplify(m.chain(M.Just))).toEqual(simplify(m));
-        }
-      )
+        },
+      ),
     );
   });
 
@@ -534,10 +537,10 @@ describe("IMaybe", () => {
         fc.oneof(fc.constant(M.Nothing<string>()), fc.string().map(M.Just)),
         m => {
           expect(simplify(m.chain(x => k(x).chain(h)))).toEqual(
-            simplify(m.chain(k).chain(h))
+            simplify(m.chain(k).chain(h)),
           );
-        }
-      )
+        },
+      ),
     );
   });
 
@@ -546,7 +549,7 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(M.Just(s).defaultWith("foo")).toEqual(s);
-        })
+        }),
       );
     });
     it("Returns default when empty", () => {
@@ -559,34 +562,34 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           M.Just(s).filter(x => !!expect(x).toEqual(s));
-        })
+        }),
       );
     });
     it("Erases the value when the predicate returns false", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).filter(constant(false)))).toEqual(
-            simplify(M.Nothing())
+            simplify(M.Nothing()),
           );
-        })
+        }),
       );
     });
     it("Leaves the value when the predicate returns true", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).filter(constant(true)))).toEqual(
-            simplify(M.Just(s))
+            simplify(M.Just(s)),
           );
-        })
+        }),
       );
     });
     it("Does not affect empty values", () => {
       fc.assert(
         fc.property(fc.boolean(), b => {
           expect(simplify(M.Nothing().filter(constant(b)))).toEqual(
-            simplify(M.Nothing())
+            simplify(M.Nothing()),
           );
-        })
+        }),
       );
     });
   });
@@ -596,7 +599,7 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           M.Just(s).chain(x => M.Just(expect(x).toEqual(s)));
-        })
+        }),
       );
     });
     it("Returns the value returned by the callback", () => {
@@ -604,13 +607,13 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).chain(k))).toEqual(simplify(k(s)));
-        })
+        }),
       );
     });
     it("Skips the callback on empty", () => {
       const k = (s: string) => M.Just(s).filter(x => x.length < 5);
       expect(simplify(M.Nothing<string>().chain(k))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
   });
@@ -620,7 +623,7 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).isJust())).toEqual(true);
-        })
+        }),
       );
     });
     it("Returns false for Nothing()", () => {
@@ -633,7 +636,7 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).isNothing())).toEqual(false);
-        })
+        }),
       );
     });
     it("Returns true for Nothing()", () => {
@@ -646,7 +649,7 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           M.Just(s).map(x => expect(x).toEqual(s));
-        })
+        }),
       );
     });
     it("Wraps the value returned by the callback", () => {
@@ -654,13 +657,13 @@ describe("IMaybe", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(M.Just(s).map(k))).toEqual(simplify(M.Just(k(s))));
-        })
+        }),
       );
     });
     it("Skips the callback on empty", () => {
       const k = (s: string) => s.length;
       expect(simplify(M.Nothing<string>().map(k))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
   });
@@ -669,11 +672,11 @@ describe("IMaybe", () => {
     it("Passes the payload to the correct callback", () => {
       M.Just("foo").matchCase({
         just: x => expect(x).toEqual("foo"),
-        nothing: () => fail("Not expected to be called")
+        nothing: () => fail("Not expected to be called"),
       });
       M.Nothing().matchCase({
         just: () => fail("Not expected to be called"),
-        nothing: () => undefined
+        nothing: () => undefined,
       });
     });
     it("returns the correct value when a value is provided", () => {
@@ -682,15 +685,15 @@ describe("IMaybe", () => {
           expect(
             M.Just(s).matchCase({
               just: x => x.length,
-              nothing: () => s.length - 1
-            })
+              nothing: () => s.length - 1,
+            }),
           ).toEqual(s.length);
-        })
+        }),
       );
     });
     it("returns the correct value when no value is provided", () => {
       expect(
-        M.Nothing().matchCase({ just: () => 1, nothing: () => 0 })
+        M.Nothing().matchCase({ just: () => 1, nothing: () => 0 }),
       ).toEqual(0);
     });
   });
@@ -698,17 +701,17 @@ describe("IMaybe", () => {
   describe("or", () => {
     it("Picks the first if non empty", () => {
       expect(simplify(M.Just("foo").or(M.Just("bar")))).toEqual(
-        simplify(M.Just("foo"))
+        simplify(M.Just("foo")),
       );
     });
     it("Picks the second if first empty", () => {
       expect(simplify(M.Nothing().or(M.Just("bar")))).toEqual(
-        simplify(M.Just("bar"))
+        simplify(M.Just("bar")),
       );
     });
     it("Picks nothing if both empty", () => {
       expect(simplify(M.Nothing().or(M.Nothing()))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
   });
@@ -716,22 +719,22 @@ describe("IMaybe", () => {
   describe("replace", () => {
     it("Returns something if both are non-empty", () => {
       expect(simplify(M.Just("foo").replace(M.Just("bar")))).toEqual(
-        simplify(M.Just("bar"))
+        simplify(M.Just("bar")),
       );
     });
     it("Returns nothing if the second is empty", () => {
       expect(simplify(M.Just("foo").replace(M.Nothing()))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
     it("Returns nothing if the first is empty", () => {
       expect(simplify(M.Nothing().replace(M.Just("bar")))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
     it("Returns nothing if both are empty", () => {
       expect(simplify(M.Nothing().replace(M.Nothing()))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
   });
@@ -739,12 +742,12 @@ describe("IMaybe", () => {
   describe("replacePure", () => {
     it("Replaces value if non-empty", () => {
       expect(simplify(M.Just("foo").replacePure(2))).toEqual(
-        simplify(M.Just(2))
+        simplify(M.Just(2)),
       );
     });
     it("Returns nothing if empty", () => {
       expect(simplify(M.Nothing().replacePure(2))).toEqual(
-        simplify(M.Nothing())
+        simplify(M.Nothing()),
       );
     });
   });

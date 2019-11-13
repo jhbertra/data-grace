@@ -19,7 +19,7 @@ prove<
 
 // Map the items of an array
 prove<Equals<E.MapEither<string, string[]>, Array<E.Either<string, string>>>>(
-  "proof"
+  "proof",
 );
 
 /*------------------------------
@@ -29,7 +29,7 @@ prove<Equals<E.MapEither<string, string[]>, Array<E.Either<string, string>>>>(
 describe("arrayToEither", () => {
   it("returns an error when input is empty", () => {
     expect(simplify(E.arrayToEither([], "error"))).toEqual(
-      simplify(E.Left("error"))
+      simplify(E.Left("error")),
     );
   });
   it("returns the first element when the input is not empty", () => {
@@ -38,10 +38,10 @@ describe("arrayToEither", () => {
         fc.array(fc.integer()).filter(x => x.length > 0),
         (xs: number[]) => {
           expect(simplify(E.arrayToEither(xs, "error"))).toEqual(
-            simplify(E.Right(xs[0]))
+            simplify(E.Right(xs[0])),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -49,16 +49,16 @@ describe("arrayToEither", () => {
 describe("maybeToEither", () => {
   it("returns an error when input is empty", () => {
     expect(simplify(E.maybeToEither(Nothing(), "error"))).toEqual(
-      simplify(E.Left("error"))
+      simplify(E.Left("error")),
     );
   });
   it("returns the value when the input is not empty", () => {
     fc.assert(
       fc.property(fc.anything(), a => {
         expect(simplify(E.maybeToEither(Just(a), "error"))).toEqual(
-          simplify(E.Right(a))
+          simplify(E.Right(a)),
         );
-      })
+      }),
     );
   });
 });
@@ -82,20 +82,20 @@ describe("build", () => {
               E.build<string, Foo>({
                 bar: E.Right(bar),
                 baz: E.Right(baz),
-                qux: E.Right(qux)
-              })
-            )
+                qux: E.Right(qux),
+              }),
+            ),
           ).toEqual(
             simplify(
               E.Right({
                 bar,
                 baz,
-                qux
-              })
-            )
+                qux,
+              }),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Left when any components have no value", () => {
@@ -116,14 +116,14 @@ describe("build", () => {
               E.build<number, Foo>({
                 bar: getComponent(0, bar),
                 baz: getComponent(1, baz),
-                qux: getComponent(2, qux)
-              })
-            )
+                qux: getComponent(2, qux),
+              }),
+            ),
           ).toEqual(
-            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), 2)))
+            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), 2))),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -135,15 +135,15 @@ describe("lefts", () => {
         fc.array(
           fc.oneof(
             fc.string().map(x => E.Left<string, number>(x)),
-            fc.integer().map(x => E.Right<string, number>(x))
-          )
+            fc.integer().map(x => E.Right<string, number>(x)),
+          ),
         ),
         (xs: Array<E.Either<string, number>>) => {
           expect(E.lefts(xs)).toEqual(
-            xs.filter(x => x.isLeft()).map(x => (x as any).value)
+            xs.filter(x => x.isLeft()).map(x => (x as any).value),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -155,15 +155,15 @@ describe("rights", () => {
         fc.array(
           fc.oneof(
             fc.string().map(x => E.Left<string, number>(x)),
-            fc.integer().map(x => E.Right<string, number>(x))
-          )
+            fc.integer().map(x => E.Right<string, number>(x)),
+          ),
         ),
         (xs: Array<E.Either<string, number>>) => {
           expect(E.rights(xs)).toEqual(
-            xs.filter(x => x.isRight()).map(x => (x as any).value)
+            xs.filter(x => x.isRight()).map(x => (x as any).value),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -176,9 +176,9 @@ describe("mapM and forM", () => {
         const resultMapM = simplify(E.mapM(x => E.Right(x.toString()), xs));
         expect(resultForM).toEqual(resultMapM);
         expect(resultMapM).toEqual(
-          simplify(E.Right(xs.map(x => x.toString())))
+          simplify(E.Right(xs.map(x => x.toString()))),
         );
-      })
+      }),
     );
   });
   it("is equal to nothing for any Left results", () => {
@@ -189,7 +189,7 @@ describe("mapM and forM", () => {
           .chain(size =>
             fc
               .array(fc.integer(0, size - 1), 1, size)
-              .map(empties => [size, empties] as [number, number[]])
+              .map(empties => [size, empties] as [number, number[]]),
           ),
         ([size, empties]) => {
           const input = [];
@@ -207,10 +207,10 @@ describe("mapM and forM", () => {
           const resultMapM = simplify(E.mapM(mapping, input));
           expect(resultForM).toEqual(resultMapM);
           expect(resultMapM).toEqual(
-            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), size)))
+            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), size))),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -224,7 +224,7 @@ describe("join", () => {
   });
   it("equals inner when both levels are Right", () => {
     expect(simplify(E.join(E.Right(E.Right(12))))).toEqual(
-      simplify(E.Right(12))
+      simplify(E.Right(12)),
     );
   });
 });
@@ -239,10 +239,10 @@ describe("lift", () => {
         fc.string(),
         (a: number, b: boolean, c: string) => {
           expect(
-            simplify(E.lift(f, E.Right(a), E.Right(b), E.Right(c)))
+            simplify(E.lift(f, E.Right(a), E.Right(b), E.Right(c))),
           ).toEqual(simplify(E.Right(f(a, b, c))));
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Left when any arguments have no value", () => {
@@ -260,12 +260,12 @@ describe("lift", () => {
           }
 
           expect(
-            simplify(E.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)))
+            simplify(E.lift(f, getArg(0, a), getArg(1, b), getArg(2, c))),
           ).toEqual(
-            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), 2)))
+            simplify(E.Left(empties.reduce((x, y) => Math.min(x, y), 2))),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -280,16 +280,16 @@ describe("mapAndUnzipWith", () => {
             simplify(
               E.mapAndUnzipWith(
                 ([x, y]) => E.Right<number, [string, number]>([y, x]),
-                xys
-              )
-            )
+                xys,
+              ),
+            ),
           ).toEqual(
             simplify(
-              E.Right(unzip(xys.map(([x, y]) => [y, x] as [string, number])))
-            )
+              E.Right(unzip(xys.map(([x, y]) => [y, x] as [string, number]))),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Left for any Left results", () => {
@@ -301,8 +301,9 @@ describe("mapAndUnzipWith", () => {
             fc
               .array(fc.integer(0, xys.length - 1), 1, xys.length)
               .map(
-                empties => [xys, empties] as [Array<[number, string]>, number[]]
-              )
+                empties =>
+                  [xys, empties] as [Array<[number, string]>, number[]],
+              ),
           ),
         ([xys, empties]) => {
           expect(
@@ -312,16 +313,16 @@ describe("mapAndUnzipWith", () => {
                   empties.find(e => e === i) != null
                     ? E.Left<number, [string, number]>(i)
                     : E.Right<number, [string, number]>([y, x]),
-                xys.map((xy, i) => [xy, i] as [[number, string], number])
-              )
-            )
+                xys.map((xy, i) => [xy, i] as [[number, string], number]),
+              ),
+            ),
           ).toEqual(
             simplify(
-              E.Left(empties.reduce((x, y) => Math.min(x, y), xys.length))
-            )
+              E.Left(empties.reduce((x, y) => Math.min(x, y), xys.length)),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -332,12 +333,12 @@ describe("reduceM", () => {
       fc.property(fc.array(fc.string()), (strs: string[]) => {
         expect(
           simplify(
-            E.reduceM((state, str) => E.Right(state.concat(str)), "", strs)
-          )
+            E.reduceM((state, str) => E.Right(state.concat(str)), "", strs),
+          ),
         ).toEqual(
-          simplify(E.Right(strs.reduce((state, str) => state.concat(str), "")))
+          simplify(E.Right(strs.reduce((state, str) => state.concat(str), ""))),
         );
-      })
+      }),
     );
   });
   it("is equal to Left for any Left results", () => {
@@ -352,9 +353,9 @@ describe("reduceM", () => {
                 empties =>
                   [strs.map((s, i) => [s, i]), empties] as [
                     Array<[string, number]>,
-                    number[]
-                  ]
-              )
+                    number[],
+                  ],
+              ),
           ),
         ([strs, empties]) => {
           const predicate = ([s, i]: [string, number]) =>
@@ -367,16 +368,16 @@ describe("reduceM", () => {
                     ? E.Right(state.concat(str[0]))
                     : E.Left(str[1]),
                 "",
-                strs
-              )
-            )
+                strs,
+              ),
+            ),
           ).toEqual(
             simplify(
-              E.Left(empties.reduce((x, y) => Math.min(x, y), strs.length))
-            )
+              E.Left(empties.reduce((x, y) => Math.min(x, y), strs.length)),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -386,9 +387,9 @@ describe("sequence", () => {
     fc.assert(
       fc.property(fc.array(fc.string()), (strs: string[]) => {
         expect(simplify(E.sequence(strs.map(E.Right)))).toEqual(
-          simplify(E.Right(strs))
+          simplify(E.Right(strs)),
         );
-      })
+      }),
     );
   });
   it("is equal to Left for any Left results", () => {
@@ -403,9 +404,9 @@ describe("sequence", () => {
                 empties =>
                   [strs.map((s, i) => [s, i]), empties] as [
                     Array<[string, number]>,
-                    number[]
-                  ]
-              )
+                    number[],
+                  ],
+              ),
           ),
         ([strs, empties]) => {
           const predicate = ([s, i]: [string, number]) =>
@@ -414,17 +415,17 @@ describe("sequence", () => {
             simplify(
               E.sequence(
                 strs.map(str =>
-                  predicate(str) ? E.Right(str[0]) : E.Left(str[1])
-                )
-              )
-            )
+                  predicate(str) ? E.Right(str[0]) : E.Left(str[1]),
+                ),
+              ),
+            ),
           ).toEqual(
             simplify(
-              E.Left(empties.reduce((x, y) => Math.min(x, y), strs.length))
-            )
+              E.Left(empties.reduce((x, y) => Math.min(x, y), strs.length)),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -432,12 +433,12 @@ describe("sequence", () => {
 describe("unless", () => {
   it("Runs the Either for false", () => {
     expect(simplify(E.unless(false, E.Left("error")))).toEqual(
-      simplify(E.Left("error"))
+      simplify(E.Left("error")),
     );
   });
   it("Skips the Either for true", () => {
     expect(simplify(E.unless(true, E.Left("error")))).toEqual(
-      simplify(E.Right([]))
+      simplify(E.Right([])),
     );
   });
 });
@@ -445,12 +446,12 @@ describe("unless", () => {
 describe("when", () => {
   it("Runs the Either for true", () => {
     expect(simplify(E.when(true, E.Left("error")))).toEqual(
-      simplify(E.Left("error"))
+      simplify(E.Left("error")),
     );
   });
   it("Skips the Either for false", () => {
     expect(simplify(E.when(false, E.Left("error")))).toEqual(
-      simplify(E.Right([]))
+      simplify(E.Right([])),
     );
   });
 });
@@ -463,12 +464,12 @@ describe("zipWithM", () => {
         fc.array(fc.integer()),
         (strs: string[], ns: number[]) => {
           expect(
-            simplify(E.zipWithM((str, n) => E.Right(str.length + n), strs, ns))
+            simplify(E.zipWithM((str, n) => E.Right(str.length + n), strs, ns)),
           ).toEqual(
-            simplify(E.Right(strs.zipWith((str, n) => str.length + n, ns)))
+            simplify(E.Right(strs.zipWith((str, n) => str.length + n, ns))),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Left for any Left results", () => {
@@ -481,9 +482,9 @@ describe("zipWithM", () => {
             ns =>
               [strs.map((s, i) => [s, i]), ns] as [
                 Array<[string, number]>,
-                number[]
-              ]
-          )
+                number[],
+              ],
+          ),
       )
       .chain(([strs, ns]) => {
         const size = Math.min(strs.length, ns.length);
@@ -494,8 +495,8 @@ describe("zipWithM", () => {
               [strs, ns, empties] as [
                 Array<[string, number]>,
                 number[],
-                number[]
-              ]
+                number[],
+              ],
           );
       });
 
@@ -508,20 +509,20 @@ describe("zipWithM", () => {
               ([str, i], n) =>
                 predicate(i) ? E.Right(str.length + n) : E.Left(i),
               strs,
-              ns
-            )
-          )
+              ns,
+            ),
+          ),
         ).toEqual(
           simplify(
             E.Left(
               empties.reduce(
                 (x, y) => Math.min(x, y),
-                Math.min(strs.length, ns.length)
-              )
-            )
-          )
+                Math.min(strs.length, ns.length),
+              ),
+            ),
+          ),
         );
-      })
+      }),
     );
   });
 });
@@ -533,7 +534,7 @@ describe("IEither", () => {
     fc.assert(
       fc.property(fc.string(), s => {
         expect(simplify(E.Right(s).chain(k))).toEqual(simplify(k(s)));
-      })
+      }),
     );
   });
 
@@ -542,12 +543,12 @@ describe("IEither", () => {
       fc.property(
         fc.oneof(
           fc.string().map(x => E.Left<string, string>(x)),
-          fc.string().map(x => E.Right<string, string>(x))
+          fc.string().map(x => E.Right<string, string>(x)),
         ),
         m => {
           expect(simplify(m.chain(E.Right))).toEqual(simplify(m));
-        }
-      )
+        },
+      ),
     );
   });
 
@@ -565,14 +566,14 @@ describe("IEither", () => {
       fc.property(
         fc.oneof(
           fc.string().map(x => E.Left<string, string>(x)),
-          fc.string().map(x => E.Right<string, string>(x))
+          fc.string().map(x => E.Right<string, string>(x)),
         ),
         m => {
           expect(simplify(m.chain(x => k(x).chain(h)))).toEqual(
-            simplify(m.chain(k).chain(h))
+            simplify(m.chain(k).chain(h)),
           );
-        }
-      )
+        },
+      ),
     );
   });
 
@@ -581,14 +582,14 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(E.Right(s).defaultLeftWith("foo")).toEqual("foo");
-        })
+        }),
       );
     });
     it("Returns payload when Left", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(E.Left(s).defaultLeftWith("foo")).toEqual(s);
-        })
+        }),
       );
     });
   });
@@ -598,14 +599,14 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(E.Left(s).defaultRightWith("foo")).toEqual("foo");
-        })
+        }),
       );
     });
     it("Returns payload when Right", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(E.Right(s).defaultRightWith("foo")).toEqual(s);
-        })
+        }),
       );
     });
   });
@@ -615,7 +616,7 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           E.Right(s).chain(x => E.Right(expect(x).toEqual(s)));
-        })
+        }),
       );
     });
     it("Returns the value returned by the callback", () => {
@@ -626,7 +627,7 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Right(s).chain(k))).toEqual(simplify(k(s)));
-        })
+        }),
       );
     });
     it("Skips the callback on empty", () => {
@@ -635,7 +636,7 @@ describe("IEither", () => {
           ? E.Right<string, string>(s)
           : E.Left<string, string>("error");
       expect(simplify(E.Left<string, string>("error").chain(k))).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
   });
@@ -645,14 +646,14 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Right(s).isRight())).toEqual(true);
-        })
+        }),
       );
     });
     it("Returns false for Left(s)", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Left(s).isRight())).toEqual(false);
-        })
+        }),
       );
     });
   });
@@ -662,14 +663,14 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Right(s).isLeft())).toEqual(false);
-        })
+        }),
       );
     });
     it("Returns true for Left(s)", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Left(s).isLeft())).toEqual(true);
-        })
+        }),
       );
     });
   });
@@ -679,7 +680,7 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           E.Right(s).map(x => expect(x).toEqual(s));
-        })
+        }),
       );
     });
     it("Wraps the value returned by the callback", () => {
@@ -687,13 +688,13 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Right(s).map(k))).toEqual(simplify(E.Right(k(s))));
-        })
+        }),
       );
     });
     it("Skips the callback on empty", () => {
       const k = (s: string) => s.length;
       expect(simplify(E.Left<string, string>("error").map(k))).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
   });
@@ -703,7 +704,7 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           E.Left(s).mapLeft(x => expect(x).toEqual(s));
-        })
+        }),
       );
     });
     it("Wraps the value returned by the callback", () => {
@@ -711,15 +712,15 @@ describe("IEither", () => {
       fc.assert(
         fc.property(fc.string(), s => {
           expect(simplify(E.Left(s).mapLeft(k))).toEqual(
-            simplify(E.Left(k(s)))
+            simplify(E.Left(k(s))),
           );
-        })
+        }),
       );
     });
     it("Skips the callback on empty", () => {
       const k = (s: string) => s.length;
       expect(simplify(E.Right<string, string>("foo").mapLeft(k))).toEqual(
-        simplify(E.Right("foo"))
+        simplify(E.Right("foo")),
       );
     });
   });
@@ -728,11 +729,11 @@ describe("IEither", () => {
     it("Passes the payload to the correct callback", () => {
       E.Right("foo").matchCase({
         left: () => fail("Not expected to be called"),
-        right: x => expect(x).toEqual("foo")
+        right: x => expect(x).toEqual("foo"),
       });
       E.Left("foo").matchCase({
         left: x => expect(x).toEqual("foo"),
-        right: () => fail("Not expected to be called")
+        right: () => fail("Not expected to be called"),
       });
     });
     it("returns the correct value when a Right is provided", () => {
@@ -741,10 +742,10 @@ describe("IEither", () => {
           expect(
             E.Right<string, string>(s).matchCase({
               right: x => x.length,
-              left: x => x.length - 1
-            })
+              left: x => x.length - 1,
+            }),
           ).toEqual(s.length);
-        })
+        }),
       );
     });
     it("returns the correct value when a Left is provided", () => {
@@ -753,10 +754,10 @@ describe("IEither", () => {
           expect(
             E.Left<string, string>(s).matchCase({
               right: x => x.length,
-              left: () => s.length - 1
-            })
+              left: () => s.length - 1,
+            }),
           ).toEqual(s.length - 1);
-        })
+        }),
       );
     });
   });
@@ -764,17 +765,17 @@ describe("IEither", () => {
   describe("or", () => {
     it("Picks the first if Right", () => {
       expect(simplify(E.Right("foo").or(E.Right("bar")))).toEqual(
-        simplify(E.Right("foo"))
+        simplify(E.Right("foo")),
       );
     });
     it("Picks the second if first Left", () => {
       expect(simplify(E.Left("error").or(E.Right("bar")))).toEqual(
-        simplify(E.Right("bar"))
+        simplify(E.Right("bar")),
       );
     });
     it("Picks the second if both Left", () => {
       expect(simplify(E.Left("error1").or(E.Left("error2")))).toEqual(
-        simplify(E.Left("error2"))
+        simplify(E.Left("error2")),
       );
     });
   });
@@ -782,22 +783,22 @@ describe("IEither", () => {
   describe("replace", () => {
     it("Returns something if both are Right", () => {
       expect(simplify(E.Right("foo").replace(E.Right("bar")))).toEqual(
-        simplify(E.Right("bar"))
+        simplify(E.Right("bar")),
       );
     });
     it("Returns Left if the second is Left", () => {
       expect(simplify(E.Right("foo").replace(E.Left("error")))).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
     it("Returns Left if the first is Left", () => {
       expect(simplify(E.Left("error").replace(E.Right("bar")))).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
     it("Returns Left if both are Left", () => {
       expect(simplify(E.Left("error1").replace(E.Left("error2")))).toEqual(
-        simplify(E.Left("error1"))
+        simplify(E.Left("error1")),
       );
     });
   });
@@ -805,12 +806,12 @@ describe("IEither", () => {
   describe("replacePure", () => {
     it("Replaces value if Right", () => {
       expect(simplify(E.Right("foo").replacePure(2))).toEqual(
-        simplify(E.Right(2))
+        simplify(E.Right(2)),
       );
     });
     it("Returns Left if Left", () => {
       expect(simplify(E.Left("error").replacePure(2))).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
   });
@@ -845,7 +846,7 @@ describe("IEither", () => {
   describe("voidOut", () => {
     it("Returns Left (s) for Left (s)", () => {
       expect(simplify(E.Left("error").voidOut())).toEqual(
-        simplify(E.Left("error"))
+        simplify(E.Left("error")),
       );
     });
     it("Returns Right ([]) for Right (s)", () => {

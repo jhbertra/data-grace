@@ -2,55 +2,51 @@ import "core-js";
 import { Curry, Equals } from "./utilityTypes";
 
 export {
-  Case,
-  Gadt,
-  MultiParamGadt,
+  Data,
   absurd,
   constant,
   curry,
-  gadt,
+  data,
   id,
-  multiParamGadt,
+  modifyCase,
   objectFromEntries,
   objectToEntries,
   pipe,
   pipeWith,
   prove,
   proveNever,
-  simplify
+  simplify,
 };
 
-// tslint:disable: ban-types
-interface Case<Tag extends string> {
-  __case: Tag;
+type Data<Tag extends string, Value = undefined> = {
+  readonly tag: Tag;
+  readonly value: Value;
+};
+
+function data<Tag extends string>(tag: Tag): Data<Tag, undefined>;
+function data<Tag extends string, Value>(
+  tag: Tag,
+  value: Value,
+): Data<Tag, Value>;
+
+function data(tag: string, value?: any) {
+  return Object.freeze(
+    value
+      ? {
+          tag,
+          value,
+        }
+      : { tag },
+  );
 }
 
-interface Gadt<TCase, T> {
-  toGeneric(tcase: TCase): T;
-  fromGeneric(t: T): TCase;
-}
-
-interface MultiParamGadt<Ts extends Array<[any, any]>> {
-  toGeneric<I extends keyof Ts & number = 0>(tCase: Ts[I][0]): Ts[I][1];
-  fromGeneric<I extends keyof Ts & number = 0>(t: Ts[I][1]): Ts[I][0];
-}
-
-function gadt<TObject, TCase, T>(spec: TObject): TObject & Gadt<TCase, T> {
-  return {
-    ...spec,
-    fromGeneric: x => x as Equals<T, TCase>,
-    toGeneric: x => x as Equals<TCase, T>
-  };
-}
-
-function multiParamGadt<TObject, Ts extends Array<[any, any]>>(
-  spec: TObject
-): TObject & MultiParamGadt<Ts> {
-  return {
-    ...spec,
-    fromGeneric: id,
-    toGeneric: id
-  };
+function modifyCase<
+  Case extends Tag,
+  Tag extends string,
+  TData extends Data<Case, any>,
+  T extends TData extends Data<Case, infer TT> ? TT : never
+>(match: Case, data: TData, modify: (t: T) => T): TData {
+  return data.tag === match ? { ...data, value: modify(data.value) } : data;
 }
 
 /**
@@ -97,14 +93,14 @@ function pipe<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C;
 function pipe<A, B, C, D>(
   f: (a: A) => B,
   g: (b: B) => C,
-  h: (c: C) => D
+  h: (c: C) => D,
 ): (a: A) => D;
 
 function pipe<A, B, C, D, E>(
   f: (a: A) => B,
   g: (b: B) => C,
   h: (c: C) => D,
-  i: (d: D) => E
+  i: (d: D) => E,
 ): (a: A) => E;
 
 function pipe<A, B, C, D, E, F>(
@@ -112,7 +108,7 @@ function pipe<A, B, C, D, E, F>(
   g: (b: B) => C,
   h: (c: C) => D,
   i: (d: D) => E,
-  j: (e: E) => F
+  j: (e: E) => F,
 ): (a: A) => F;
 
 function pipe<A, B, C, D, E, F, G>(
@@ -121,7 +117,7 @@ function pipe<A, B, C, D, E, F, G>(
   h: (c: C) => D,
   i: (d: D) => E,
   j: (e: E) => F,
-  k: (f: F) => G
+  k: (f: F) => G,
 ): (a: A) => G;
 
 function pipe<A, B, C, D, E, F, G, H>(
@@ -131,7 +127,7 @@ function pipe<A, B, C, D, E, F, G, H>(
   i: (d: D) => E,
   j: (e: E) => F,
   k: (f: F) => G,
-  l: (g: G) => H
+  l: (g: G) => H,
 ): (a: A) => H;
 
 function pipe<A, B, C, D, E, F, G, H, I>(
@@ -142,7 +138,7 @@ function pipe<A, B, C, D, E, F, G, H, I>(
   j: (e: E) => F,
   k: (f: F) => G,
   l: (g: G) => H,
-  m: (h: H) => I
+  m: (h: H) => I,
 ): (a: A) => I;
 
 function pipe<A, B, C, D, E, F, G, H, I, J>(
@@ -154,7 +150,7 @@ function pipe<A, B, C, D, E, F, G, H, I, J>(
   k: (f: F) => G,
   l: (g: G) => H,
   m: (h: H) => I,
-  n: (i: I) => J
+  n: (i: I) => J,
 ): (a: A) => J;
 
 /**
@@ -174,7 +170,7 @@ function pipe(
   k?: Function,
   l?: Function,
   m?: Function,
-  n?: Function
+  n?: Function,
 ): unknown {
   switch (arguments.length) {
     case 1:
@@ -222,7 +218,7 @@ function pipeWith<A, B, C, D>(
   a: A,
   f: (a: A) => B,
   g: (b: B) => C,
-  h: (c: C) => D
+  h: (c: C) => D,
 ): D;
 
 function pipeWith<A, B, C, D, E>(
@@ -230,7 +226,7 @@ function pipeWith<A, B, C, D, E>(
   f: (a: A) => B,
   g: (b: B) => C,
   h: (c: C) => D,
-  i: (d: D) => E
+  i: (d: D) => E,
 ): E;
 
 function pipeWith<A, B, C, D, E, F>(
@@ -239,7 +235,7 @@ function pipeWith<A, B, C, D, E, F>(
   g: (b: B) => C,
   h: (c: C) => D,
   i: (d: D) => E,
-  j: (e: E) => F
+  j: (e: E) => F,
 ): F;
 
 function pipeWith<A, B, C, D, E, F, G>(
@@ -249,7 +245,7 @@ function pipeWith<A, B, C, D, E, F, G>(
   h: (c: C) => D,
   i: (d: D) => E,
   j: (e: E) => F,
-  k: (f: F) => G
+  k: (f: F) => G,
 ): G;
 
 function pipeWith<A, B, C, D, E, F, G, H>(
@@ -260,7 +256,7 @@ function pipeWith<A, B, C, D, E, F, G, H>(
   i: (d: D) => E,
   j: (e: E) => F,
   k: (f: F) => G,
-  l: (g: G) => H
+  l: (g: G) => H,
 ): H;
 
 function pipeWith<A, B, C, D, E, F, G, H, I>(
@@ -272,7 +268,7 @@ function pipeWith<A, B, C, D, E, F, G, H, I>(
   j: (e: E) => F,
   k: (f: F) => G,
   l: (g: G) => H,
-  m: (h: H) => I
+  m: (h: H) => I,
 ): I;
 
 function pipeWith<A, B, C, D, E, F, G, H, I, J>(
@@ -285,7 +281,7 @@ function pipeWith<A, B, C, D, E, F, G, H, I, J>(
   k: (f: F) => G,
   l: (g: G) => H,
   m: (h: H) => I,
-  n: (i: I) => J
+  n: (i: I) => J,
 ): J;
 
 /**
@@ -305,7 +301,7 @@ function pipeWith(
   k?: Function,
   l?: Function,
   m?: Function,
-  n?: Function
+  n?: Function,
 ): unknown {
   switch (arguments.length - 1) {
     case 1:
@@ -353,7 +349,7 @@ function curryImpl(f: Function, arity: number): Function {
  * Convert an object to an array of key-value pairs.
  */
 function objectToEntries<T extends object>(
-  value: T
+  value: T,
 ): Array<[keyof T, T[keyof T]]> {
   const entries: Array<[keyof T, T[keyof T]]> = [];
   for (const key in value) {
@@ -368,7 +364,7 @@ function objectToEntries<T extends object>(
  * Convert an array of key-value pairs to an object.
  */
 function objectFromEntries<T extends object>(
-  entries: Array<[keyof T, T[keyof T]]>
+  entries: Array<[keyof T, T[keyof T]]>,
 ): T {
   const result = {} as T;
   for (const [key, value] of entries) {

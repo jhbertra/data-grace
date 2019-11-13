@@ -1,8 +1,6 @@
 export {
   IEither,
   EitherCaseScrutinizer,
-  EitherLeft,
-  EitherRight,
   Either,
   MapEither,
   Left,
@@ -21,17 +19,18 @@ export {
   sequence,
   unless,
   when,
-  zipWithM
+  zipWithM,
 };
 
 import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
 import {
-  Case,
   constant,
+  Data,
+  data,
   id,
   objectFromEntries,
-  objectToEntries
+  objectToEntries,
 } from "./prelude";
 
 /*------------------------------
@@ -97,7 +96,7 @@ interface IEither<A, B> {
    *
    * @returns true if this is a [[Left]], false otherwise.
    */
-  isLeft(): this is EitherLeft<A>;
+  isLeft(): this is Data<"Left", A>;
 
   /**
    * A type guard which determines if this [[Either]] is a [[Right]]
@@ -111,7 +110,7 @@ interface IEither<A, B> {
    *
    * @returns true if this is a [[Right]], false otherwise.
    */
-  isRight(): this is EitherRight<B>;
+  isRight(): this is Data<"Right", B>;
 
   /**
    * Modify the data in the [[Right]] case.
@@ -260,20 +259,6 @@ interface EitherCaseScrutinizer<A, B, C> {
 }
 
 /**
- * The type of an object constructed using the [[Left]] case.
- */
-interface EitherLeft<A> {
-  readonly value: A;
-}
-
-/**
- * The type of an object constructed using the [[Right]] case.
- */
-interface EitherRight<B> {
-  readonly value: B;
-}
-
-/**
  * A data type that represents a binary choice - it can be inhabited
  * by either a value of type A, or of type B. A very common use of
  * this data type is to represent the result of a calculation that
@@ -282,8 +267,7 @@ interface EitherRight<B> {
  * answer, and error results are constructed with the [[Left]] case
  * constructor.
  */
-type Either<A, B> = IEither<A, B> &
-  ((Case<"Left"> & EitherLeft<A>) | (Case<"Right"> & EitherRight<B>));
+type Either<A, B> = IEither<A, B> & (Data<"Left", A> | Data<"Right", B>);
 
 /**
  * A type transformer that homomorphically maps the [[Either]] type
@@ -306,7 +290,7 @@ type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
  */
 function Left<A, B>(value: A): Either<A, B> {
   return Object.freeze({
-    __case: "Left",
+    ...data("Left", value),
     defaultLeftWith: constant(value),
     defaultRightWith: id,
     chain() {
@@ -345,10 +329,9 @@ function Left<A, B>(value: A): Either<A, B> {
     toString() {
       return `Left (${value})`;
     },
-    value,
     voidOut() {
       return Left<A, []>(value);
-    }
+    },
   }) as Either<A, B>;
 }
 
@@ -358,7 +341,7 @@ function Left<A, B>(value: A): Either<A, B> {
  */
 function Right<A, B>(value: B): Either<A, B> {
   return Object.freeze({
-    __case: "Right",
+    ...data("Right", value),
     defaultLeftWith: id,
     defaultRightWith: constant(value),
     chain(f) {
@@ -393,10 +376,9 @@ function Right<A, B>(value: B): Either<A, B> {
     toString() {
       return `Right (${value})`;
     },
-    value,
     voidOut() {
       return Right<A, []>([]);
-    }
+    },
   }) as Either<A, B>;
 }
 
@@ -549,7 +531,7 @@ function lift<A, P extends any[], R>(
  *     baz: Left("invalid baz")
  * });
  *
- * // Right ({ bar: "BAR", baz: { __case: "Just", value: "baz" } })
+ * // Right ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
  * build<string, Foo>({
  *     bar: Right("BAR"),
  *     baz: Right(Just("baz"))
@@ -562,8 +544,8 @@ function lift<A, P extends any[], R>(
 function build<A, T extends object>(spec: MapEither<A, T>): Either<A, T> {
   const maybeKvps = sequence(
     objectToEntries(spec).map(([key, value]) =>
-      value.map(x => [key, x] as [keyof T, T[typeof key]])
-    )
+      value.map(x => [key, x] as [keyof T, T[typeof key]]),
+    ),
   );
 
   return maybeKvps.map(objectFromEntries);
@@ -677,7 +659,7 @@ function zipWithM<A, B, P extends any[], C>(
 function reduceM<A, B, C>(
   f: (state: C, b: B) => Either<A, C>,
   seed: C,
-  bs: B[]
+  bs: B[],
 ): Either<A, C> {
   let state = Right<A, C>(seed);
   for (const b of bs) {

@@ -24,7 +24,7 @@ type Cons<THead, TTail extends any[]> = ((
  *  Curry<[string, boolean, number], string> == (arg: string) => (arg: boolean) => (arg: number) => string
  */
 type Curry<TParams extends any[], TReturn> = (
-  arg: Head<TParams>
+  arg: Head<TParams>,
 ) => IsEmpty<TParams> extends true ? TReturn : Curry<Tail<TParams>, TReturn>;
 
 /**

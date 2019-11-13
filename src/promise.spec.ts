@@ -42,20 +42,20 @@ describe("build", () => {
               P.build<Foo>({
                 bar: Promise.resolve(bar),
                 baz: Promise.resolve(baz),
-                qux: Promise.resolve(qux)
-              })
-            )
+                qux: Promise.resolve(qux),
+              }),
+            ),
           ).toEqual(
             simplify(
               Promise.resolve({
                 bar,
                 baz,
-                qux
-              })
-            )
+                qux,
+              }),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Nothing when any components reject", () => {
@@ -76,12 +76,12 @@ describe("build", () => {
               P.build<Foo>({
                 bar: getComponent(0, bar),
                 baz: getComponent(1, baz),
-                qux: getComponent(2, qux)
-              }).catch(e => e)
-            )
+                qux: getComponent(2, qux),
+              }).catch(e => e),
+            ),
           ).toEqual(simplify(Promise.reject("error").catch(e => e)));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -91,16 +91,16 @@ describe("mapM and forM", () => {
     fc.assert(
       fc.property(fc.array(fc.integer()), (xs: number[]) => {
         const resultForM = simplify(
-          P.forM(xs, x => Promise.resolve(x.toString()))
+          P.forM(xs, x => Promise.resolve(x.toString())),
         );
         const resultMapM = simplify(
-          P.mapM(x => Promise.resolve(x.toString()), xs)
+          P.mapM(x => Promise.resolve(x.toString()), xs),
         );
         expect(resultForM).toEqual(resultMapM);
         expect(resultMapM).toEqual(
-          simplify(Promise.resolve(xs.map(x => x.toString())))
+          simplify(Promise.resolve(xs.map(x => x.toString()))),
         );
-      })
+      }),
     );
   });
   it("is equal to nothing for any empty results", () => {
@@ -111,7 +111,7 @@ describe("mapM and forM", () => {
           .chain(size =>
             fc
               .array(fc.integer(0, size - 1), 1, size)
-              .map(empties => [size, empties] as [number, number[]])
+              .map(empties => [size, empties] as [number, number[]]),
           ),
         ([size, empties]) => {
           const input = [];
@@ -129,10 +129,10 @@ describe("mapM and forM", () => {
           const resultMapM = simplify(P.mapM(mapping, input).catch(e => e));
           expect(resultForM).toEqual(resultMapM);
           expect(resultMapM).toEqual(
-            simplify(Promise.reject("error").catch(e => e))
+            simplify(Promise.reject("error").catch(e => e)),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -140,17 +140,17 @@ describe("mapM and forM", () => {
 describe("join", () => {
   it("equals Nothing when outer is empty", () => {
     expect(simplify(P.join(Promise.reject("error")).catch(e => e))).toEqual(
-      simplify(Promise.reject("error").catch(e => e))
+      simplify(Promise.reject("error").catch(e => e)),
     );
   });
   it("equals Nothing when inner is empty", () => {
     expect(
-      simplify(P.join(Promise.resolve(Promise.reject("error"))).catch(e => e))
+      simplify(P.join(Promise.resolve(Promise.reject("error"))).catch(e => e)),
     ).toEqual(simplify(Promise.reject("error").catch(e => e)));
   });
   it("equals inner when both levels non-empty", () => {
     expect(
-      simplify(P.join(Promise.resolve<Promise<number>>(Promise.resolve(12))))
+      simplify(P.join(Promise.resolve<Promise<number>>(Promise.resolve(12)))),
     ).toEqual(simplify(Promise.resolve(12)));
   });
 });
@@ -170,12 +170,12 @@ describe("lift", () => {
                 f,
                 Promise.resolve(a),
                 Promise.resolve(b),
-                Promise.resolve(c)
-              )
-            )
+                Promise.resolve(c),
+              ),
+            ),
           ).toEqual(simplify(Promise.resolve(f(a, b, c))));
-        }
-      )
+        },
+      ),
     );
   });
   it("equals Nothing when any arguments have no value", () => {
@@ -194,11 +194,11 @@ describe("lift", () => {
 
           expect(
             simplify(
-              P.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)).catch(e => e)
-            )
+              P.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)).catch(e => e),
+            ),
           ).toEqual(simplify(Promise.reject("error").catch(e => e)));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -213,18 +213,18 @@ describe("mapAndUnzipWith", () => {
             simplify(
               P.mapAndUnzipWith(
                 ([x, y]) => Promise.resolve<[string, number]>([y, x]),
-                xys
-              )
-            )
+                xys,
+              ),
+            ),
           ).toEqual(
             simplify(
               Promise.resolve(
-                unzip(xys.map(([x, y]) => [y, x] as [string, number]))
-              )
-            )
+                unzip(xys.map(([x, y]) => [y, x] as [string, number])),
+              ),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -236,8 +236,9 @@ describe("mapAndUnzipWith", () => {
             fc
               .array(fc.integer(0, xys.length - 1), 1, xys.length)
               .map(
-                empties => [xys, empties] as [Array<[number, string]>, number[]]
-              )
+                empties =>
+                  [xys, empties] as [Array<[number, string]>, number[]],
+              ),
           ),
         ([xys, empties]) => {
           expect(
@@ -247,12 +248,12 @@ describe("mapAndUnzipWith", () => {
                   empties.find(e => e === i) != null
                     ? Promise.reject("error")
                     : Promise.resolve<[string, number]>([y, x]),
-                xys.map((xy, i) => [xy, i] as [[number, string], number])
-              ).catch(e => e)
-            )
+                xys.map((xy, i) => [xy, i] as [[number, string], number]),
+              ).catch(e => e),
+            ),
           ).toEqual(simplify(Promise.reject("error").catch(e => e)));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -266,15 +267,15 @@ describe("zipWithM", () => {
         (strs: string[], ns: number[]) => {
           expect(
             simplify(
-              P.zipWithM((str, n) => Promise.resolve(str.length + n), strs, ns)
-            )
+              P.zipWithM((str, n) => Promise.resolve(str.length + n), strs, ns),
+            ),
           ).toEqual(
             simplify(
-              Promise.resolve(strs.zipWith((str, n) => str.length + n, ns))
-            )
+              Promise.resolve(strs.zipWith((str, n) => str.length + n, ns)),
+            ),
           );
-        }
-      )
+        },
+      ),
     );
   });
   it("is equal to Nothing for any empty results", () => {
@@ -287,9 +288,9 @@ describe("zipWithM", () => {
             ns =>
               [strs.map((s, i) => [s, i]), ns] as [
                 Array<[string, number]>,
-                number[]
-              ]
-          )
+                number[],
+              ],
+          ),
       )
       .chain(([strs, ns]) => {
         const size = Math.min(strs.length, ns.length);
@@ -300,8 +301,8 @@ describe("zipWithM", () => {
               [strs, ns, empties] as [
                 Array<[string, number]>,
                 number[],
-                number[]
-              ]
+                number[],
+              ],
           );
       });
 
@@ -316,11 +317,11 @@ describe("zipWithM", () => {
                   ? Promise.resolve(str.length + n)
                   : Promise.reject("error"),
               strs,
-              ns
-            ).catch(e => e)
-          )
+              ns,
+            ).catch(e => e),
+          ),
         ).toEqual(simplify(Promise.reject("error").catch(e => e)));
-      })
+      }),
     );
   });
 });

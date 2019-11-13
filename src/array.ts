@@ -11,7 +11,7 @@ export {
   product,
   replicate,
   sum,
-  unzip
+  unzip,
 };
 
 /**
@@ -590,7 +590,7 @@ function product(nums: number[]): number {
  */
 function replicate<N extends number, A>(
   times: N,
-  item: A
+  item: A,
 ): A[] & { length: N } {
   const result: A[] = [];
   for (let i = 0; i < times; i++) {
@@ -627,7 +627,7 @@ function sum(nums: number[]): number {
  */
 function unzip<N extends number, P extends any[] & { length: N }>(
   input: P[],
-  n: N = 0 as any
+  n: N = 0 as any,
 ): MapArray<P> {
   const result = [];
   if (input.length > 0) {
@@ -735,7 +735,7 @@ Array.prototype.groupBy = function groupByForArray(equals) {
 };
 
 Array.prototype.groupByKey = function groupByForArray<B>(
-  getKey: (_: any) => B
+  getKey: (_: any) => B,
 ) {
   const input = this.map(x => [getKey(x), x] as [B, any]);
   const keys = input
@@ -745,7 +745,7 @@ Array.prototype.groupByKey = function groupByForArray<B>(
   for (const key of keys) {
     result.push([
       key,
-      input.filter(([b, _]) => key === b).map(([_, x]) => x)
+      input.filter(([b, _]) => key === b).map(([_, x]) => x),
     ] as [B, any]);
   }
   return result;
@@ -824,7 +824,7 @@ Array.prototype.isSuffixOf = function isSuffixOfForArray(other) {
     return false;
   } else {
     return this.zip(other.slice(other.length - this.length)).all(
-      ([a, b]) => a === b
+      ([a, b]) => a === b,
     );
   }
 };

@@ -9,7 +9,7 @@ import {
   product,
   replicate,
   sum,
-  unzip
+  unzip,
 } from "./array";
 import { id, prove } from "./prelude";
 import { Equals } from "./utilityTypes";
@@ -33,8 +33,8 @@ describe("and", () => {
     fc.assert(
       fc.property(
         fc.array(fc.boolean()),
-        bools => and(bools) === bools.reduce((a, b) => a && b, true)
-      )
+        bools => and(bools) === bools.reduce((a, b) => a && b, true),
+      ),
     );
   });
 });
@@ -44,7 +44,7 @@ describe("intercalate", () => {
     fc.assert(
       fc.property(fc.array(fc.anything()), arr => {
         expect(intercalate(arr, [])).toEqual([]);
-      })
+      }),
     );
   });
   it("intersperses the seperator and concatenates the result", () => {
@@ -54,10 +54,10 @@ describe("intercalate", () => {
         fc.array(fc.array(fc.anything())),
         (sep, xss) => {
           expect(intercalate(sep, xss)).toEqual(
-            ([] as any[]).concat(...xss.intersperse(sep))
+            ([] as any[]).concat(...xss.intersperse(sep)),
           );
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -72,8 +72,8 @@ describe("maximum", () => {
         fc.array(fc.integer()),
         nums =>
           maximum(nums) ===
-          nums.reduce((a, b) => Math.max(a, b), Number.MIN_VALUE)
-      )
+          nums.reduce((a, b) => Math.max(a, b), Number.MIN_VALUE),
+      ),
     );
   });
 });
@@ -88,8 +88,8 @@ describe("minimum", () => {
         fc.array(fc.integer()),
         nums =>
           minimum(nums) ===
-          nums.reduce((a, b) => Math.min(a, b), Number.MAX_VALUE)
-      )
+          nums.reduce((a, b) => Math.min(a, b), Number.MAX_VALUE),
+      ),
     );
   });
 });
@@ -102,8 +102,8 @@ describe("or", () => {
     fc.assert(
       fc.property(
         fc.array(fc.boolean()),
-        bools => or(bools) === bools.reduce((a, b) => a || b, false)
-      )
+        bools => or(bools) === bools.reduce((a, b) => a || b, false),
+      ),
     );
   });
 });
@@ -116,8 +116,8 @@ describe("product", () => {
     fc.assert(
       fc.property(
         fc.array(fc.integer()),
-        nums => product(nums) === nums.reduce((a, b) => a * b, 1)
-      )
+        nums => product(nums) === nums.reduce((a, b) => a * b, 1),
+      ),
     );
   });
 });
@@ -128,8 +128,8 @@ describe("replicate", () => {
       fc.property(
         fc.integer(Number.MIN_SAFE_INTEGER, 0),
         fc.anything(),
-        (size, input) => replicate(size, input).isEmpty()
-      )
+        (size, input) => replicate(size, input).isEmpty(),
+      ),
     );
   });
   it("creates arrays of times length", () => {
@@ -137,15 +137,15 @@ describe("replicate", () => {
       fc.property(
         fc.nat(100),
         fc.anything(),
-        (times, input) => replicate(times, input).length === times
-      )
+        (times, input) => replicate(times, input).length === times,
+      ),
     );
   });
   it("all items are equal to the input", () => {
     fc.assert(
       fc.property(fc.nat(100), fc.anything(), (times, input) => {
         replicate(times, input).map(x => expect(x).toEqual(input));
-      })
+      }),
     );
   });
 });
@@ -158,8 +158,8 @@ describe("sum", () => {
     fc.assert(
       fc.property(
         fc.array(fc.integer()),
-        nums => sum(nums) === nums.reduce((a, b) => a + b, 0)
-      )
+        nums => sum(nums) === nums.reduce((a, b) => a + b, 0),
+      ),
     );
   });
 });
@@ -170,7 +170,7 @@ describe("unzip", () => {
       fc.property(fc.nat(20), size => {
         const unzipped = unzip([] as any[][], size);
         return unzipped.length === size && unzipped.all(x => x.isEmpty());
-      })
+      }),
     );
   });
   it("returns n equal length buckets for non-empty lists", () => {
@@ -181,14 +181,14 @@ describe("unzip", () => {
           .chain(size =>
             fc
               .array(fc.genericTuple(replicate(size, fc.anything())))
-              .map(arr => [size, arr] as [number, any[][]])
+              .map(arr => [size, arr] as [number, any[][]]),
           ),
         ([size, arr]) => {
           const unzipped = unzip(arr, size);
           expect(unzipped.length).toEqual(size);
           unzipped.map((x, i) => expect(x).toEqual(arr.map(y => y[i])));
-        }
-      )
+        },
+      ),
     );
   });
 });
@@ -202,8 +202,8 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(
           fc.array(fc.boolean()),
-          bools => bools.all(id) === bools.reduce((a, b) => a && b, true)
-        )
+          bools => bools.all(id) === bools.reduce((a, b) => a && b, true),
+        ),
       );
     });
   });
@@ -216,8 +216,8 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(
           fc.array(fc.boolean()),
-          bools => bools.any(id) === bools.reduce((a, b) => a || b, false)
-        )
+          bools => bools.any(id) === bools.reduce((a, b) => a || b, false),
+        ),
       );
     });
   });
@@ -229,7 +229,7 @@ describe("IArrayExtensions", () => {
     it("breaks a list in two when it encounters an element that passes the predicate", () => {
       expect([1, 2, 3, 4, 1, 2, 3, 4].break(x => x > 3)).toEqual([
         [1, 2, 3],
-        [4, 1, 2, 3, 4]
+        [4, 1, 2, 3, 4],
       ]);
     });
     it("breaks at the start", () => {
@@ -245,9 +245,9 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(fc.array(fc.nat(10)), input => {
           expect(input.chain(x => replicate(x, x))).toEqual(
-            ([] as number[]).concat(...input.map(x => replicate(x, x)))
+            ([] as number[]).concat(...input.map(x => replicate(x, x))),
           );
-        })
+        }),
       );
     });
   });
@@ -259,8 +259,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.integer()),
           fc.integer(),
           (input, elem) =>
-            input.contains(elem) === !!input.find(x => x === elem)
-        )
+            input.contains(elem) === !!input.find(x => x === elem),
+        ),
       );
     });
   });
@@ -272,14 +272,14 @@ describe("IArrayExtensions", () => {
           arr
             .distinct()
             .map((x, i, self) => expect(self.indexOf(x)).toEqual(i));
-        })
+        }),
       );
     });
     it("is idempotent", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.distinct().distinct()).toEqual(arr.distinct());
-        })
+        }),
       );
     });
   });
@@ -292,18 +292,18 @@ describe("IArrayExtensions", () => {
           arr
             .distinctBy(equals)
             .map((x, i, self) =>
-              expect(self.findIndex(y => equals(x, y))).toEqual(i)
+              expect(self.findIndex(y => equals(x, y))).toEqual(i),
             );
-        })
+        }),
       );
     });
     it("is idempotent", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.distinctBy(equals).distinctBy(equals)).toEqual(
-            arr.distinctBy(equals)
+            arr.distinctBy(equals),
           );
-        })
+        }),
       );
     });
   });
@@ -314,7 +314,7 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(fc.array(fc.string().filter(predicate)), arr => {
           expect(arr.dropWhile(predicate)).toEqual([]);
-        })
+        }),
       );
     });
     it("returns the full array if the first item passes the predicate", () => {
@@ -324,8 +324,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.string().filter(predicate)),
           (fst, arr) => {
             expect([fst, ...arr].dropWhile(predicate)).toEqual([fst, ...arr]);
-          }
-        )
+          },
+        ),
       );
     });
     it("returns the array starting when the predicate passes", () => {
@@ -337,19 +337,19 @@ describe("IArrayExtensions", () => {
           (fst, breaker, arr) => {
             expect([...fst, breaker, ...arr].dropWhile(predicate)).toEqual([
               breaker,
-              ...arr
+              ...arr,
             ]);
-          }
-        )
+          },
+        ),
       );
     });
     it("is idempotent", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.dropWhile(predicate).dropWhile(predicate)).toEqual(
-            arr.dropWhile(predicate)
+            arr.dropWhile(predicate),
           );
-        })
+        }),
       );
     });
   });
@@ -358,8 +358,8 @@ describe("IArrayExtensions", () => {
     it("Produces arrays of arrays where all elements in elements are equal", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr =>
-          arr.group().all(g => g.all(x => x === g[0]))
-        )
+          arr.group().all(g => g.all(x => x === g[0])),
+        ),
       );
     });
     it("Produces arrays whose adjacent groups do not contain equal elements", () => {
@@ -369,25 +369,25 @@ describe("IArrayExtensions", () => {
             .group()
             .scan(
               ([_, prev], current) => [prev, current] as [string[], string[]],
-              [[], []] as [string[], string[]]
+              [[], []] as [string[], string[]],
             )
             .filter(x => !(x[0].isEmpty() || x[1].isEmpty()))
-            .all(([g, succ]) => g[0] !== succ[0])
-        )
+            .all(([g, succ]) => g[0] !== succ[0]),
+        ),
       );
     });
     it("Produces the input array when concatenated", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.group().chain(id)).toEqual(arr);
-        })
+        }),
       );
     });
     it("Is equivalent to groupBy with === as equality function", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.group()).toEqual(arr.groupBy((a, b) => a === b));
-        })
+        }),
       );
     });
   });
@@ -397,8 +397,8 @@ describe("IArrayExtensions", () => {
     it("Produces arrays of arrays where all elements in elements pass the equality test", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr =>
-          arr.groupBy(equals).all(g => g.all(x => equals(x, g[0])))
-        )
+          arr.groupBy(equals).all(g => g.all(x => equals(x, g[0]))),
+        ),
       );
     });
     it("Produces arrays whose adjacent groups do not contain equal elements", () => {
@@ -408,18 +408,18 @@ describe("IArrayExtensions", () => {
             .groupBy(equals)
             .scan(
               ([_, prev], current) => [prev, current] as [string[], string[]],
-              [[], []] as [string[], string[]]
+              [[], []] as [string[], string[]],
             )
             .filter(x => !(x[0].isEmpty() || x[1].isEmpty()))
-            .all(([g, succ]) => !equals(g[0], succ[0]))
-        )
+            .all(([g, succ]) => !equals(g[0], succ[0])),
+        ),
       );
     });
     it("Produces the input array when concatenated", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.groupBy(equals).chain(id)).toEqual(arr);
-        })
+        }),
       );
     });
   });
@@ -430,7 +430,7 @@ describe("IArrayExtensions", () => {
         fc.property(fc.array(fc.string()), arr => {
           const keys = arr.groupByKey(x => x.length).map(x => x[0]);
           expect(keys.distinct()).toEqual(keys);
-        })
+        }),
       );
     });
     it("does not drop values", () => {
@@ -439,7 +439,7 @@ describe("IArrayExtensions", () => {
           const flattened = arr.groupByKey(x => x.length).chain(x => x[1]);
           expect(flattened.length).toEqual(arr.length);
           expect(flattened.sort()).toEqual(arr.sort());
-        })
+        }),
       );
     });
     it("produces sets which all satisfy the same key", () => {
@@ -447,8 +447,8 @@ describe("IArrayExtensions", () => {
         fc.property(fc.array(fc.string()), arr =>
           arr
             .groupByKey(x => x.length)
-            .all(([key, g]) => g.all(x => x.length === key))
-        )
+            .all(([key, g]) => g.all(x => x.length === key)),
+        ),
       );
     });
   });
@@ -463,8 +463,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.head()).toEqual(arr[0]);
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -479,8 +479,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.init()).toEqual(arr.slice(0, arr.length - 1));
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -495,10 +495,12 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.inits()).toEqual(
-              arr.reduce((state, _, i) => [...state, arr.slice(0, i + 1)], [[]])
+              arr.reduce((state, _, i) => [...state, arr.slice(0, i + 1)], [
+                [],
+              ]),
             );
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -513,10 +515,10 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.intersperse("BANG")).toEqual(
-              arr.chain(x => [x, "BANG"]).init()
+              arr.chain(x => [x, "BANG"]).init(),
             );
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -529,8 +531,8 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
-          arr => !arr.isEmpty()
-        )
+          arr => !arr.isEmpty(),
+        ),
       );
     });
   });
@@ -539,8 +541,8 @@ describe("IArrayExtensions", () => {
     it("returns true for empty arrays", () => {
       fc.assert(
         fc.property(fc.array(fc.anything()), arr =>
-          ([] as any[]).isInfixOf(arr)
-        )
+          ([] as any[]).isInfixOf(arr),
+        ),
       );
     });
     it("returns equals contains for single element", () => {
@@ -548,8 +550,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.integer(),
           fc.array(fc.integer()),
-          (elem, arr) => [elem].isInfixOf(arr) === arr.contains(elem)
-        )
+          (elem, arr) => [elem].isInfixOf(arr) === arr.contains(elem),
+        ),
       );
     });
     it("returns true if it occurs in the array", () => {
@@ -564,8 +566,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.integer()),
           fc.array(fc.integer()),
           (prefix, arr) =>
-            prefix.isPrefixOf(arr) ? prefix.isInfixOf(arr) : true
-        )
+            prefix.isPrefixOf(arr) ? prefix.isInfixOf(arr) : true,
+        ),
       );
     });
     it("returns true if isSuffixOF returns true", () => {
@@ -574,8 +576,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.integer()),
           fc.array(fc.integer()),
           (prefix, arr) =>
-            prefix.isSuffixOf(arr) ? prefix.isInfixOf(arr) : true
-        )
+            prefix.isSuffixOf(arr) ? prefix.isInfixOf(arr) : true,
+        ),
       );
     });
   });
@@ -586,8 +588,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (arr1, arr2) => arr1.containsRange(arr2) === arr2.isInfixOf(arr1)
-        )
+          (arr1, arr2) => arr1.containsRange(arr2) === arr2.isInfixOf(arr1),
+        ),
       );
     });
   });
@@ -596,8 +598,8 @@ describe("IArrayExtensions", () => {
     it("returns true for empty arrays", () => {
       fc.assert(
         fc.property(fc.array(fc.anything()), arr =>
-          ([] as any[]).isPrefixOf(arr)
-        )
+          ([] as any[]).isPrefixOf(arr),
+        ),
       );
     });
     it("returns true if it occurs at the start the array", () => {
@@ -605,8 +607,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (prefix, arr) => prefix.isPrefixOf([...prefix, ...arr])
-        )
+          (prefix, arr) => prefix.isPrefixOf([...prefix, ...arr]),
+        ),
       );
     });
     it("returns false if it does not occur at the start of the array", () => {
@@ -620,8 +622,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (arr1, arr2) => arr1.startsWith(arr2) === arr2.isSuffixOf(arr1)
-        )
+          (arr1, arr2) => arr1.startsWith(arr2) === arr2.isSuffixOf(arr1),
+        ),
       );
     });
   });
@@ -630,8 +632,8 @@ describe("IArrayExtensions", () => {
     it("returns true for empty arrays", () => {
       fc.assert(
         fc.property(fc.array(fc.anything()), arr =>
-          ([] as any[]).isSuffixOf(arr)
-        )
+          ([] as any[]).isSuffixOf(arr),
+        ),
       );
     });
     it("returns true if it occurs at the start the array", () => {
@@ -639,8 +641,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (suffix, arr) => suffix.isSuffixOf([...arr, ...suffix])
-        )
+          (suffix, arr) => suffix.isSuffixOf([...arr, ...suffix]),
+        ),
       );
     });
     it("returns false if it does not occur at the start of the array", () => {
@@ -654,8 +656,8 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (arr1, arr2) => arr1.endsWith(arr2) === arr2.isSuffixOf(arr1)
-        )
+          (arr1, arr2) => arr1.endsWith(arr2) === arr2.isSuffixOf(arr1),
+        ),
       );
     });
   });
@@ -670,8 +672,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.last()).toEqual(arr.reverse()[0]);
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -683,9 +685,9 @@ describe("IArrayExtensions", () => {
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.partition(predicate)).toEqual([
             arr.filter(predicate),
-            arr.filter(x => !predicate(x))
+            arr.filter(x => !predicate(x)),
           ]);
-        })
+        }),
       );
     });
   });
@@ -702,10 +704,10 @@ describe("IArrayExtensions", () => {
                 const prev = state.last() as string;
                 return [...start, prev, reduce(prev, s)];
               },
-              [seed]
-            )
+              [seed],
+            ),
           );
-        })
+        }),
       );
     });
   });
@@ -722,10 +724,10 @@ describe("IArrayExtensions", () => {
                 const prev = state.last() as string;
                 return [...start, prev, reduce(s, prev)];
               },
-              [seed]
-            )
+              [seed],
+            ),
           );
-        })
+        }),
       );
     });
   });
@@ -737,7 +739,7 @@ describe("IArrayExtensions", () => {
     it("breaks a list in two when it encounters an element that fails the predicate", () => {
       expect([1, 2, 3, 4, 1, 2, 3, 4].span(x => x <= 3)).toEqual([
         [1, 2, 3],
-        [4, 1, 2, 3, 4]
+        [4, 1, 2, 3, 4],
       ]);
     });
     it("breaks at the start", () => {
@@ -755,9 +757,9 @@ describe("IArrayExtensions", () => {
           const clamped = Math.max(0, Math.min(n, arr.length));
           expect(arr.splitAt(n)).toEqual([
             arr.slice(0, clamped),
-            arr.slice(clamped)
+            arr.slice(clamped),
           ]);
-        })
+        }),
       );
     });
   });
@@ -772,8 +774,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.tail()).toEqual(arr.slice(1, arr.length));
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -790,11 +792,11 @@ describe("IArrayExtensions", () => {
             expect(arr.tails()).toEqual(
               arr.reduce(
                 (state, _, i) => [...state, arr.slice(i + 1, arr.length)],
-                [arr]
-              )
+                [arr],
+              ),
             );
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -805,7 +807,7 @@ describe("IArrayExtensions", () => {
       fc.assert(
         fc.property(fc.array(fc.string().filter(predicate)), arr => {
           expect(arr.takeWhile(predicate)).toEqual(arr);
-        })
+        }),
       );
     });
     it("returns an empty array if the first item passes the predicate", () => {
@@ -815,8 +817,8 @@ describe("IArrayExtensions", () => {
           fc.array(fc.string().filter(predicate)),
           (fst, arr) => {
             expect([fst, ...arr].takeWhile(predicate)).toEqual([]);
-          }
-        )
+          },
+        ),
       );
     });
     it("returns the array until the predicate passes", () => {
@@ -827,17 +829,17 @@ describe("IArrayExtensions", () => {
           fc.array(fc.string().filter(predicate)),
           (fst, breaker, arr) => {
             expect([...fst, breaker, ...arr].takeWhile(predicate)).toEqual(fst);
-          }
-        )
+          },
+        ),
       );
     });
     it("is idempotent", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr => {
           expect(arr.takeWhile(predicate).takeWhile(predicate)).toEqual(
-            arr.takeWhile(predicate)
+            arr.takeWhile(predicate),
           );
-        })
+        }),
       );
     });
   });
@@ -850,10 +852,10 @@ describe("IArrayExtensions", () => {
           fc.array(fc.array(fc.anything())),
           (arr, inputs) => {
             expect(arr.zip(...inputs)).toHaveLength(
-              minimum([arr.length, ...inputs.map(x => x.length)])
+              minimum([arr.length, ...inputs.map(x => x.length)]),
             );
-          }
-        )
+          },
+        ),
       );
     });
     it("zips the arrays positionally", () => {
@@ -864,10 +866,10 @@ describe("IArrayExtensions", () => {
           (arr, inputs) => {
             const zipped = arr.zip(...inputs);
             expect(zipped).toEqual(
-              zipped.map((_, i) => [arr, ...inputs].map(x => x[i]))
+              zipped.map((_, i) => [arr, ...inputs].map(x => x[i])),
             );
-          }
-        )
+          },
+        ),
       );
     });
     it("equals zipWith(id)", () => {
@@ -877,10 +879,10 @@ describe("IArrayExtensions", () => {
           fc.array(fc.array(fc.anything())),
           (arr, inputs) => {
             expect(arr.zip(...inputs)).toEqual(
-              arr.zipWith((...xs) => xs, ...inputs)
+              arr.zipWith((...xs) => xs, ...inputs),
             );
-          }
-        )
+          },
+        ),
       );
     });
   });
@@ -893,10 +895,10 @@ describe("IArrayExtensions", () => {
           fc.array(fc.array(fc.anything())),
           (arr, inputs) => {
             expect(arr.zipWith((..._) => [], ...inputs)).toHaveLength(
-              minimum([arr.length, ...inputs.map(x => x.length)])
+              minimum([arr.length, ...inputs.map(x => x.length)]),
             );
-          }
-        )
+          },
+        ),
       );
     });
     it("zips the arrays positionally with the function", () => {
@@ -907,10 +909,10 @@ describe("IArrayExtensions", () => {
           (arr, inputs) => {
             const zipped = arr.zipWith((...xs) => xs.reverse(), ...inputs);
             expect(zipped).toEqual(
-              zipped.map((_, i) => [arr, ...inputs].reverse().map(x => x[i]))
+              zipped.map((_, i) => [arr, ...inputs].reverse().map(x => x[i])),
             );
-          }
-        )
+          },
+        ),
       );
     });
   });

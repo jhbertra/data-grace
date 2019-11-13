@@ -66,8 +66,8 @@ async function lift<P extends any[], R>(
 async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
   const kvpsPromise = Promise.all(
     objectToEntries(spec).map(([key, value]) =>
-      value.then(x => [key, x] as [keyof T, T[typeof key]])
-    )
+      value.then(x => [key, x] as [keyof T, T[typeof key]]),
+    ),
   );
 
   return objectFromEntries(await kvpsPromise);

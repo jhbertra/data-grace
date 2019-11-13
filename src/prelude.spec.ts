@@ -7,15 +7,15 @@ import {
   objectFromEntries,
   objectToEntries,
   pipe,
-  pipeWith
+  pipeWith,
 } from "./prelude";
 
 describe("constant", () => {
   it("Returns the same input always", () => {
     fc.assert(
       fc.property(fc.anything(), fc.anything(), (input, x) =>
-        expect(constant(input)(x)).toEqual(input)
-      )
+        expect(constant(input)(x)).toEqual(input),
+      ),
     );
   });
 });
@@ -25,8 +25,8 @@ describe("curry", () => {
   it("Returns the same as the uncurried function", () => {
     fc.assert(
       fc.property(fc.string(), fc.integer(), fc.boolean(), (a, b, c) =>
-        expect(curry(f)(a)(b)(c)).toEqual(f(a, b, c))
-      )
+        expect(curry(f)(a)(b)(c)).toEqual(f(a, b, c)),
+      ),
     );
   });
 });
@@ -43,17 +43,17 @@ describe("objectFromEntries", () => {
       fc.property(fc.array(fc.tuple(fc.string(), fc.anything())), entries => {
         const expected = entries.reduce(
           (state, [key, value]) => ({ ...state, [key]: value }),
-          {}
+          {},
         );
         expect(objectFromEntries(entries)).toEqual(expected);
-      })
+      }),
     );
   });
   it("returns the initial result if passed the output of objectToEntries", () => {
     fc.assert(
       fc.property(fc.object(), (obj: object) => {
         expect(objectFromEntries(objectToEntries(obj))).toEqual(obj);
-      })
+      }),
     );
   });
 });
@@ -64,7 +64,7 @@ describe("objectToEntries", () => {
       fc.property(fc.object(), (obj: any) => {
         const expected = Object.keys(obj).map(key => [key, obj[key]]);
         expect(objectToEntries(obj)).toEqual(expected);
-      })
+      }),
     );
   });
 });

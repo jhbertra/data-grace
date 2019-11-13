@@ -1,13 +1,13 @@
 export {
   IMaybe,
   MaybeCaseScrutinizer,
-  MaybeJust,
   Maybe,
   MapMaybe,
   Just,
   Nothing,
   arrayToMaybe,
   catMaybes,
+  dataToMaybe,
   forM,
   join,
   lift,
@@ -20,11 +20,11 @@ export {
   toMaybe,
   unless,
   when,
-  zipWithM
+  zipWithM,
 };
 
 import { MapArray, unzip } from "./array";
-import { Case, id, objectFromEntries, objectToEntries } from "./prelude";
+import { Data, data, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -89,7 +89,7 @@ interface IMaybe<A> {
    *
    * @returns true if this is a [[Just]], false otherwise.
    */
-  isJust(): this is MaybeJust<A>;
+  isJust(): this is Data<"Just", A>;
 
   /**
    * A type guard which determines if this [[Maybe]] is a [[Nothing]].
@@ -103,7 +103,7 @@ interface IMaybe<A> {
    *
    * @returns true if this is a [[Nothing]], false otherwise.
    */
-  isNothing(): this is Case<"Nothing">;
+  isNothing(): this is Data<"Nothing">;
 
   /**
    * Transform the value contained by this [[Maybe]].
@@ -203,7 +203,7 @@ interface IMaybe<A> {
    *
    * @returns A [[Maybe]] with an empty array in it, or [[Nothing]] if this is [[Nothing]].
    */
-  voidOut(): Maybe<[]>;
+  voidOut(): Maybe<void>;
 }
 
 /**
@@ -222,20 +222,10 @@ interface MaybeCaseScrutinizer<A, B> {
 }
 
 /**
- * The type of an object constructed using the [[Just]] case.
- */
-interface MaybeJust<A> {
-  /**
-   * The payload of this [[Maybe]]
-   */
-  readonly value: A;
-}
-
-/**
  * A data type that represents an optional / nullable value.
  * It can either have a value of "just A", or "nothing".
  */
-type Maybe<A> = IMaybe<A> & ((Case<"Just"> & MaybeJust<A>) | Case<"Nothing">);
+type Maybe<A> = IMaybe<A> & (Data<"Just", A> | Data<"Nothing">);
 
 /**
  * A type transformer that homomorphically maps the [[Maybe]] type
@@ -256,7 +246,7 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
  */
 function Just<A>(value: A): Maybe<A> {
   return Object.freeze({
-    __case: "Just",
+    ...data("Just", value),
     defaultWith() {
       return value;
     },
@@ -289,15 +279,14 @@ function Just<A>(value: A): Maybe<A> {
     toString() {
       return `Just (${value})`;
     },
-    value,
     voidOut() {
-      return Just([] as []);
-    }
+      return Just(undefined as void);
+    },
   });
 }
 
 const staticNothing: Maybe<any> = Object.freeze({
-  __case: "Nothing",
+  ...data("Nothing"),
   defaultWith: id,
   filter() {
     return this;
@@ -334,7 +323,7 @@ const staticNothing: Maybe<any> = Object.freeze({
   },
   voidOut() {
     return staticNothing;
-  }
+  },
 });
 
 /**
@@ -384,6 +373,15 @@ function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
     }
   }
   return results;
+}
+
+function dataToMaybe<
+  Case extends Tag,
+  Tag extends string,
+  TData extends Data<Tag, any>,
+  T extends TData extends Data<Case, infer TT> ? TT : never
+>(match: Case, data: TData): Maybe<T> {
+  return data.tag === match ? Just(data.value) : Nothing();
 }
 
 /**
@@ -485,7 +483,7 @@ function lift<P extends any[], R>(
  *     baz: Nothing()
  * });
  *
- * // Just ({ bar: "BAR", baz: { __case: "Just", value: "baz" } })
+ * // Just ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
  * build<Foo>({
  *     bar: Just("BAR"),
  *     baz: Just(Just("baz"))
@@ -498,8 +496,8 @@ function lift<P extends any[], R>(
 function build<T extends object>(spec: MapMaybe<T>): Maybe<T> {
   const maybeKvps = sequence(
     objectToEntries(spec).map(([key, value]) =>
-      value.map(x => [key, x] as [keyof T, T[typeof key]])
-    )
+      value.map(x => [key, x] as [keyof T, T[typeof key]]),
+    ),
   );
 
   return maybeKvps.map(objectFromEntries);
@@ -569,7 +567,7 @@ function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
 function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
   f: (a: A) => Maybe<P>,
   as: A[],
-  n: N = 0 as any
+  n: N = 0 as any,
 ): Maybe<MapArray<P>> {
   return mapM(f, as).map(x => unzip(x, n));
 }
@@ -611,7 +609,7 @@ function zipWithM<A, P extends any[], C>(
 function reduceM<A, B>(
   f: (state: B, a: A) => Maybe<B>,
   seed: B,
-  as: A[]
+  as: A[],
 ): Maybe<B> {
   let state = Just<B>(seed);
   for (const a of as) {
