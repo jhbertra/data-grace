@@ -1,11 +1,4 @@
-export {
-    Cons,
-    Curry,
-    Equals,
-    Head,
-    IsEmpty,
-    Tail,
-};
+export { Cons, Curry, Equals, Head, IsEmpty, Tail };
 
 /**
  * Create a new tuple type by prepending `THead` to the start.
@@ -14,8 +7,12 @@ export {
  *
  *  Cons<string, [number, boolean]> == [string, number, boolean]
  */
-type Cons<THead, TTail extends any[]> =
-    ((a: THead, ...t: TTail) => any) extends ((...tail: infer TT) => any) ? TT : never;
+type Cons<THead, TTail extends any[]> = ((
+  a: THead,
+  ...t: TTail
+) => any) extends (...tail: infer TT) => any
+  ? TT
+  : never;
 
 /**
  * Take a function type with any number of known parameters and
@@ -26,8 +23,9 @@ type Cons<THead, TTail extends any[]> =
  *
  *  Curry<[string, boolean, number], string> == (arg: string) => (arg: boolean) => (arg: number) => string
  */
-type Curry<TParams extends any[], TReturn> =
-    (arg: Head<TParams>) => IsEmpty<TParams> extends true ? TReturn : Curry<Tail<TParams>, TReturn>;
+type Curry<TParams extends any[], TReturn> = (
+  arg: Head<TParams>
+) => IsEmpty<TParams> extends true ? TReturn : Curry<Tail<TParams>, TReturn>;
 
 /**
  * A type which proposes equality between two types.
@@ -39,7 +37,7 @@ type Curry<TParams extends any[], TReturn> =
  *  Equals<string, string> == any
  *  Equals<string, number> == never
  */
-type Equals<A, B> = A extends B ? B extends A ? any : never : never;
+type Equals<A, B> = A extends B ? (B extends A ? any : never) : never;
 
 /**
  * Return the first element of a tuple type.
@@ -59,7 +57,7 @@ type Head<T extends any[]> = T extends [infer THead, ...any[]] ? THead : never;
  *  IsEmpty<[string, number, boolean]> = false
  *  IsEmpty<[]> = true
  */
-type IsEmpty<T extends any[]> = T extends ([] | [any]) ? true : false;
+type IsEmpty<T extends any[]> = T extends [] | [any] ? true : false;
 
 /**
  * Return all but the first element of a tuple type.
@@ -68,5 +66,9 @@ type IsEmpty<T extends any[]> = T extends ([] | [any]) ? true : false;
  *
  *  Tail<[string, number, boolean]> = [number, boolean]
  */
-type Tail<T extends any[]> =
-    ((...t: T) => any) extends ((_: any, ...tail: infer TT) => any) ? TT : never;
+type Tail<T extends any[]> = ((...t: T) => any) extends (
+  _: any,
+  ...tail: infer TT
+) => any
+  ? TT
+  : never;

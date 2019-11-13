@@ -1,11 +1,13 @@
 {
-    "defaultSeverity": "error",
-    "extends": [
-        "tslint:recommended"
-    ],
-    "jsRules": {},
-    "rules": {
-        "interface-name": false
-    },
-    "rulesDirectory": []
+  "defaultSeverity": "error",
+  "extends": ["tslint-config-prettier", "tslint-plugin-prettier"],
+  "jsRules": {},
+  "rules": {
+    "interface-name": false,
+    "interface-over-type-literal": false,
+    "prettier": true,
+    "import-spacing": true,
+    "ordered-imports": true
+  },
+  "rulesDirectory": []
 }

@@ -1,13 +1,4 @@
-export {
-    MapPromise,
-    forM,
-    join,
-    lift,
-    build,
-    mapAndUnzipWith,
-    mapM,
-    zipWithM,
-};
+export { MapPromise, forM, join, lift, build, mapAndUnzipWith, mapM, zipWithM };
 
 import { MapArray, unzip } from "./array";
 import { objectFromEntries, objectToEntries } from "./prelude";
@@ -48,8 +39,11 @@ type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
  * @param args lifted arguments to `f`
  * @returns the result of evaluating `f` in a promise on the values produced by `args`
  */
-async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
-    return f.apply(undefined, (await Promise.all(args)) as P);
+async function lift<P extends any[], R>(
+  f: (...args: P) => R,
+  ...args: MapPromise<P>
+): Promise<R> {
+  return f.apply(undefined, (await Promise.all(args)) as P);
 }
 
 /**
@@ -70,10 +64,13 @@ async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromis
  * @returns a promise which will produce a `T` with the outputs of the promises in `spec`.
  */
 async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
-    const kvpsPromise = Promise.all(objectToEntries(spec).map(
-        ([key, value]) => value.then((x) => [key, x] as [keyof T, T[typeof key]])));
+  const kvpsPromise = Promise.all(
+    objectToEntries(spec).map(([key, value]) =>
+      value.then(x => [key, x] as [keyof T, T[typeof key]])
+    )
+  );
 
-    return objectFromEntries(await kvpsPromise);
+  return objectFromEntries(await kvpsPromise);
 }
 
 /*------------------------------
@@ -95,7 +92,7 @@ async function build<T extends object>(spec: MapPromise<T>): Promise<T> {
  * @returns a promise witch produces the values produced by `f` in order.
  */
 function mapM<A, B>(f: (value: A) => Promise<B>, as: A[]): Promise<B[]> {
-    return Promise.all(as.map(f));
+  return Promise.all(as.map(f));
 }
 
 /**
@@ -111,7 +108,7 @@ function mapM<A, B>(f: (value: A) => Promise<B>, as: A[]): Promise<B[]> {
  * @returns a promise witch produces the values produced by `f` in order.
  */
 function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
-    return mapM(f, as);
+  return mapM(f, as);
 }
 
 /**
@@ -129,12 +126,12 @@ function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
  * @param as An array of inputs
  * @param n optional param to control the number of buckets in the case of empty input.
  */
-async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
-    f: (a: A) => Promise<P>,
-    as: A[],
-    n: N = 0 as any): Promise<MapArray<P>> {
-
-    return unzip(await mapM(f, as), n);
+async function mapAndUnzipWith<
+  N extends number,
+  A,
+  P extends any[] & { length: N }
+>(f: (a: A) => Promise<P>, as: A[], n: N = 0 as any): Promise<MapArray<P>> {
+  return unzip(await mapM(f, as), n);
 }
 
 /**
@@ -151,11 +148,11 @@ async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: 
  * @param params Additional arrays to zip.
  */
 function zipWithM<A, P extends any[], C>(
-    f: (a: A, ...params: P) => Promise<C>,
-    as: A[],
-    ...params: MapArray<P>): Promise<C[]> {
-
-    return Promise.all(as.zipWith(f, ...params as any));
+  f: (a: A, ...params: P) => Promise<C>,
+  as: A[],
+  ...params: MapArray<P>
+): Promise<C[]> {
+  return Promise.all(as.zipWith(f, ...(params as any)));
 }
 
 /*------------------------------
@@ -168,5 +165,5 @@ function zipWithM<A, P extends any[], C>(
  * @param m a nested promise to flatten.
  */
 async function join<A>(m: Promise<Promise<A>>): Promise<A> {
-    return await m;
+  return await m;
 }

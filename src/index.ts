@@ -1,14 +1,14 @@
 export * from "./prelude";
 export {
-    array,
-    codec,
-    decoder,
-    either,
-    encoder,
-    maybe,
-    promise,
-    utilityTypes,
-    validation,
+  array,
+  codec,
+  decoder,
+  either,
+  encoder,
+  maybe,
+  promise,
+  utilityTypes,
+  validation
 };
 
 import * as array from "./array";

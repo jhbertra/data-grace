@@ -1,17 +1,17 @@
 export {
-    ICodec,
-    MapCodec,
-    Codec,
-    $case,
-    array,
-    boolean,
-    makeCodec,
-    number,
-    oneOf,
-    optional,
-    property,
-    string,
-    tuple,
+  ICodec,
+  MapCodec,
+  Codec,
+  $case,
+  array,
+  boolean,
+  makeCodec,
+  number,
+  oneOf,
+  optional,
+  property,
+  string,
+  tuple
 };
 
 import { Decoder } from "./decoder";
@@ -30,41 +30,44 @@ import { Validation } from "./validation";
  * The public methods exposed by the [[Codec]] type.
  */
 interface ICodec<TRaw, A> {
+  /**
+   * Map invariantly over the rich data format of the codec.
+   * The bidirectional mapping requires that any transformation must
+   * be "undoable" (i.e. `A` and `B` are isomorphic).
+   */
+  invmapRich<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
 
-    /**
-     * Map invariantly over the rich data format of the codec.
-     * The bidirectional mapping requires that any transformation must
-     * be "undoable" (i.e. `A` and `B` are isomorphic).
-     */
-    invmapRich<B>(f: (a: A) => B, g: (b: B) => A): Codec<TRaw, B>;
+  /**
+   * Map invariantly over the raw data format of the codec.
+   * The bidirectional mapping requires that any transformation must
+   * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic).
+   */
+  invmapRaw<TRaw2>(
+    f: (a: TRaw) => TRaw2,
+    g: (b: TRaw2) => TRaw
+  ): Codec<TRaw2, A>;
 
-    /**
-     * Map invariantly over the raw data format of the codec.
-     * The bidirectional mapping requires that any transformation must
-     * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic).
-     */
-    invmapRaw<TRaw2>(f: (a: TRaw) => TRaw2, g: (b: TRaw2) => TRaw): Codec<TRaw2, A>;
+  /**
+   * Map invariantly over the both the raw and the rich data formats of the codec.
+   * The bidirectional mapping requires that any transformation must
+   * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic, as must `A` and `B`).
+   */
+  invmapBoth<TRaw2, B>(
+    f: (a: TRaw) => TRaw2,
+    g: (b: TRaw2) => TRaw,
+    h: (a: A) => B,
+    i: (b: B) => A
+  ): Codec<TRaw2, B>;
 
-    /**
-     * Map invariantly over the both the raw and the rich data formats of the codec.
-     * The bidirectional mapping requires that any transformation must
-     * be "undoable" (i.e. `TRaw` and `TRaw2` are isomorphic, as must `A` and `B`).
-     */
-    invmapBoth<TRaw2, B>(
-        f: (a: TRaw) => TRaw2,
-        g: (b: TRaw2) => TRaw,
-        h: (a: A) => B,
-        i: (b: B) => A): Codec<TRaw2, B>;
+  /**
+   * Decode raw data into a rich format.
+   */
+  decode(raw: TRaw): Validation<D.DecodeError, A>;
 
-    /**
-     * Decode raw data into a rich format.
-     */
-    decode(raw: TRaw): Validation<D.DecodeError, A>;
-
-    /**
-     * Encode rich data as raw data.
-     */
-    encode(a: A): TRaw;
+  /**
+   * Encode rich data as raw data.
+   */
+  encode(a: A): TRaw;
 }
 
 /**
@@ -82,7 +85,10 @@ interface ICodec<TRaw, A> {
  * codec.encode(codec.decode(rawData)) === rawData
  * ```
  */
-type Codec<TRaw, A> = { decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A> } & ICodec<TRaw, A>;
+type Codec<TRaw, A> = {
+  decoder: Decoder<TRaw, A>;
+  encoder: Encoder<TRaw, A>;
+} & ICodec<TRaw, A>;
 
 /**
  * A type transformer that homomorphically maps the [[Codec]]
@@ -102,16 +108,20 @@ type MapCodec<TRaw, A> = { [K in keyof A]: Codec<TRaw, A[K]> };
 /**
  * Creates a new codec that uses the give decoder / encoder pair.
  */
-function makeCodec<TRaw, A>(decoder: Decoder<TRaw, A>, encoder: Encoder<TRaw, A>): Codec<TRaw, A> {
-    return Object.freeze({
-        decode: decoder.decode,
-        decoder,
-        encode: encoder.encode,
-        encoder,
-        invmapBoth: (f, g, h, i) => makeCodec(decoder.dimap(g, h), encoder.dimap(i, f)),
-        invmapRaw: (f, g) => makeCodec(decoder.contramap(g), encoder.map(f)),
-        invmapRich: (f, g) => makeCodec(decoder.map(f), encoder.contramap(g)),
-    }) as Codec<TRaw, A>;
+function makeCodec<TRaw, A>(
+  decoder: Decoder<TRaw, A>,
+  encoder: Encoder<TRaw, A>
+): Codec<TRaw, A> {
+  return Object.freeze({
+    decode: decoder.decode,
+    decoder,
+    encode: encoder.encode,
+    encoder,
+    invmapBoth: (f, g, h, i) =>
+      makeCodec(decoder.dimap(g, h), encoder.dimap(i, f)),
+    invmapRaw: (f, g) => makeCodec(decoder.contramap(g), encoder.map(f)),
+    invmapRich: (f, g) => makeCodec(decoder.map(f), encoder.contramap(g))
+  }) as Codec<TRaw, A>;
 }
 
 /*------------------------------
@@ -169,31 +179,48 @@ const string: Codec<unknown, string> = makeCodec(D.string, E.string);
  * ```
  */
 function array<T>(itemCodec: Codec<unknown, T>): Codec<unknown, T[]> {
-    return makeCodec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
+  return makeCodec(D.array(itemCodec.decoder), E.array(itemCodec.encoder));
 }
 
 /**
  * Conversion within the context of a union case.
  */
-function $case<Tag extends string, TCase extends Omit<T, "__case">, T extends object>(
-    tag: Tag,
-    innerCodec?: Codec<unknown, TCase>,
+function $case<
+  Tag extends string,
+  TCase extends Omit<T, "__case">,
+  T extends object
+>(
+  tag: Tag,
+  innerCodec?: Codec<unknown, TCase>
 ): [(_: T) => boolean, Codec<object, T>] {
-    const [p, encoder] = E.$case(tag, innerCodec ? innerCodec.encoder : undefined);
-    return [
-        p,
-        makeCodec(D.$case(tag, innerCodec ? innerCodec.decoder : undefined), encoder) as any,
-    ];
+  const [p, encoder] = E.$case(
+    tag,
+    innerCodec ? innerCodec.encoder : undefined
+  );
+  return [
+    p,
+    makeCodec(
+      D.$case(tag, innerCodec ? innerCodec.decoder : undefined),
+      encoder
+    ) as any
+  ];
 }
 
 /**
  * Runs the first encoder that satisfies its paired predicate. Else
  * throws an exception.
  */
-function oneOf<T>(...choices: Array<[(t: T) => boolean, Codec<unknown, T>]>): Codec<unknown, T> {
-    return makeCodec(
-        D.oneOf(...choices.map(([_, c]) => c.decoder)),
-        E.oneOf(...choices.map(([p, c]) => [p, c.encoder] as [(t: T) => boolean, Encoder<unknown, T>])));
+function oneOf<T>(
+  ...choices: Array<[(t: T) => boolean, Codec<unknown, T>]>
+): Codec<unknown, T> {
+  return makeCodec(
+    D.oneOf(...choices.map(([_, c]) => c.decoder)),
+    E.oneOf(
+      ...choices.map(
+        ([p, c]) => [p, c.encoder] as [(t: T) => boolean, Encoder<unknown, T>]
+      )
+    )
+  );
 }
 
 /**
@@ -210,7 +237,10 @@ function oneOf<T>(...choices: Array<[(t: T) => boolean, Codec<unknown, T>]>): Co
  * ```
  */
 function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
-    return makeCodec(D.optional(innerCodec.decoder), E.optional(innerCodec.encoder));
+  return makeCodec(
+    D.optional(innerCodec.decoder),
+    E.optional(innerCodec.encoder)
+  );
 }
 
 /**
@@ -224,8 +254,14 @@ function optional<T>(innerCodec: Codec<unknown, T>): Codec<unknown, Maybe<T>> {
  * property("bar": string).encode("foo"); // Valid ({ bar: "foo" })
  * ```
  */
-function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T> {
-    return makeCodec(D.property(name, convert.decoder), E.property(name, convert.encoder));
+function property<T>(
+  name: string,
+  convert: Codec<unknown, T>
+): Codec<object, T> {
+  return makeCodec(
+    D.property(name, convert.decoder),
+    E.property(name, convert.encoder)
+  );
 }
 
 /**
@@ -239,8 +275,13 @@ function property<T>(name: string, convert: Codec<unknown, T>): Codec<object, T>
  * tuple(string, number).encode(["foo", 1]); // ["foo", 1]
  * ```
  */
-function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> {
-    return makeCodec(D.tuple(...converters.map((x) => x.decoder)), E.tuple(...converters.map((x) => x.encoder))) as any;
+function tuple<T extends any[]>(
+  ...converters: MapCodec<any, T>
+): Codec<any, T> {
+  return makeCodec(
+    D.tuple(...converters.map(x => x.decoder)),
+    E.tuple(...converters.map(x => x.encoder))
+  ) as any;
 }
 
 /*------------------------------
@@ -266,8 +307,19 @@ function tuple<T extends any[]>(...converters: MapCodec<any, T>): Codec<any, T> 
  * fooCodec.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  * ```
  */
-export function build<T extends object>(spec: MapCodec<object, T>): Codec<unknown, T> {
-    return makeCodec(
-        D.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any)),
-        E.build(objectFromEntries(objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any)));
+export function build<T extends object>(
+  spec: MapCodec<object, T>
+): Codec<unknown, T> {
+  return makeCodec(
+    D.build(
+      objectFromEntries(
+        objectToEntries(spec).map(([key, value]) => [key, value.decoder]) as any
+      )
+    ),
+    E.build(
+      objectFromEntries(
+        objectToEntries(spec).map(([key, value]) => [key, value.encoder]) as any
+      )
+    )
+  );
 }

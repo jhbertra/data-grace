@@ -1,17 +1,17 @@
 export {
-    Encoder,
-    MapEncoder,
-    $case,
-    array,
-    boolean,
-    build,
-    makeEncoder,
-    number,
-    oneOf,
-    optional,
-    property,
-    string,
-    tuple,
+  Encoder,
+  MapEncoder,
+  $case,
+  array,
+  boolean,
+  build,
+  makeEncoder,
+  number,
+  oneOf,
+  optional,
+  property,
+  string,
+  tuple
 };
 
 import { Maybe } from "./maybe";
@@ -25,54 +25,53 @@ import { Case, id, objectFromEntries, objectToEntries } from "./prelude";
  * The public methods exposed by the [[Encoder]] type.
  */
 interface Encoder<TOut, A> {
+  /**
+   * Consume an instance of `A` and produce a `TOut`.
+   *
+   * @param a The input to consume.
+   * @returns `A` encoded as `TOut`.
+   */
+  encode(a: A): TOut;
 
-    /**
-     * Consume an instance of `A` and produce a `TOut`.
-     *
-     * @param a The input to consume.
-     * @returns `A` encoded as `TOut`.
-     */
-    encode(a: A): TOut;
+  /**
+   * Obtain the input for this [[Encoder]] from a different
+   * type before running the [[Encoder]].
+   *
+   * ```ts
+   * string.contramap(n => n.ToString()).encode(12); // "12"
+   * ```
+   *
+   * @param f a function that modifies values before they are consumed by this [[Encoder]].
+   * @returns an [[Encoder]] that accepts values which are transformed and fed to this [[Encoder]].
+   */
+  contramap<B>(f: (b: B) => A): Encoder<TOut, B>;
 
-    /**
-     * Obtain the input for this [[Encoder]] from a different
-     * type before running the [[Encoder]].
-     *
-     * ```ts
-     * string.contramap(n => n.ToString()).encode(12); // "12"
-     * ```
-     *
-     * @param f a function that modifies values before they are consumed by this [[Encoder]].
-     * @returns an [[Encoder]] that accepts values which are transformed and fed to this [[Encoder]].
-     */
-    contramap<B>(f: (b: B) => A): Encoder<TOut, B>;
+  /**
+   *  Transform both the input and the output of this [[Encoder]].
+   *
+   * ```ts
+   * string.dimap(f, g);
+   * // equivalent to
+   * string.contramap(f).map(g);
+   * ```
+   *
+   * @param f a function that modifies values read by this [[Encoder]].
+   * @param g a function that modifies values produced by this [[Encoder]].
+   * @returns an [[Encoder]] that transforms its input and output.
+   */
+  dimap<TOut2, B>(f: (b: B) => A, g: (b: TOut) => TOut2): Encoder<TOut2, B>;
 
-    /**
-     *  Transform both the input and the output of this [[Encoder]].
-     *
-     * ```ts
-     * string.dimap(f, g);
-     * // equivalent to
-     * string.contramap(f).map(g);
-     * ```
-     *
-     * @param f a function that modifies values read by this [[Encoder]].
-     * @param g a function that modifies values produced by this [[Encoder]].
-     * @returns an [[Encoder]] that transforms its input and output.
-     */
-    dimap<TOut2, B>(f: (b: B) => A, g: (b: TOut) => TOut2): Encoder<TOut2, B>;
-
-    /**
-     * Transform values produced by the [[Encoder]].
-     *
-     * ```ts
-     * string.map(Number.parseInt).encode("12"); // 12
-     * ```
-     *
-     * @param f a function that modifies values produced by this [[Encoder]].
-     * @returns an [[Encoder]] that transforms the output of this [[Encoder]].
-     */
-    map<TOut2>(f: (b: TOut) => TOut2): Encoder<TOut2, A>;
+  /**
+   * Transform values produced by the [[Encoder]].
+   *
+   * ```ts
+   * string.map(Number.parseInt).encode("12"); // 12
+   * ```
+   *
+   * @param f a function that modifies values produced by this [[Encoder]].
+   * @returns an [[Encoder]] that transforms the output of this [[Encoder]].
+   */
+  map<TOut2>(f: (b: TOut) => TOut2): Encoder<TOut2, A>;
 }
 
 /**
@@ -94,12 +93,12 @@ type MapEncoder<TOut, A> = { [K in keyof A]: Encoder<TOut, A[K]> };
  * Creates an [[Encoder]] that runs the given encoding function.
  */
 function makeEncoder<TOut, A>(encode: (a: A) => TOut): Encoder<TOut, A> {
-    return Object.freeze({
-        contramap: (f) => makeEncoder((x) => encode(f(x as any))),
-        dimap: (f, g) => makeEncoder((x) => g(encode(f(x as any)))),
-        encode: (x) => encode(x),
-        map: (f) => makeEncoder((x) => f(encode(x))),
-    }) as Encoder<TOut, A>;
+  return Object.freeze({
+    contramap: f => makeEncoder(x => encode(f(x as any))),
+    dimap: (f, g) => makeEncoder(x => g(encode(f(x as any)))),
+    encode: x => encode(x),
+    map: f => makeEncoder(x => f(encode(x)))
+  }) as Encoder<TOut, A>;
 }
 
 /*------------------------------
@@ -128,43 +127,49 @@ const string: Encoder<unknown, string> = makeEncoder(id);
  * Encodes an array of items into a raw form.
  */
 function array<T>(convert: Encoder<unknown, T>): Encoder<unknown, T[]> {
-    return makeEncoder((x) => x.map(convert.encode));
+  return makeEncoder(x => x.map(convert.encode));
 }
 
 /**
  * Runs the first encoder that satisfies its paired predicate. Else
  * throws an exception.
  */
-function $case<Tag extends string, TCase extends Omit<T, "__case">, T extends object>(
-    tag: Tag,
-    convert?: Encoder<unknown, TCase>,
+function $case<
+  Tag extends string,
+  TCase extends Omit<T, "__case">,
+  T extends object
+>(
+  tag: Tag,
+  convert?: Encoder<unknown, TCase>
 ): [(t: T) => boolean, Encoder<object, T>] {
-    return [
-        (x) => (x as any).__case === tag,
-        makeEncoder((t) => {
-            const encoder = convert || makeEncoder(() => ({}));
-            const value = encoder.encode(t as any);
-            return {
-                __case: tag,
-                ...(typeof(value) === "object" && value != null ? value : {}),
-            };
-        }),
-    ];
+  return [
+    x => (x as any).__case === tag,
+    makeEncoder(t => {
+      const encoder = convert || makeEncoder(() => ({}));
+      const value = encoder.encode(t as any);
+      return {
+        __case: tag,
+        ...(typeof value === "object" && value != null ? value : {})
+      };
+    })
+  ];
 }
 
 /**
  * Runs the first encoder that satisfies its paired predicate. Else
  * throws an exception.
  */
-function oneOf<T>(...choices: Array<[(t: T) => boolean, Encoder<unknown, T>]>): Encoder<unknown, T> {
-    return makeEncoder((x) => {
-        const encoder = choices.find(([p, _]) => p(x));
-        if (!encoder) {
-            throw new Error(`Cannot encode value ${JSON.stringify(x)}`);
-        } else {
-            return encoder[1].encode(x);
-        }
-    });
+function oneOf<T>(
+  ...choices: Array<[(t: T) => boolean, Encoder<unknown, T>]>
+): Encoder<unknown, T> {
+  return makeEncoder(x => {
+    const encoder = choices.find(([p, _]) => p(x));
+    if (!encoder) {
+      throw new Error(`Cannot encode value ${JSON.stringify(x)}`);
+    } else {
+      return encoder[1].encode(x);
+    }
+  });
 }
 
 /**
@@ -176,7 +181,9 @@ function oneOf<T>(...choices: Array<[(t: T) => boolean, Encoder<unknown, T>]>): 
  * ```
  */
 function optional<T>(convert: Encoder<unknown, T>): Encoder<unknown, Maybe<T>> {
-    return makeEncoder((x) => x.matchCase({ just: convert.encode, nothing: () => undefined }));
+  return makeEncoder(x =>
+    x.matchCase({ just: convert.encode, nothing: () => undefined })
+  );
 }
 
 /**
@@ -186,15 +193,22 @@ function optional<T>(convert: Encoder<unknown, T>): Encoder<unknown, Maybe<T>> {
  * property("foo", string).encode("bar"); // { foo: "bar" }
  * ```
  */
-function property<T>(name: string, convert: Encoder<unknown, T>): Encoder<object, T> {
-    return makeEncoder((value) => ({ [name]: convert.encode(value) }));
+function property<T>(
+  name: string,
+  convert: Encoder<unknown, T>
+): Encoder<object, T> {
+  return makeEncoder(value => ({ [name]: convert.encode(value) }));
 }
 
 /**
  * Encode the elements within a tuple.
  */
-function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): Encoder<unknown, T> {
-    return makeEncoder((t) => converters.zipWith((convert, elem) => convert.encode(elem), t));
+function tuple<T extends any[]>(
+  ...converters: MapEncoder<unknown, T>
+): Encoder<unknown, T> {
+  return makeEncoder(t =>
+    converters.zipWith((convert, elem) => convert.encode(elem), t)
+  );
 }
 
 /*------------------------------
@@ -217,9 +231,14 @@ function tuple<T extends any[]>(...converters: MapEncoder<unknown, T>): Encoder<
  * fooEncoder.encode({ bar: "eek", baz: Just(false) }); // { bar: "eek", baz: false }
  * ```
  */
-function build<T extends object>(spec: MapEncoder<object, T>): Encoder<unknown, T> {
-    return makeEncoder((obj) => objectFromEntries(
-        objectToEntries(spec)
-            .map(([key, convert]) => convert.encode(obj[key]))
-            .chain(objectToEntries)));
+function build<T extends object>(
+  spec: MapEncoder<object, T>
+): Encoder<unknown, T> {
+  return makeEncoder(obj =>
+    objectFromEntries(
+      objectToEntries(spec)
+        .map(([key, convert]) => convert.encode(obj[key]))
+        .chain(objectToEntries)
+    )
+  );
 }

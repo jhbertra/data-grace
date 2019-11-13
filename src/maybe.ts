@@ -1,26 +1,26 @@
 export {
-    IMaybe,
-    MaybeCaseScrutinizer,
-    MaybeJust,
-    Maybe,
-    MapMaybe,
-    Just,
-    Nothing,
-    arrayToMaybe,
-    catMaybes,
-    forM,
-    join,
-    lift,
-    build,
-    mapAndUnzipWith,
-    mapM,
-    mapMaybe,
-    reduceM,
-    sequence,
-    toMaybe,
-    unless,
-    when,
-    zipWithM,
+  IMaybe,
+  MaybeCaseScrutinizer,
+  MaybeJust,
+  Maybe,
+  MapMaybe,
+  Just,
+  Nothing,
+  arrayToMaybe,
+  catMaybes,
+  forM,
+  join,
+  lift,
+  build,
+  mapAndUnzipWith,
+  mapM,
+  mapMaybe,
+  reduceM,
+  sequence,
+  toMaybe,
+  unless,
+  when,
+  zipWithM
 };
 
 import { MapArray, unzip } from "./array";
@@ -34,214 +34,208 @@ import { Case, id, objectFromEntries, objectToEntries } from "./prelude";
  * The public methods exposed by the [[Maybe]] type.
  */
 interface IMaybe<A> {
+  /**
+   * Extract the value of this [[Maybe]] if it has one, or default to a.
+   *
+   * ```ts
+   * Just("foo").defaultWith("bar"); // "foo"
+   * Nothing().defaultWith("bar"); // "bar"
+   * ```
+   *
+   * @param a The value to return in case this is [[Nothing]]
+   * @returns The value within this [[Maybe]] or `a`.
+   */
+  defaultWith(a: A): A;
 
-    /**
-     * Extract the value of this [[Maybe]] if it has one, or default to a.
-     *
-     * ```ts
-     * Just("foo").defaultWith("bar"); // "foo"
-     * Nothing().defaultWith("bar"); // "bar"
-     * ```
-     *
-     * @param a The value to return in case this is [[Nothing]]
-     * @returns The value within this [[Maybe]] or `a`.
-     */
-    defaultWith(a: A): A;
+  /**
+   * Remove unwanted values from this [[Maybe]] with a predicate.
+   *
+   * ```ts
+   * Just("foo").filter(x => x === "foo"); // Just (foo)
+   * Just("bar").filter(x => x === "foo"); // Nothing
+   * Nothing().filter(x => x === "foo"); // Nothing
+   * ```
+   *
+   * @param p a predicate to test the value against
+   * @returns a [[Maybe]] where any value which doesn't satisfy `p` is removed.
+   */
+  filter(p: (a: A) => boolean): Maybe<A>;
 
-    /**
-     * Remove unwanted values from this [[Maybe]] with a predicate.
-     *
-     * ```ts
-     * Just("foo").filter(x => x === "foo"); // Just (foo)
-     * Just("bar").filter(x => x === "foo"); // Nothing
-     * Nothing().filter(x => x === "foo"); // Nothing
-     * ```
-     *
-     * @param p a predicate to test the value against
-     * @returns a [[Maybe]] where any value which doesn't satisfy `p` is removed.
-     */
-    filter(p: (a: A) => boolean): Maybe<A>;
+  /**
+   * Chain a calculation that may also resolve to a nothing value
+   * on the value contained by this [[Maybe]].
+   *
+   * ```ts
+   * Just("foo").chain(x => Just(`${x}bar`)); // Just (foobar)
+   * Just("foo").chain(x => Nothing()); // Nothing
+   * Nothing().chain(x => Just(`${x}bar`)); // Nothing
+   * Nothing().chain(x => Nothing()); // Nothing
+   * ```
+   *
+   * @param f a function to produce the next [[Maybe]] when this [[Maybe]] has a value.
+   * @returns The result of running `f` if this [[Maybe]] has a value/.
+   */
+  chain<B>(f: (a: A) => Maybe<B>): Maybe<B>;
 
-    /**
-     * Chain a calculation that may also resolve to a nothing value
-     * on the value contained by this [[Maybe]].
-     *
-     * ```ts
-     * Just("foo").chain(x => Just(`${x}bar`)); // Just (foobar)
-     * Just("foo").chain(x => Nothing()); // Nothing
-     * Nothing().chain(x => Just(`${x}bar`)); // Nothing
-     * Nothing().chain(x => Nothing()); // Nothing
-     * ```
-     *
-     * @param f a function to produce the next [[Maybe]] when this [[Maybe]] has a value.
-     * @returns The result of running `f` if this [[Maybe]] has a value/.
-     */
-    chain<B>(f: (a: A) => Maybe<B>): Maybe<B>;
+  /**
+   * A type guard which determines if this [[Maybe]] is a [[Just]].
+   *
+   * ```ts
+   * const result = Just("foo");
+   * if (result.isJust()) {
+   *     result.value; // "foo";
+   * }
+   * ```
+   *
+   * @returns true if this is a [[Just]], false otherwise.
+   */
+  isJust(): this is MaybeJust<A>;
 
-    /**
-     * A type guard which determines if this [[Maybe]] is a [[Just]].
-     *
-     * ```ts
-     * const result = Just("foo");
-     * if (result.isJust()) {
-     *     result.value; // "foo";
-     * }
-     * ```
-     *
-     * @returns true if this is a [[Just]], false otherwise.
-     */
-    isJust(): this is MaybeJust<A>;
+  /**
+   * A type guard which determines if this [[Maybe]] is a [[Nothing]].
+   *
+   * ```ts
+   * const result = Nothing();
+   * if (result.isNothing()) {
+   *     result.value; // undefined / compiler error.
+   * }
+   * ```
+   *
+   * @returns true if this is a [[Nothing]], false otherwise.
+   */
+  isNothing(): this is Case<"Nothing">;
 
-    /**
-     * A type guard which determines if this [[Maybe]] is a [[Nothing]].
-     *
-     * ```ts
-     * const result = Nothing();
-     * if (result.isNothing()) {
-     *     result.value; // undefined / compiler error.
-     * }
-     * ```
-     *
-     * @returns true if this is a [[Nothing]], false otherwise.
-     */
-    isNothing(): this is Case<"Nothing">;
+  /**
+   * Transform the value contained by this [[Maybe]].
+   *
+   * ```ts
+   * Just("foo").map(x => `${x}bar`); // Just (foobar)
+   * Nothing().map(x => `${x}bar`); // Nothing
+   * ```
+   *
+   * @param f a function that modifies the value within the [[Maybe]].
+   * @returns a [[Maybe]] with its contents transformed.
+   */
+  map<B>(f: (a: A) => B): Maybe<B>;
 
-    /**
-     * Transform the value contained by this [[Maybe]].
-     *
-     * ```ts
-     * Just("foo").map(x => `${x}bar`); // Just (foobar)
-     * Nothing().map(x => `${x}bar`); // Nothing
-     * ```
-     *
-     * @param f a function that modifies the value within the [[Maybe]].
-     * @returns a [[Maybe]] with its contents transformed.
-     */
-    map<B>(f: (a: A) => B): Maybe<B>;
+  /**
+   * Run a callback based on the case of the [[Maybe]].
+   *
+   * ```ts
+   * Just("foo").matchCase({
+   *     just: x => x.toUpperCase(),
+   *     nothing: () => "got nothing"); // "FOO"
+   *
+   * Nothing().matchCase({
+   *     just: x => x.toUpperCase(),
+   *     nothing: () => "got nothing"); // "got nothing"
+   * ```
+   *
+   * @param cases an object containing callbacks that scrutinize the structure of this [[Maybe]]
+   * @returns the result of calling the appropriate callback in `cases`.
+   */
+  matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
 
-    /**
-     * Run a callback based on the case of the [[Maybe]].
-     *
-     * ```ts
-     * Just("foo").matchCase({
-     *     just: x => x.toUpperCase(),
-     *     nothing: () => "got nothing"); // "FOO"
-     *
-     * Nothing().matchCase({
-     *     just: x => x.toUpperCase(),
-     *     nothing: () => "got nothing"); // "got nothing"
-     * ```
-     *
-     * @param cases an object containing callbacks that scrutinize the structure of this [[Maybe]]
-     * @returns the result of calling the appropriate callback in `cases`.
-     */
-    matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
+  /**
+   * Pick this @Maybe if it has a value otherwise pick the other.
+   *
+   * ```ts
+   * Just("bob").or(Just("sue")).toString(); // "Just (bob)"
+   * Nothing().or(Just("sue")).toString(); // "Just (sue)"
+   * Nothing().or(Nothing()).toString(); // "Nothing"
+   * ```
+   *
+   * @param other a [[Maybe]] to chose if this one is [[Nothing]].
+   * @returns the first of `this, other` which has a value, else [[Nothing]].
+   */
+  or(other: Maybe<A>): Maybe<A>;
 
-    /**
-     * Pick this @Maybe if it has a value otherwise pick the other.
-     *
-     * ```ts
-     * Just("bob").or(Just("sue")).toString(); // "Just (bob)"
-     * Nothing().or(Just("sue")).toString(); // "Just (sue)"
-     * Nothing().or(Nothing()).toString(); // "Nothing"
-     * ```
-     *
-     * @param other a [[Maybe]] to chose if this one is [[Nothing]].
-     * @returns the first of `this, other` which has a value, else [[Nothing]].
-     */
-    or(other: Maybe<A>): Maybe<A>;
+  /**
+   * Replace the value in this [[Maybe]] with another [[Maybe]].
+   *
+   * ```ts
+   * Just("bob").replace(Just("sue")).toString(); // "Just (sue)"
+   * Just("bob").replace(Nothing()).toString(); // "Nothing"
+   * Nothing().replace(Just("sue")).toString(); // "Nothing"
+   * Nothing().replace(Nothing()).toString(); // "Nothing"
+   * ```
+   *
+   * @param m The [[Maybe]] to replace this one with if it has a value.
+   * @returns `m` if this has a value, else [[Nothing]].
+   */
+  replace<B>(m: Maybe<B>): Maybe<B>;
 
-    /**
-     * Replace the value in this [[Maybe]] with another [[Maybe]].
-     *
-     * ```ts
-     * Just("bob").replace(Just("sue")).toString(); // "Just (sue)"
-     * Just("bob").replace(Nothing()).toString(); // "Nothing"
-     * Nothing().replace(Just("sue")).toString(); // "Nothing"
-     * Nothing().replace(Nothing()).toString(); // "Nothing"
-     * ```
-     *
-     * @param m The [[Maybe]] to replace this one with if it has a value.
-     * @returns `m` if this has a value, else [[Nothing]].
-     */
-    replace<B>(m: Maybe<B>): Maybe<B>;
+  /**
+   * Replace the value in this [[Maybe]] with a new value.
+   *
+   * ```ts
+   * Just("bob").replace(42).toString(); // "Just (42)"
+   * Nothing().replace(42).toString(); // "Nothing"
+   * ```
+   *
+   * @param b the value to replace the contents of this [[Maybe]] with.
+   * @returns A [[Maybe]] containing `b` if this has a value, else [[Nothing]].
+   */
+  replacePure<B>(b: B): Maybe<B>;
 
-    /**
-     * Replace the value in this [[Maybe]] with a new value.
-     *
-     * ```ts
-     * Just("bob").replace(42).toString(); // "Just (42)"
-     * Nothing().replace(42).toString(); // "Nothing"
-     * ```
-     *
-     * @param b the value to replace the contents of this [[Maybe]] with.
-     * @returns A [[Maybe]] containing `b` if this has a value, else [[Nothing]].
-     */
-    replacePure<B>(b: B): Maybe<B>;
+  /**
+   * Convert this [[Maybe]] to an array with either one or
+   * zero elements.
+   *
+   * ```ts
+   * Just("bob").toArray(); // [42]
+   * Nothing().toArray(); // []
+   * ```
+   *
+   * @returns A one-element array containing the value contained by this [[Maybe]], else an empty array.
+   */
+  toArray(): A[];
 
-    /**
-     * Convert this [[Maybe]] to an array with either one or
-     * zero elements.
-     *
-     * ```ts
-     * Just("bob").toArray(); // [42]
-     * Nothing().toArray(); // []
-     * ```
-     *
-     * @returns A one-element array containing the value contained by this [[Maybe]], else an empty array.
-     */
-    toArray(): A[];
+  /**
+   * Pretty-print this [[Maybe]]
+   *
+   * @returns a string formatted `"Just (...)"` or `"Nothing"`.
+   */
+  toString(): string;
 
-    /**
-     * Pretty-print this [[Maybe]]
-     *
-     * @returns a string formatted `"Just (...)"` or `"Nothing"`.
-     */
-    toString(): string;
-
-    /**
-     * Discard any value contained by this [[Maybe]]
-     *
-     * @returns A [[Maybe]] with an empty array in it, or [[Nothing]] if this is [[Nothing]].
-     */
-    voidOut(): Maybe<[]>;
-
+  /**
+   * Discard any value contained by this [[Maybe]]
+   *
+   * @returns A [[Maybe]] with an empty array in it, or [[Nothing]] if this is [[Nothing]].
+   */
+  voidOut(): Maybe<[]>;
 }
 
 /**
  * Defines the set of functions required to scrutinize the cases of a [[Maybe]].
  */
 interface MaybeCaseScrutinizer<A, B> {
-    /**
-     * Callback which is called in the case a [[Maybe]] has a value.
-     */
-    just(a: A): B;
+  /**
+   * Callback which is called in the case a [[Maybe]] has a value.
+   */
+  just(a: A): B;
 
-    /**
-     * Callback which is called in the case a [[Maybe]] has no value.
-     */
-    nothing(): B;
+  /**
+   * Callback which is called in the case a [[Maybe]] has no value.
+   */
+  nothing(): B;
 }
 
 /**
  * The type of an object constructed using the [[Just]] case.
  */
 interface MaybeJust<A> {
-
-    /**
-     * The payload of this [[Maybe]]
-     */
-    readonly value: A;
+  /**
+   * The payload of this [[Maybe]]
+   */
+  readonly value: A;
 }
 
 /**
  * A data type that represents an optional / nullable value.
  * It can either have a value of "just A", or "nothing".
  */
-type Maybe<A> = IMaybe<A> & (
-    | Case<"Just"> & MaybeJust<A>
-    | Case<"Nothing">
-);
+type Maybe<A> = IMaybe<A> & ((Case<"Just"> & MaybeJust<A>) | Case<"Nothing">);
 
 /**
  * A type transformer that homomorphically maps the [[Maybe]] type
@@ -261,47 +255,93 @@ type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
  * Constructs a new [[Maybe]] that contains a given value.
  */
 function Just<A>(value: A): Maybe<A> {
-    return Object.freeze({
-        __case: "Just",
-        defaultWith() { return value; },
-        filter(p) { return p(value) ? this : staticNothing; },
-        chain(f) { return f(value); },
-        isJust() { return true; },
-        isNothing() { return false; },
-        map(f) { return Just(f(value)); },
-        matchCase({ just }) { return just(value); },
-        or() { return this; },
-        replace: id,
-        replacePure: Just,
-        toArray() { return [value]; },
-        toString() { return `Just (${value})`; },
-        value,
-        voidOut() { return Just([] as []); },
-    });
+  return Object.freeze({
+    __case: "Just",
+    defaultWith() {
+      return value;
+    },
+    filter(p) {
+      return p(value) ? this : staticNothing;
+    },
+    chain(f) {
+      return f(value);
+    },
+    isJust() {
+      return true;
+    },
+    isNothing() {
+      return false;
+    },
+    map(f) {
+      return Just(f(value));
+    },
+    matchCase({ just }) {
+      return just(value);
+    },
+    or() {
+      return this;
+    },
+    replace: id,
+    replacePure: Just,
+    toArray() {
+      return [value];
+    },
+    toString() {
+      return `Just (${value})`;
+    },
+    value,
+    voidOut() {
+      return Just([] as []);
+    }
+  });
 }
 
 const staticNothing: Maybe<any> = Object.freeze({
-    __case: "Nothing",
-    defaultWith: id,
-    filter() { return this; },
-    chain() { return this; },
-    isJust() { return false; },
-    isNothing() { return true; },
-    map() { return this; },
-    matchCase({ nothing }) { return nothing(); },
-    or(m2) { return m2; },
-    replace() { return this; },
-    replacePure() { return this; },
-    toArray() { return []; },
-    toString() { return `Nothing`; },
-    voidOut() { return staticNothing; },
+  __case: "Nothing",
+  defaultWith: id,
+  filter() {
+    return this;
+  },
+  chain() {
+    return this;
+  },
+  isJust() {
+    return false;
+  },
+  isNothing() {
+    return true;
+  },
+  map() {
+    return this;
+  },
+  matchCase({ nothing }) {
+    return nothing();
+  },
+  or(m2) {
+    return m2;
+  },
+  replace() {
+    return this;
+  },
+  replacePure() {
+    return this;
+  },
+  toArray() {
+    return [];
+  },
+  toString() {
+    return `Nothing`;
+  },
+  voidOut() {
+    return staticNothing;
+  }
 });
 
 /**
  * Constructs a new [[Maybe]] that contains no value.
  */
 function Nothing<A>(): Maybe<A> {
-    return staticNothing as Maybe<A>;
+  return staticNothing as Maybe<A>;
 }
 
 /*------------------------------
@@ -323,7 +363,7 @@ function Nothing<A>(): Maybe<A> {
  * @returns A [[Maybe]] containing the first element of `arr`, or [[Nothing]] if it is empty.
  */
 function arrayToMaybe<A>(arr: A[]): Maybe<A> {
-    return arr.length === 0 ? staticNothing : Just(arr[0]);
+  return arr.length === 0 ? staticNothing : Just(arr[0]);
 }
 
 /**
@@ -337,13 +377,13 @@ function arrayToMaybe<A>(arr: A[]): Maybe<A> {
  * @returns an array containing all data found in `ms`.
  */
 function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
-    const results: A[] = [];
-    for (const m of ms) {
-        if (m.isJust()) {
-            results.push(m.value);
-        }
+  const results: A[] = [];
+  for (const m of ms) {
+    if (m.isJust()) {
+      results.push(m.value);
     }
-    return results;
+  }
+  return results;
 }
 
 /**
@@ -359,14 +399,14 @@ function catMaybes<A>(ms: Array<Maybe<A>>): A[] {
  * @returns the contents of `as` transformed by `f` when a value was returned.
  */
 function mapMaybe<A, B>(f: (value: A) => Maybe<B>, as: A[]): B[] {
-    const results: B[] = [];
-    for (const a of as) {
-        const m = f(a);
-        if (m.isJust()) {
-            results.push(m.value);
-        }
+  const results: B[] = [];
+  for (const a of as) {
+    const m = f(a);
+    if (m.isJust()) {
+      results.push(m.value);
     }
-    return results;
+  }
+  return results;
 }
 
 /**
@@ -383,7 +423,7 @@ function mapMaybe<A, B>(f: (value: A) => Maybe<B>, as: A[]): B[] {
  * @returns `Just(value)` if value is non-null and defined, else `Nothing`.
  */
 function toMaybe<A>(value?: A): Maybe<A> {
-    return value == null ? staticNothing : Just(value);
+  return value == null ? staticNothing : Just(value);
 }
 
 /*------------------------------
@@ -409,16 +449,19 @@ function toMaybe<A>(value?: A): Maybe<A> {
  * @param args lifted arguments to `f`.
  * @returns the result of evaluating `f` in a [[Maybe]] on the values contained by `args`.
  */
-function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
-    const values = [];
-    for (const arg of args) {
-        if (arg.isNothing()) {
-            return arg;
-        } else {
-            values.push(arg.value);
-        }
+function lift<P extends any[], R>(
+  f: (...args: P) => R,
+  ...args: MapMaybe<P>
+): Maybe<R> {
+  const values = [];
+  for (const arg of args) {
+    if (arg.isNothing()) {
+      return arg;
+    } else {
+      values.push(arg.value);
     }
-    return Just(f(...values as P));
+  }
+  return Just(f(...(values as P)));
 }
 
 /**
@@ -453,10 +496,13 @@ function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): M
  * @returns a [[Maybe]] which will produce a `T` with the outputs of the [[Maybe]]s in `spec`.
  */
 function build<T extends object>(spec: MapMaybe<T>): Maybe<T> {
-    const maybeKvps = sequence(objectToEntries(spec).map(
-        ([key, value]) => value.map((x) => [key, x] as [keyof T, T[typeof key]])));
+  const maybeKvps = sequence(
+    objectToEntries(spec).map(([key, value]) =>
+      value.map(x => [key, x] as [keyof T, T[typeof key]])
+    )
+  );
 
-    return maybeKvps.map(objectFromEntries);
+  return maybeKvps.map(objectFromEntries);
 }
 
 /*------------------------------
@@ -476,7 +522,7 @@ function build<T extends object>(spec: MapMaybe<T>): Maybe<T> {
  * @returns a [[Maybe]] witch produces the values produced by `f` in order.
  */
 function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
-    return sequence(as.map(f));
+  return sequence(as.map(f));
 }
 
 /**
@@ -492,7 +538,7 @@ function mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
  * @returns a [[Maybe]] witch produces the values produced by `f` in order.
  */
 function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
-    return mapM(f, as);
+  return mapM(f, as);
 }
 
 /**
@@ -510,7 +556,7 @@ function forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
  * @returns a [[Maybe]] of size `mas.length` if all elements have a value, else [[Nothing]].
  */
 function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
-    return lift((...as: A[]) => as, ...mas);
+  return lift((...as: A[]) => as, ...mas);
 }
 
 /**
@@ -521,11 +567,11 @@ function sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
  * @param n optional param to control the number of buckets in the case of empty input.
  */
 function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
-    f: (a: A) => Maybe<P>,
-    as: A[],
-    n: N = 0 as any): Maybe<MapArray<P>> {
-
-    return mapM(f, as).map((x) => unzip(x, n));
+  f: (a: A) => Maybe<P>,
+  as: A[],
+  n: N = 0 as any
+): Maybe<MapArray<P>> {
+  return mapM(f, as).map(x => unzip(x, n));
 }
 
 /**
@@ -537,11 +583,11 @@ function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
  * @param params Additional arrays to zip.
  */
 function zipWithM<A, P extends any[], C>(
-    f: (a: A, ...params: P) => Maybe<C>,
-    as: A[],
-    ...params: MapArray<P>): Maybe<C[]> {
-
-    return sequence(as.zipWith(f, ...params as any));
+  f: (a: A, ...params: P) => Maybe<C>,
+  as: A[],
+  ...params: MapArray<P>
+): Maybe<C[]> {
+  return sequence(as.zipWith(f, ...(params as any)));
 }
 
 /**
@@ -562,16 +608,20 @@ function zipWithM<A, P extends any[], C>(
  * @param f a state-reducing function which may short-circuit at any step by returning [[Nothing]].
  * @returns The result of the reduction in a [[Maybe]].
  */
-function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
-    let state = Just<B>(seed);
-    for (const a of as) {
-        if (state.isNothing()) {
-            return state;
-        } else {
-            state = state.chain((b) => f(b, a));
-        }
+function reduceM<A, B>(
+  f: (state: B, a: A) => Maybe<B>,
+  seed: B,
+  as: A[]
+): Maybe<B> {
+  let state = Just<B>(seed);
+  for (const a of as) {
+    if (state.isNothing()) {
+      return state;
+    } else {
+      state = state.chain(b => f(b, a));
     }
-    return state;
+  }
+  return state;
 }
 
 /*------------------------------
@@ -599,7 +649,7 @@ const empty = Just([]);
  * @returns A [[Maybe]] with an empty array if `b` is `true`, else [[Nothing]].
  */
 function when(b: boolean): Maybe<[]> {
-    return b ? empty : staticNothing;
+  return b ? empty : staticNothing;
 }
 
 /**
@@ -617,7 +667,7 @@ function when(b: boolean): Maybe<[]> {
  * @returns A [[Maybe]] with an empty array if `b` is `false`, else [[Nothing]].
  */
 function unless(b: boolean): Maybe<[]> {
-    return when(!b);
+  return when(!b);
 }
 
 /**
@@ -627,5 +677,5 @@ function unless(b: boolean): Maybe<[]> {
  * @returns a flattened structure.
  */
 function join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
-    return m.chain(id);
+  return m.chain(id);
 }
