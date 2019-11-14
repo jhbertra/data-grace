@@ -8,7 +8,6 @@ export {
   curry,
   data,
   id,
-  modifyCase,
   objectFromEntries,
   objectToEntries,
   pipe,
@@ -38,15 +37,6 @@ function data(tag: string, value?: any) {
         }
       : { tag },
   );
-}
-
-function modifyCase<
-  Case extends Tag,
-  Tag extends string,
-  TData extends Data<Case, any>,
-  T extends TData extends Data<Case, infer TT> ? TT : never
->(match: Case, data: TData, modify: (t: T) => T): TData {
-  return data.tag === match ? { ...data, value: modify(data.value) } : data;
 }
 
 /**
