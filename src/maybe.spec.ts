@@ -561,7 +561,8 @@ describe("IMaybe", () => {
     it("Passes the value into predicate", () => {
       fc.assert(
         fc.property(fc.string(), s => {
-          M.Just(s).filter(x => !!expect(x).toEqual(s));
+          // @ts-ignore
+          M.Just(s).filter(x => expect(x).toEqual(s));
         }),
       );
     });
@@ -775,7 +776,9 @@ describe("IMaybe", () => {
       expect(simplify(M.Nothing().voidOut())).toEqual(simplify(M.Nothing()));
     });
     it("Renders Just(s) as Just (s)", () => {
-      expect(simplify(M.Just("foo").voidOut())).toEqual(simplify(M.Just([])));
+      expect(simplify(M.Just("foo").voidOut())).toEqual(
+        simplify(M.Just(undefined)),
+      );
     });
   });
 });

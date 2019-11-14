@@ -850,7 +850,9 @@ describe("IEither", () => {
       );
     });
     it("Returns Right ([]) for Right (s)", () => {
-      expect(simplify(E.Right("foo").voidOut())).toEqual(simplify(E.Right([])));
+      expect(simplify(E.Right("foo").voidOut())).toEqual(
+        simplify(E.Right(undefined)),
+      );
     });
   });
 });

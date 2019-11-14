@@ -21,22 +21,10 @@ export type Json =
 type JsonPathKey = string | number;
 
 export type DecoderError =
-  | Data<
-      "Path",
-      {
-        key: JsonPathKey;
-        error: DecoderError;
-      }
-    >
-  | Data<"Or", DecoderError[]>
+  | Data<"Failure", { message: string; value: Json }>
   | Data<"Multiple", DecoderError[]>
-  | Data<
-      "Failure",
-      {
-        message: string;
-        value: Json;
-      }
-    >;
+  | Data<"Or", DecoderError[]>
+  | Data<"Path", { key: JsonPathKey; error: DecoderError }>;
 
 export function isJson(a: unknown): a is Json {
   return (
