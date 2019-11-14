@@ -240,7 +240,7 @@ interface IEither<A, B> {
    *
    * @returns An [[Either]] with an empty array in it, or `this` if `this` is [[Left]].
    */
-  voidOut(): Either<A, []>;
+  voidOut(): Either<A, void>;
 }
 
 /**
@@ -330,7 +330,7 @@ function Left<A, B>(value: A): Either<A, B> {
       return `Left (${value})`;
     },
     voidOut() {
-      return Left<A, []>(value);
+      return Left<A, void>(value);
     },
   }) as Either<A, B>;
 }
@@ -377,7 +377,7 @@ function Right<A, B>(value: B): Either<A, B> {
       return `Right (${value})`;
     },
     voidOut() {
-      return Right<A, []>([]);
+      return Right<A, void>(undefined);
     },
   }) as Either<A, B>;
 }

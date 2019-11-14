@@ -29,14 +29,10 @@ function data<Tag extends string, Value>(
 ): Data<Tag, Value>;
 
 function data(tag: string, value?: any) {
-  return Object.freeze(
-    value
-      ? {
-          tag,
-          value,
-        }
-      : { tag },
-  );
+  return Object.freeze({
+    tag,
+    value,
+  });
 }
 
 /**

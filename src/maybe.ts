@@ -319,7 +319,7 @@ const staticNothing: Maybe<any> = Object.freeze({
     return [];
   },
   toString() {
-    return `Nothing`;
+    return "Nothing";
   },
   voidOut() {
     return staticNothing;

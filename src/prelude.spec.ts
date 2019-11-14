@@ -45,7 +45,9 @@ describe("objectFromEntries", () => {
           (state, [key, value]) => ({ ...state, [key]: value }),
           {},
         );
-        expect(objectFromEntries(entries)).toEqual(expected);
+        expect(objectFromEntries<{ [key: string]: unknown }>(entries)).toEqual(
+          expected,
+        );
       }),
     );
   });

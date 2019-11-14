@@ -495,9 +495,10 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.inits()).toEqual(
-              arr.reduce((state, _, i) => [...state, arr.slice(0, i + 1)], [
-                [],
-              ]),
+              arr.reduce<unknown[][]>(
+                (state, _, i) => [...state, arr.slice(0, i + 1)],
+                [[]],
+              ),
             );
           },
         ),
@@ -790,7 +791,7 @@ describe("IArrayExtensions", () => {
           fc.array(fc.anything()).filter(x => !x.isEmpty()),
           arr => {
             expect(arr.tails()).toEqual(
-              arr.reduce(
+              arr.reduce<unknown[][]>(
                 (state, _, i) => [...state, arr.slice(i + 1, arr.length)],
                 [arr],
               ),
