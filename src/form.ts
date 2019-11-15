@@ -125,6 +125,7 @@ export const Forms = {
         const results = objectToEntries(spec).map(([key, form]) =>
           form
             .validate(input[key])
+            .map<[keyof a, a[keyof a]]>(x => [key, x])
             .mapLeft(error => data("Path", { key: key as string, error })),
         );
 
