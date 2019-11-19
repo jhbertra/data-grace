@@ -43,7 +43,6 @@
     "testRegex": "^.+(?<!utilityTypes)\\.spec\\.ts$"
   },
   "dependencies": {
-    "core-js": "^3.4.1",
-    "immutable": "^4.0.0-rc.12"
+    "core-js": "^3.4.1"
   }
 }

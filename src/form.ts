@@ -1,19 +1,9 @@
-import { Set } from "immutable";
 import { Either, Left, lefts, Right, rights } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import {
-  constant,
-  Data,
-  data,
-  objectFromEntries,
-  objectToEntries,
-} from "./prelude";
+import { constant, objectFromEntries, objectToEntries } from "./prelude";
+import { StructuredError } from "./structuredError";
 
-export type FormError =
-  | Data<"Failure", string[]>
-  | Data<"Multiple", FormError[]>
-  | Data<"Or", FormError[]>
-  | Data<"Path", { key: string | number; error: FormError }>;
+export type FormError = StructuredError<string | number, string>;
 
 export type FormValidator<input, a> = (input: input) => Either<FormError, a>;
 
@@ -58,6 +48,15 @@ export class Form<input, a = input> {
     });
   }
 
+  public queryError(
+    error: FormError,
+    ...path: Array<string | number>
+  ): Maybe<FormError> {
+    return this.getResult()
+      .leftToMaybe()
+      .chain(x => StructuredError.query(x, ...path));
+  }
+
   public setValue(value: input): Form<input, a> {
     return this.with({ value, dirty: true });
   }
@@ -96,21 +95,8 @@ export const Forms = {
   checkbox<a>(validate: FormValidator<boolean, a>): Form<boolean, a> {
     return new Form(false as boolean, validate);
   },
-  options<a, b>(validate: FormValidator<Set<a>, b>): Form<Set<a>, b> {
-    return new Form(Set(), validate);
-  },
-  queryError(
-    error: FormError,
-    ...path: Array<string | number>
-  ): Maybe<FormError> {
-    if (path.isEmpty()) {
-      return Just(error);
-    } else if (error.tag === "Path" && error.value.key === path.head()) {
-      const [_, ...tail] = path;
-      return Forms.queryError(error.value.error, ...tail);
-    } else {
-      return Nothing();
-    }
+  options<a, b>(validate: FormValidator<a[], b>): Form<a[], b> {
+    return new Form<a[], b>([], validate);
   },
   record<input extends object, a extends { [K in keyof input]: a[K] }>(
     spec: { [K in keyof input]: Form<input[K], a[K]> },
@@ -126,14 +112,14 @@ export const Forms = {
           form
             .validate(input[key])
             .map<[keyof a, a[keyof a]]>(x => [key, x])
-            .mapLeft(error => data("Path", { key: key as string, error })),
+            .mapLeft(error => StructuredError.Path(key as string, error)),
         );
 
         const errors = lefts(results);
 
         return errors.isEmpty()
           ? Right(objectFromEntries(rights(results)))
-          : Left(data("Multiple", errors));
+          : Left(StructuredError.Multiple(errors));
       },
     );
   },
@@ -163,14 +149,14 @@ export const Forms = {
       const results = forms.map((form, i) =>
         form
           .validate(input[i])
-          .mapLeft(error => data("Path", { key: i, error })),
+          .mapLeft(error => StructuredError.Path(i, error)),
       );
 
       const errors = lefts(results);
 
       return errors.isEmpty()
         ? Right(rights(results) as any)
-        : Left(data("Multiple", errors));
+        : Left(StructuredError.Multiple(errors));
     });
   },
 };

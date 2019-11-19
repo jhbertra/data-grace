@@ -18,6 +18,7 @@ export {
   reduceM,
   sequence,
   toMaybe,
+  unCons,
   unless,
   when,
   zipWithM,
@@ -353,6 +354,24 @@ function Nothing<A>(): Maybe<A> {
  */
 function arrayToMaybe<A>(arr: A[]): Maybe<A> {
   return arr.length === 0 ? staticNothing : Just(arr[0]);
+}
+
+/**
+ * Creates a new [[Maybe]] that either contains
+ * the first element of arr if it exists and the tail, or
+ * nothing.
+ *
+ * ```ts
+ * arrayToMaybe([]); // Nothing
+ * arrayToMaybe([1]); // Just ([1, []])
+ * arrayToMaybe([1, 2, 3]); // Just([1, [2. 3]])
+ * ```
+ *
+ * @param arr An array to convert to a [[Maybe]]
+ * @returns A [[Maybe]] containing the first element of `arr` and the tail, or [[Nothing]] if it is empty.
+ */
+function unCons<A>(arr: A[]): Maybe<[A, A[]]> {
+  return arr.length === 0 ? staticNothing : Just([arr[0], arr.slice(1)]);
 }
 
 /**

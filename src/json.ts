@@ -1,14 +1,7 @@
-import { replicate } from "./array";
 import { Either, Left, lefts, Right, rights } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import {
-  constant,
-  Data,
-  data,
-  id,
-  objectFromEntries,
-  objectToEntries,
-} from "./prelude";
+import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
+import { StructuredError } from "./structuredError";
 
 export type Json =
   | string
@@ -20,11 +13,10 @@ export type Json =
 
 type JsonPathKey = string | number;
 
-export type DecoderError =
-  | Data<"Failure", { message: string; value: Json }>
-  | Data<"Multiple", DecoderError[]>
-  | Data<"Or", DecoderError[]>
-  | Data<"Path", { key: JsonPathKey; error: DecoderError }>;
+export type DecoderError = StructuredError<
+  JsonPathKey,
+  { message: string; value: Json }
+>;
 
 export function isJson(a: unknown): a is Json {
   return (
@@ -41,53 +33,15 @@ export function isJson(a: unknown): a is Json {
   );
 }
 
-export function renderDecoderError(error: DecoderError): string {
-  return renderDecoderErrorWithIndent(error, 0)
-    .map(
-      ([indent, line]) =>
-        String.fromCodePoint(...replicate(indent * 4, 32)) + line,
-    )
-    .join("\n");
-}
-
-export function renderDecoderErrorWithIndent(
-  error: DecoderError,
-  indent: number,
-): [number, string][] {
-  switch (error.tag) {
-    case "Failure":
-      return [
-        [indent + 1, error.value.message],
-        [indent + 1, `Offending value: ${JSON.stringify(error.value)}`],
-      ];
-
-    case "Multiple":
-      return error.value
-        .map(x => renderDecoderErrorWithIndent(x, indent))
-        .intersperse([[0, ""]])
-        .chain(id);
-
-    case "Or":
-      let i = 1;
-      return [
-        [indent, "Several alternative decode attempts failed:"],
-        ...error.value.chain<[number, string]>(x => [
-          [indent + 1, `case ${i++}:`],
-          ...renderDecoderErrorWithIndent(x, indent + 2),
-        ]),
-      ];
-
-    case "Path":
-      return [
-        [
-          indent,
-          `At ${typeof error.value.key === "string" ? "property" : "index"} ${
-            error.value.key
-          }:`,
-        ],
-        ...renderDecoderErrorWithIndent(error.value.error, indent + 1),
-      ];
-  }
+export function renderDecoderError(error: DecoderError): string[] {
+  return StructuredError.render(
+    error,
+    key => `${typeof key === "string" ? "property" : "index"} ${key}`,
+    ({ message, value }) => [
+      message,
+      `Offending value: ${JSON.stringify(value)}`,
+    ],
+  );
 }
 
 export class Decoder<T> {
@@ -110,7 +64,7 @@ export class Decoder<T> {
           alt
             .decode(json)
             .mapLeft(error2 =>
-              data("Or", [
+              StructuredError.Or([
                 ...(error1.tag === "Or" ? error1.value : [error1]),
                 ...(error2.tag === "Or" ? error2.value : [error2]),
               ]),
@@ -143,7 +97,7 @@ export const Decode = {
     typeof x === "string"
       ? Right(x)
       : Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected a string",
             value: x,
           }),
@@ -153,7 +107,7 @@ export const Decode = {
     typeof x === "boolean"
       ? Right(x)
       : Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected a boolean",
             value: x,
           }),
@@ -163,7 +117,7 @@ export const Decode = {
     typeof x === "number"
       ? Right(x)
       : Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected a number",
             value: x,
           }),
@@ -178,21 +132,18 @@ export const Decode = {
     return new Decoder(x => {
       if (Array.isArray(x)) {
         const results = x.map((x, i) =>
-          valueDecoder.decode(x).mapLeft<DecoderError>(error =>
-            data("Path", {
-              key: i,
-              error,
-            }),
-          ),
+          valueDecoder
+            .decode(x)
+            .mapLeft(error => StructuredError.Path(i, error)),
         );
         const errors = lefts(results);
 
         return errors.isEmpty()
           ? Right(rights(results))
-          : Left(data("Multiple", errors));
+          : Left(StructuredError.Multiple(errors));
       } else {
         return Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected an array",
             value: x,
           }),
@@ -204,21 +155,18 @@ export const Decode = {
     return new Decoder(x => {
       if (x !== null && !Array.isArray(x) && typeof x === "object") {
         return x.hasOwnProperty(name)
-          ? valueDecoder.decode(x[name]).mapLeft<DecoderError>(error =>
-              data("Path", {
-                key: name,
-                error,
-              }),
-            )
+          ? valueDecoder
+              .decode(x[name])
+              .mapLeft(error => StructuredError.Path(name, error))
           : Left(
-              data("Failure", {
+              StructuredError.Failure({
                 message: `Expected a field called ${name}`,
                 value: x,
               }),
             );
       } else {
         return Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected an object",
             value: x,
           }),
@@ -230,21 +178,18 @@ export const Decode = {
     return new Decoder(x => {
       if (Array.isArray(x)) {
         return x[index] !== undefined
-          ? valueDecoder.decode(x[index]).mapLeft<DecoderError>(error =>
-              data("Path", {
-                key: index,
-                error,
-              }),
-            )
+          ? valueDecoder
+              .decode(x[index])
+              .mapLeft(error => StructuredError.Path(index, error))
           : Left(
-              data("Failure", {
+              StructuredError.Failure({
                 message: `Expected index ${index} to exist`,
                 value: x,
               }),
             );
       } else {
         return Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected an array",
             value: x,
           }),
@@ -263,7 +208,7 @@ export const Decode = {
       (x as any) === value
         ? Right(value)
         : Left(
-            data("Failure", {
+            StructuredError.Failure({
               message: `Expected ${value}`,
               value: x,
             }),
@@ -275,7 +220,7 @@ export const Decode = {
       values.contains(x as any)
         ? Right(x as any)
         : Left(
-            data("Failure", {
+            StructuredError.Failure({
               message: `Expected one of ${JSON.stringify(values)}`,
               value: x,
             }),
@@ -285,7 +230,7 @@ export const Decode = {
   fail(message: string): Decoder<any> {
     return new Decoder(value =>
       Left(
-        data("Failure", {
+        StructuredError.Failure({
           message,
           value,
         }),
@@ -307,10 +252,10 @@ export const Decode = {
 
         return errors.isEmpty()
           ? Right(objectFromEntries(rights(results)))
-          : Left(data("Multiple", errors));
+          : Left(StructuredError.Multiple(errors));
       } else {
         return Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected an object",
             value: json,
           }),
@@ -330,10 +275,10 @@ export const Decode = {
 
         return errors.isEmpty()
           ? Right(rights(results) as any)
-          : Left(data("Multiple", errors));
+          : Left(StructuredError.Multiple(errors));
       } else {
         return Left(
-          data("Failure", {
+          StructuredError.Failure({
             message: "Expected an array",
             value: json,
           }),
