@@ -113,6 +113,18 @@ interface IEither<A, B> {
   isRight(): this is Data<"Right", B>;
 
   /**
+   * Convert this [[Either]] to a [[Maybe]].
+   *
+   * ```ts
+   * Right("bob").leftToMaybe(); // Nothing
+   * Left(false).leftToMaybe(); // Just(false)
+   * ```
+   *
+   * @returns A [[Maybe]] containing the [[Left]] value contained by this [[Either]], else [[Nothing]].
+   */
+  leftToMaybe(): Maybe<A>;
+
+  /**
    * Modify the data in the [[Right]] case.
    *
    * ```ts
@@ -197,6 +209,11 @@ interface IEither<A, B> {
    * @returns An [[Either]] containing `b` if `this` is [[Right]], else `this`.
    */
   replacePure<C>(c: C): Either<A, C>;
+
+  /**
+   * Swaps the cases of this [[Either]].
+   */
+  swap(): Either<B, A>;
 
   /**
    * Convert this [[Either]] to an array with either one or
@@ -302,6 +319,9 @@ function Left<A, B>(value: A): Either<A, B> {
     isRight() {
       return false;
     },
+    leftToMaybe() {
+      return Just(value);
+    },
     map() {
       return this;
     },
@@ -319,6 +339,9 @@ function Left<A, B>(value: A): Either<A, B> {
     },
     replacePure() {
       return this;
+    },
+    swap() {
+      return Right(value);
     },
     toArray() {
       return [];
@@ -353,6 +376,9 @@ function Right<A, B>(value: B): Either<A, B> {
     isRight() {
       return true;
     },
+    leftToMaybe() {
+      return Nothing();
+    },
     map(f) {
       return Right(f(value));
     },
@@ -367,6 +393,9 @@ function Right<A, B>(value: B): Either<A, B> {
     },
     replace: id,
     replacePure: Right,
+    swap() {
+      return Left(value);
+    },
     toArray() {
       return [value];
     },

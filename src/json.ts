@@ -301,9 +301,7 @@ export const Decode = {
     return new Decoder(json => {
       if (json !== null && !Array.isArray(json) && typeof json === "object") {
         const results = objectToEntries(spec).map(([key, decoder]) =>
-          Decode.field(key as string, decoder)
-            .decode(json)
-            .map<[keyof T, T[keyof T]]>(x => [key, x]),
+          decoder.decode(json).map<[keyof T, T[keyof T]]>(x => [key, x]),
         );
         const errors = lefts(results);
 
