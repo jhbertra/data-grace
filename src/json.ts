@@ -117,6 +117,9 @@ export const Decode = {
           ),
         );
 
+      case "Date":
+        return Decode.date.map(schema.value.to);
+
       case "Field":
         return Decode.field(
           schema.value.field,
@@ -175,6 +178,16 @@ export const Decode = {
       : Left(
           StructuredError.Failure({
             message: "Expected a boolean",
+            value: x,
+          }),
+        ),
+  ),
+  date: new Decoder<Date>(x =>
+    typeof x === "number"
+      ? Right(new Date(x))
+      : Left(
+          StructuredError.Failure({
+            message: "Expected a number convertible to a date",
             value: x,
           }),
         ),

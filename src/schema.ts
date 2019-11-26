@@ -25,6 +25,7 @@ export type Schema<a> =
         ) => r,
       ) => r
     >
+  | Data<"Date", Isomorphism<Date, a>>
   | Data<"Field", { field: string; schema: Schema<a> }>
   | Data<"Map", <r>(handler: <z>(f: (z: z) => a, schema: Schema<z>) => r) => r>
   | Data<"Null", Isomorphism<null, a>>
@@ -64,6 +65,7 @@ export const Schema = {
       ) => handler(schema1, schema2, iso<readonly [a, b]>()),
     );
   },
+  date: data("Date", iso<Date>()) as Schema<Date>,
   enumOf<a, arr extends readonly [a, ...a[]]>(
     options: arr,
   ): Schema<arr[number]> {
