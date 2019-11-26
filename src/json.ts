@@ -1,6 +1,13 @@
 import { Either, Left, lefts, Right, rights } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import { constant, id, objectFromEntries, objectToEntries } from "./prelude";
+import {
+  absurd,
+  constant,
+  id,
+  objectFromEntries,
+  objectToEntries,
+} from "./prelude";
+import { Schema } from "./schema";
 import { StructuredError } from "./structuredError";
 
 export type Json =
@@ -93,6 +100,65 @@ export class Encoder<T> {
 }
 
 export const Decode = {
+  schema<a>(schema: Schema<a>): Decoder<a> {
+    switch (schema.tag) {
+      case "Array":
+        return schema.value((schema_, iso) =>
+          Decode.array(Decode.schema(schema_)).map(iso.to),
+        );
+
+      case "Bool":
+        return Decode.boolean.map(schema.value.to);
+
+      case "Combine":
+        return schema.value((schema1, schema2, iso) =>
+          Decode.tuple(Decode.schema(schema1), Decode.schema(schema2)).map(
+            iso.to,
+          ),
+        );
+
+      case "Field":
+        return Decode.field(
+          schema.value.field,
+          Decode.schema(schema.value.schema),
+        );
+
+      case "Map":
+        return schema.value((f, schema_) => Decode.schema(schema_).map(f));
+
+      case "Null":
+        return Decode.null.map(schema.value.to);
+
+      case "Number":
+        return Decode.number.map(schema.value.to);
+
+      case "Only":
+        return Decode.only(schema.value);
+
+      case "OneOf":
+        return schema.value
+          .slice(1)
+          .map(Decode.schema)
+          .reduce((a, b) => a.or(b), Decode.schema(schema.value[0]));
+
+      case "Pure":
+        return Decode.succeed(schema.value);
+
+      case "String":
+        return Decode.string.map(schema.value.to);
+
+      case "Optional":
+        return schema.value((schema_, iso) =>
+          Decode.optional(Decode.schema(schema_)).map(iso.to),
+        );
+
+      case "Undefined":
+        return Decode.fail("JSON values cannot be undefined");
+
+      default:
+        return absurd(schema);
+    }
+  },
   string: new Decoder<string>(x =>
     typeof x === "string"
       ? Right(x)
@@ -119,6 +185,16 @@ export const Decode = {
       : Left(
           StructuredError.Failure({
             message: "Expected a number",
+            value: x,
+          }),
+        ),
+  ),
+  null: new Decoder<null>(x =>
+    typeof x === "object" && x == null
+      ? Right(x)
+      : Left(
+          StructuredError.Failure({
+            message: "Expected a null",
             value: x,
           }),
         ),

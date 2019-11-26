@@ -27,7 +27,7 @@ export type Schema<a> =
     >
   | Data<"Field", { field: string; schema: Schema<a> }>
   | Data<"Map", <r>(handler: <z>(f: (z: z) => a, schema: Schema<z>) => r) => r>
-  | Data<"Null", Isomorphism<null, null>>
+  | Data<"Null", Isomorphism<null, a>>
   | Data<"Number", Isomorphism<number, a>>
   | Data<"Only", a>
   | Data<
@@ -38,7 +38,7 @@ export type Schema<a> =
     >
   | Data<"Pure", a>
   | Data<"String", Isomorphism<string, a>>
-  | Data<"Undefined", Isomorphism<undefined, undefined>>;
+  | Data<"Undefined", Isomorphism<undefined, a>>;
 
 export const Schema = {
   array<b>(schema: Schema<b>): Schema<b[]> {
