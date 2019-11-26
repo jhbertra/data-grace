@@ -1,6 +1,6 @@
 {
   "name": "data-grace",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "lib/index.js",
   "author": "Jamie Bertram <jhbertra@gmail.com>",
   "license": "MIT",
