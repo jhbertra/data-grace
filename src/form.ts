@@ -1,5 +1,5 @@
 import { Either, Left, lefts, Right, rights } from "./either";
-import { Just, Maybe, Nothing } from "./maybe";
+import { Maybe, Nothing } from "./maybe";
 import { constant, objectFromEntries, objectToEntries } from "./prelude";
 import { StructuredError } from "./structuredError";
 
