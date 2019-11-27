@@ -100,7 +100,7 @@ export class Encoder<T> {
 }
 
 export const Decode = {
-  schema<a>(schema: Schema<a>): Decoder<a> {
+  schema<a>(schema: Schema<a, any>): Decoder<a> {
     switch (schema.tag) {
       case "Array":
         return schema.value((schema_, iso) =>
@@ -138,11 +138,10 @@ export const Decode = {
       case "Only":
         return Decode.only(schema.value);
 
-      case "OneOf":
-        return schema.value
-          .slice(1)
-          .map(Decode.schema)
-          .reduce((a, b) => a.or(b), Decode.schema(schema.value[0]));
+      case "Or":
+        return Decode.schema(schema.value[0]).or(
+          Decode.schema(schema.value[1]),
+        );
 
       case "Pure":
         return Decode.succeed(schema.value);
