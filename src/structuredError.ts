@@ -21,23 +21,16 @@ export const StructuredError = {
   Path<k, e>(key: k, error: StructuredError<k, e>): StructuredError<k, e> {
     return data("Path", { key, error });
   },
-  mapKeys<k1, k2, e>(
-    f: (k: k1) => k2,
-    error: StructuredError<k1, e>,
-  ): StructuredError<k2, e> {
+  mapKeys<k1, k2, e>(f: (k: k1) => k2, error: StructuredError<k1, e>): StructuredError<k2, e> {
     switch (error.tag) {
       case "Failure":
         return error;
 
       case "Multiple":
-        return StructuredError.Multiple(
-          error.value.map(x => StructuredError.mapKeys(f, x)),
-        );
+        return StructuredError.Multiple(error.value.map(x => StructuredError.mapKeys(f, x)));
 
       case "Or":
-        return StructuredError.Or(
-          error.value.map(x => StructuredError.mapKeys(f, x)),
-        );
+        return StructuredError.Or(error.value.map(x => StructuredError.mapKeys(f, x)));
       case "Path":
         return StructuredError.Path(
           f(error.value.key),
@@ -45,35 +38,22 @@ export const StructuredError = {
         );
     }
   },
-  map<k, e1, e2>(
-    f: (e: e1) => e2,
-    error: StructuredError<k, e1>,
-  ): StructuredError<k, e2> {
+  map<k, e1, e2>(f: (e: e1) => e2, error: StructuredError<k, e1>): StructuredError<k, e2> {
     switch (error.tag) {
       case "Failure":
         return StructuredError.Failure(f(error.value));
 
       case "Multiple":
-        return StructuredError.Multiple(
-          error.value.map(x => StructuredError.map(f, x)),
-        );
+        return StructuredError.Multiple(error.value.map(x => StructuredError.map(f, x)));
 
       case "Or":
-        return StructuredError.Or(
-          error.value.map(x => StructuredError.map(f, x)),
-        );
+        return StructuredError.Or(error.value.map(x => StructuredError.map(f, x)));
 
       case "Path":
-        return StructuredError.Path(
-          error.value.key,
-          StructuredError.map(f, error.value.error),
-        );
+        return StructuredError.Path(error.value.key, StructuredError.map(f, error.value.error));
     }
   },
-  query<k, e>(
-    error: StructuredError<k, e>,
-    ...path: k[]
-  ): Maybe<StructuredError<k, e>> {
+  query<k, e>(error: StructuredError<k, e>, ...path: k[]): Maybe<StructuredError<k, e>> {
     switch (error.tag) {
       case "Failure":
       case "Multiple":
@@ -82,9 +62,7 @@ export const StructuredError = {
 
       case "Path":
         return unCons(path).chain(([k, ks]) =>
-          when(k === error.value.key).replace(
-            StructuredError.query(error.value.error, ...ks),
-          ),
+          when(k === error.value.key).replace(StructuredError.query(error.value.error, ...ks)),
         );
     }
   },
@@ -94,8 +72,7 @@ export const StructuredError = {
     renderError: (e: e) => string[],
   ): string[] {
     return renderWithIndent(error, 0, renderKey, renderError).map(
-      ([indent, line]) =>
-        String.fromCodePoint(...replicate(indent * 4, 32)) + line,
+      ([indent, line]) => String.fromCodePoint(...replicate(indent * 4, 32)) + line,
     );
   },
 };
@@ -129,12 +106,7 @@ function renderWithIndent<k, e>(
     case "Path":
       return [
         [indent, `At ${renderKey(error.value.key)}:`],
-        ...renderWithIndent(
-          error.value.error,
-          indent + 1,
-          renderKey,
-          renderError,
-        ),
+        ...renderWithIndent(error.value.error, indent + 1, renderKey, renderError),
       ];
   }
 }

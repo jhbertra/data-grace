@@ -19,12 +19,7 @@ export interface ISchema<a, metadata> {
 type SchemaData<a, metadata> =
   | Data<
       "Array",
-      <r>(
-        handler: <b>(
-          schema: Schema<b, metadata>,
-          iso: Isomorphism<b[], a>,
-        ) => r,
-      ) => r
+      <r>(handler: <b>(schema: Schema<b, metadata>, iso: Isomorphism<b[], a>) => r) => r
     >
   | Data<"Bool", Isomorphism<boolean, a>>
   | Data<
@@ -39,38 +34,25 @@ type SchemaData<a, metadata> =
     >
   | Data<"Date", Isomorphism<Date, a>>
   | Data<"Field", { field: string; schema: Schema<a, metadata> }>
-  | Data<
-      "Map",
-      <r>(handler: <z>(f: (z: z) => a, schema: Schema<z, metadata>) => r) => r
-    >
+  | Data<"Map", <r>(handler: <z>(f: (z: z) => a, schema: Schema<z, metadata>) => r) => r>
   | Data<"Null", Isomorphism<null, a>>
   | Data<"Number", Isomorphism<number, a>>
   | Data<"Only", a>
   | Data<
       "Optional",
-      <r>(
-        handler: <b>(
-          schema: Schema<b, metadata>,
-          iso: Isomorphism<Maybe<b>, a>,
-        ) => r,
-      ) => r
+      <r>(handler: <b>(schema: Schema<b, metadata>, iso: Isomorphism<Maybe<b>, a>) => r) => r
     >
   | Data<"Or", readonly [Schema<a, metadata>, Schema<a, metadata>]>
   | Data<"Pure", a>
   | Data<"String", Isomorphism<string, a>>
   | Data<"Undefined", Isomorphism<undefined, a>>;
 
-export type Schema<a, metadata = {}> = ISchema<a, metadata> &
-  SchemaData<a, metadata>;
+export type Schema<a, metadata = {}> = ISchema<a, metadata> & SchemaData<a, metadata>;
 
-function makeSchema<a, metadata>(
-  schemaData: SchemaData<a, metadata>,
-): Schema<a, metadata> {
+function makeSchema<a, metadata>(schemaData: SchemaData<a, metadata>): Schema<a, metadata> {
   return {
     ...schemaData,
-    combine<b>(
-      schema2: Schema<b, metadata>,
-    ): Schema<readonly [a, b], metadata> {
+    combine<b>(schema2: Schema<b, metadata>): Schema<readonly [a, b], metadata> {
       return makeSchema(
         data(
           "Combine",
@@ -86,17 +68,13 @@ function makeSchema<a, metadata>(
     },
     map<b>(f: (a: a) => b): Schema<b, metadata> {
       return makeSchema(
-        data(
-          "Map",
-          <r>(handler: (f: (a: a) => b, schema: Schema<a, metadata>) => r) =>
-            handler(f, this),
+        data("Map", <r>(handler: (f: (a: a) => b, schema: Schema<a, metadata>) => r) =>
+          handler(f, this),
         ),
       );
     },
     or(schema2: Schema<a, metadata>): Schema<a, metadata> {
-      return makeSchema(
-        data("Or", [this, schema2] as const) as Schema<a, metadata>,
-      );
+      return makeSchema(data("Or", [this, schema2] as const) as Schema<a, metadata>);
     },
     setMetadata(metadata) {
       return {
@@ -110,21 +88,13 @@ function makeSchema<a, metadata>(
 export const Schema = {
   array<a, metadata = {}>(schema: Schema<a, metadata>): Schema<a[], metadata> {
     return makeSchema<a[], metadata>(
-      data(
-        "Array",
-        <r>(
-          handler: (
-            schema: Schema<a, metadata>,
-            iso: Isomorphism<a[], a[]>,
-          ) => r,
-        ) => handler(schema, iso<a[]>()),
+      data("Array", <r>(handler: (schema: Schema<a, metadata>, iso: Isomorphism<a[], a[]>) => r) =>
+        handler(schema, iso<a[]>()),
       ),
     );
   },
-  bool: <metadata = {}>() =>
-    makeSchema<boolean, metadata>(data("Bool", iso<boolean>())),
-  date: <metadata = {}>() =>
-    makeSchema<Date, metadata>(data("Date", iso<Date>())),
+  bool: <metadata = {}>() => makeSchema<boolean, metadata>(data("Bool", iso<boolean>())),
+  date: <metadata = {}>() => makeSchema<Date, metadata>(data("Date", iso<Date>())),
   enumOf<a, arr extends readonly [a, ...a[]], metadata = {}>(
     options: arr,
   ): Schema<arr[number], metadata> {
@@ -133,16 +103,11 @@ export const Schema = {
       ...options.slice(1).map(x => Schema.only<arr[number], metadata>(x)),
     );
   },
-  field<a, metadata = {}>(
-    field: string,
-    schema: Schema<a, metadata>,
-  ): Schema<a, metadata> {
+  field<a, metadata = {}>(field: string, schema: Schema<a, metadata>): Schema<a, metadata> {
     return makeSchema<a, metadata>(data("Field", { field, schema }));
   },
-  null: <metadata = {}>() =>
-    makeSchema<null, metadata>(data("Null", iso<null>())),
-  number: <metadata = {}>() =>
-    makeSchema<number, metadata>(data("Number", iso<number>())),
+  null: <metadata = {}>() => makeSchema<null, metadata>(data("Null", iso<null>())),
+  number: <metadata = {}>() => makeSchema<number, metadata>(data("Number", iso<number>())),
   oneOf<a, metadata = {}>(
     alt1: Schema<a, metadata>,
     ...rest: Schema<a, metadata>[]
@@ -152,18 +117,12 @@ export const Schema = {
   only<a, metadata = {}>(a: a): Schema<a, metadata> {
     return makeSchema<a, metadata>(data("Only", a));
   },
-  optional<a, metadata = {}>(
-    schema: Schema<a, metadata>,
-  ): Schema<Maybe<a>, metadata> {
+  optional<a, metadata = {}>(schema: Schema<a, metadata>): Schema<Maybe<a>, metadata> {
     return makeSchema<Maybe<a>, metadata>(
       data(
         "Optional",
-        <r>(
-          handler: (
-            schema: Schema<a, metadata>,
-            iso: Isomorphism<Maybe<a>, Maybe<a>>,
-          ) => r,
-        ) => handler(schema, iso<Maybe<a>>()),
+        <r>(handler: (schema: Schema<a, metadata>, iso: Isomorphism<Maybe<a>, Maybe<a>>) => r) =>
+          handler(schema, iso<Maybe<a>>()),
       ),
     );
   },
@@ -174,8 +133,7 @@ export const Schema = {
     spec: { [k in keyof r]: Schema<r[k], metadata> },
   ): Schema<r, metadata> {
     return objectToEntries(spec).reduceRight<Schema<r, metadata>>(
-      (r, [key, field]) =>
-        r.combine(field).map(([r_, field_]) => ({ ...r_, [key]: field_ })),
+      (r, [key, field]) => r.combine(field).map(([r_, field_]) => ({ ...r_, [key]: field_ })),
       Schema.pure({} as r),
     );
   },
@@ -183,13 +141,11 @@ export const Schema = {
     ...schemas: { [k in keyof t]: Schema<t[k], metadata> }
   ): Schema<t, metadata> {
     return schemas.reduceRight<Schema<t, metadata>>(
-      (t, schema) =>
-        t.combine(schema).map(([t_, schema_]) => [...t_, schema_] as t),
+      (t, schema) => t.combine(schema).map(([t_, schema_]) => [...t_, schema_] as t),
       Schema.pure(([] as unknown) as t),
     );
   },
-  string: <metadata = {}>() =>
-    makeSchema<string, metadata>(data("String", iso<string>())),
+  string: <metadata = {}>() => makeSchema<string, metadata>(data("String", iso<string>())),
   undefined: <metadata = {}>() =>
     makeSchema<undefined, metadata>(data("Undefined", iso<undefined>())),
 };

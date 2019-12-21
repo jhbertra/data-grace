@@ -439,7 +439,7 @@ function mapMaybe<A, B>(f: (value: A) => Maybe<B>, as: A[]): B[] {
  * @param value the value to wrap in a [[Maybe]].
  * @returns `Just(value)` if value is non-null and defined, else `Nothing`.
  */
-function toMaybe<A>(value?: A): Maybe<A> {
+function toMaybe<A>(value: A | null | undefined): Maybe<A> {
   return value == null ? staticNothing : Just(value);
 }
 
@@ -466,10 +466,7 @@ function toMaybe<A>(value?: A): Maybe<A> {
  * @param args lifted arguments to `f`.
  * @returns the result of evaluating `f` in a [[Maybe]] on the values contained by `args`.
  */
-function lift<P extends any[], R>(
-  f: (...args: P) => R,
-  ...args: MapMaybe<P>
-): Maybe<R> {
+function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
   const values = [];
   for (const arg of args) {
     if (arg.isNothing()) {
@@ -625,11 +622,7 @@ function zipWithM<A, P extends any[], C>(
  * @param f a state-reducing function which may short-circuit at any step by returning [[Nothing]].
  * @returns The result of the reduction in a [[Maybe]].
  */
-function reduceM<A, B>(
-  f: (state: B, a: A) => Maybe<B>,
-  seed: B,
-  as: A[],
-): Maybe<B> {
+function reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
   let state = Just<B>(seed);
   for (const a of as) {
     if (state.isNothing()) {

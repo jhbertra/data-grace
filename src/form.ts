@@ -48,10 +48,7 @@ export class Form<input, a = input> {
     });
   }
 
-  public queryError(
-    error: FormError,
-    ...path: Array<string | number>
-  ): Maybe<FormError> {
+  public queryError(error: FormError, ...path: Array<string | number>): Maybe<FormError> {
     return this.getResult()
       .leftToMaybe()
       .chain(x => StructuredError.query(x, ...path));
@@ -103,9 +100,10 @@ export const Forms = {
   ): Form<input, a> {
     return new Form(
       objectFromEntries(
-        objectToEntries(spec).map<[keyof input, input[keyof input]]>(
-          ([key, value]) => [key, value.value],
-        ),
+        objectToEntries(spec).map<[keyof input, input[keyof input]]>(([key, value]) => [
+          key,
+          value.value,
+        ]),
       ),
       input => {
         const results = objectToEntries(spec).map(([key, form]) =>
@@ -147,9 +145,7 @@ export const Forms = {
   ): Form<input, a> {
     return new Form(forms.map(x => x.value) as input, input => {
       const results = forms.map((form, i) =>
-        form
-          .validate(input[i])
-          .mapLeft(error => StructuredError.Path(i, error)),
+        form.validate(input[i]).mapLeft(error => StructuredError.Path(i, error)),
       );
 
       const errors = lefts(results);

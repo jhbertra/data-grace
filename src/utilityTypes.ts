@@ -7,10 +7,9 @@ export { Cons, Curry, Equals, Head, IsEmpty, Tail };
  *
  *  Cons<string, [number, boolean]> == [string, number, boolean]
  */
-type Cons<THead, TTail extends any[]> = ((
-  a: THead,
-  ...t: TTail
-) => any) extends (...tail: infer TT) => any
+type Cons<THead, TTail extends any[]> = ((a: THead, ...t: TTail) => any) extends (
+  ...tail: infer TT
+) => any
   ? TT
   : never;
 
@@ -66,9 +65,6 @@ type IsEmpty<T extends any[]> = T extends [] | [any] ? true : false;
  *
  *  Tail<[string, number, boolean]> = [number, boolean]
  */
-type Tail<T extends any[]> = ((...t: T) => any) extends (
-  _: any,
-  ...tail: infer TT
-) => any
+type Tail<T extends any[]> = ((...t: T) => any) extends (_: any, ...tail: infer TT) => any
   ? TT
   : never;

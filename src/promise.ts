@@ -39,10 +39,7 @@ type MapPromise<A> = { [K in keyof A]: Promise<A[K]> };
  * @param args lifted arguments to `f`
  * @returns the result of evaluating `f` in a promise on the values produced by `args`
  */
-async function lift<P extends any[], R>(
-  f: (...args: P) => R,
-  ...args: MapPromise<P>
-): Promise<R> {
+async function lift<P extends any[], R>(f: (...args: P) => R, ...args: MapPromise<P>): Promise<R> {
   return f.apply(undefined, (await Promise.all(args)) as P);
 }
 
@@ -126,11 +123,11 @@ function forM<A, B>(as: A[], f: (value: A) => Promise<B>): Promise<B[]> {
  * @param as An array of inputs
  * @param n optional param to control the number of buckets in the case of empty input.
  */
-async function mapAndUnzipWith<
-  N extends number,
-  A,
-  P extends any[] & { length: N }
->(f: (a: A) => Promise<P>, as: A[], n: N = 0 as any): Promise<MapArray<P>> {
+async function mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
+  f: (a: A) => Promise<P>,
+  as: A[],
+  n: N = 0 as any,
+): Promise<MapArray<P>> {
   return unzip(await mapM(f, as), n);
 }
 

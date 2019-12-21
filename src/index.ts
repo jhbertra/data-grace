@@ -1,15 +1,5 @@
 export * from "./prelude";
-export {
-  array,
-  either,
-  form,
-  json,
-  maybe,
-  promise,
-  schema,
-  structuredError,
-  utilityTypes,
-};
+export { array, either, form, json, maybe, promise, schema, structuredError, utilityTypes };
 
 import * as array from "./array";
 import * as either from "./either";

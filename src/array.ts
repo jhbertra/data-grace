@@ -458,10 +458,7 @@ interface ArrayExtensions<A> {
    * [1, 2, 3].zipWith((n, s, b) => b ? n : s, ["a", "b"], [true, false, false, true]) // [1, "b"]
    * ```
    */
-  zipWith<P extends any[], B>(
-    f: (a: A, ...p: P) => B,
-    ...arr: MapArray<P>
-  ): B[];
+  zipWith<P extends any[], B>(f: (a: A, ...p: P) => B, ...arr: MapArray<P>): B[];
 }
 
 /**
@@ -588,10 +585,7 @@ function product(nums: number[]): number {
  * replicate(10, "ha") // ["ha", "ha", "ha", "ha", "ha", "ha", "ha", "ha", "ha", "ha"]
  * ```
  */
-function replicate<N extends number, A>(
-  times: N,
-  item: A,
-): A[] & { length: N } {
+function replicate<N extends number, A>(times: N, item: A): A[] & { length: N } {
   const result: A[] = [];
   for (let i = 0; i < times; i++) {
     result.push(item);
@@ -640,7 +634,7 @@ function unzip<N extends number, P extends any[] & { length: N }>(
     for (let i = 0; i < n; i++) {
       const element = tuple[i];
       const bucket = result[i];
-      bucket.push(element as any);
+      bucket.push(element);
     }
   }
   return result as any;
@@ -734,19 +728,12 @@ Array.prototype.groupBy = function groupByForArray(equals) {
   return result;
 };
 
-Array.prototype.groupByKey = function groupByForArray<B>(
-  getKey: (_: any) => B,
-) {
+Array.prototype.groupByKey = function groupByForArray<B>(getKey: (_: any) => B) {
   const input = this.map(x => [getKey(x), x] as [B, any]);
-  const keys = input
-    .map(([b, _]) => b)
-    .filter((b, i, arr) => arr.indexOf(b) === i);
+  const keys = input.map(([b, _]) => b).filter((b, i, arr) => arr.indexOf(b) === i);
   const result = [];
   for (const key of keys) {
-    result.push([
-      key,
-      input.filter(([b, _]) => key === b).map(([_, x]) => x),
-    ] as [B, any]);
+    result.push([key, input.filter(([b, _]) => key === b).map(([_, x]) => x)] as [B, any]);
   }
   return result;
 };
@@ -823,9 +810,7 @@ Array.prototype.isSuffixOf = function isSuffixOfForArray(other) {
   } else if (this.length > other.length) {
     return false;
   } else {
-    return this.zip(other.slice(other.length - this.length)).all(
-      ([a, b]) => a === b,
-    );
+    return this.zip(other.slice(other.length - this.length)).all(([a, b]) => a === b);
   }
 };
 

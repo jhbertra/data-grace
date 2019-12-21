@@ -23,10 +23,7 @@ type Data<Tag extends string, Value = undefined> = {
 };
 
 function data<Tag extends string>(tag: Tag): Data<Tag, undefined>;
-function data<Tag extends string, Value>(
-  tag: Tag,
-  value: Value,
-): Data<Tag, Value>;
+function data<Tag extends string, Value>(tag: Tag, value: Value): Data<Tag, Value>;
 
 function data(tag: string, value?: any) {
   return Object.freeze({
@@ -76,11 +73,7 @@ function pipe<A, B>(f: (a: A) => B): (a: A) => B;
 
 function pipe<A, B, C>(f: (a: A) => B, g: (b: B) => C): (a: A) => C;
 
-function pipe<A, B, C, D>(
-  f: (a: A) => B,
-  g: (b: B) => C,
-  h: (c: C) => D,
-): (a: A) => D;
+function pipe<A, B, C, D>(f: (a: A) => B, g: (b: B) => C, h: (c: C) => D): (a: A) => D;
 
 function pipe<A, B, C, D, E>(
   f: (a: A) => B,
@@ -200,12 +193,7 @@ function pipeWith<A, B>(a: A, f: (a: A) => B): B;
 
 function pipeWith<A, B, C>(a: A, f: (a: A) => B, g: (b: B) => C): C;
 
-function pipeWith<A, B, C, D>(
-  a: A,
-  f: (a: A) => B,
-  g: (b: B) => C,
-  h: (c: C) => D,
-): D;
+function pipeWith<A, B, C, D>(a: A, f: (a: A) => B, g: (b: B) => C, h: (c: C) => D): D;
 
 function pipeWith<A, B, C, D, E>(
   a: A,
@@ -326,17 +314,13 @@ function curry<P extends any[], R>(f: (...args: P) => R): Curry<P, R> {
 
 // tslint:disable-next-line: ban-types
 function curryImpl(f: Function, arity: number): Function {
-  return arity === 1
-    ? f
-    : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
+  return arity === 1 ? f : (x: any) => curryImpl((...args: any[]) => f(x, ...args), arity - 1);
 }
 
 /**
  * Convert an object to an array of key-value pairs.
  */
-function objectToEntries<T extends object>(
-  value: T,
-): Array<[keyof T, T[keyof T]]> {
+function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]]> {
   const entries: Array<[keyof T, T[keyof T]]> = [];
   for (const key in value) {
     if (value.hasOwnProperty(key)) {
@@ -349,9 +333,7 @@ function objectToEntries<T extends object>(
 /**
  * Convert an array of key-value pairs to an object.
  */
-function objectFromEntries<T extends object>(
-  entries: Array<[keyof T, T[keyof T]]>,
-): T {
+function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
   const result = {} as T;
   for (const [key, value] of entries) {
     result[key] = value;

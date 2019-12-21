@@ -1,25 +1,22 @@
 language: node_js
+cache:
+  directories:
+    - ~/.npm
+notifications:
+  email: false
 node_js:
-  - '8'
-cache: yarn
-install:
-  - yarn install
-jobs:
-  include:
-    - stage: Build and Test
-      script: yarn test
-    - stage: Upload Coverage
-      script: yarn build && yarn cover && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
-    - stage: NPM Release
-      script: yarn build
-      deploy:
-        provider: npm
-        email: '$NPM_EMAIL'
-        api_key: '$NPM_TOKEN'
-        skip_cleanup: true
-        on:
-          tags: true
+  - "10"
+  - "11"
+  - "12"
+  - "13"
+  - "8"
+  - "6"
+script:
+  - npm run test:prod && npm run build
+after_success:
+  - npm run travis-deploy-once "npm run report-coverage"
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm run travis-deploy-once "npm run deploy-docs"; fi
+  - if [ "$TRAVIS_BRANCH" = "master" -a "$TRAVIS_PULL_REQUEST" = "false" ]; then npm run travis-deploy-once "npm run semantic-release"; fi
 branches:
-  only:
-    - master
-    - /^v[0-9]+.*$/
+  except:
+    - /^v\d+\.\d+\.\d+$/

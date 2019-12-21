@@ -24,14 +24,7 @@ export {
 
 import { MapArray, unzip } from "./array";
 import { Just, Maybe, Nothing } from "./maybe";
-import {
-  constant,
-  Data,
-  data,
-  id,
-  objectFromEntries,
-  objectToEntries,
-} from "./prelude";
+import { constant, Data, data, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -524,10 +517,7 @@ function rights<A, B>(es: Array<Either<A, B>>): B[] {
  * @param args lifted arguments to `f`.
  * @returns the result of evaluating `f` in an [[Either]] on the [[Right]] values contained by `args`.
  */
-function lift<A, P extends any[], R>(
-  f: (...args: P) => R,
-  ...args: MapEither<A, P>
-): Either<A, R> {
+function lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
   const values = [];
   for (const arg of args) {
     if (arg.isLeft()) {
@@ -642,12 +632,11 @@ function sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
  * @param as An array of inputs
  * @param n optional param to control the number of buckets in the case of empty input.
  */
-function mapAndUnzipWith<
-  A,
-  N extends number,
-  B,
-  P extends any[] & { length: N }
->(f: (b: B) => Either<A, P>, bs: B[], n: N = 0 as any): Either<A, MapArray<P>> {
+function mapAndUnzipWith<A, N extends number, B, P extends any[] & { length: N }>(
+  f: (b: B) => Either<A, P>,
+  bs: B[],
+  n: N = 0 as any,
+): Either<A, MapArray<P>> {
   return mapM(f, bs).map(x => unzip(x, n));
 }
 
@@ -685,11 +674,7 @@ function zipWithM<A, B, P extends any[], C>(
  * @param f a state-reducing function which may short-circuit at any step by returning [[Left]].
  * @returns The result of the reduction in an [[Either]].
  */
-function reduceM<A, B, C>(
-  f: (state: C, b: B) => Either<A, C>,
-  seed: C,
-  bs: B[],
-): Either<A, C> {
+function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
   let state = Right<A, C>(seed);
   for (const b of bs) {
     if (state.isLeft()) {

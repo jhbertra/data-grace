@@ -1,29 +1,14 @@
 import { Either, Left, lefts, Right, rights } from "./either";
 import { Just, Maybe, Nothing } from "./maybe";
-import {
-  absurd,
-  constant,
-  id,
-  objectFromEntries,
-  objectToEntries,
-} from "./prelude";
+import { absurd, constant, id, objectFromEntries, objectToEntries } from "./prelude";
 import { Schema } from "./schema";
 import { StructuredError } from "./structuredError";
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | Json[]
-  | { [key: string]: Json };
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
 type JsonPathKey = string | number;
 
-export type DecoderError = StructuredError<
-  JsonPathKey,
-  { message: string; value: Json }
->;
+export type DecoderError = StructuredError<JsonPathKey, { message: string; value: Json }>;
 
 export function isJson(a: unknown): a is Json {
   return (
@@ -33,7 +18,7 @@ export function isJson(a: unknown): a is Json {
     a === null ||
     (Array.isArray(a) && a.all(isJson)) ||
     (typeof a === "object" &&
-      a != null &&
+      a !== null &&
       objectToEntries(a)
         .map(x => x[0])
         .all(isJson))
@@ -44,10 +29,7 @@ export function renderDecoderError(error: DecoderError): string[] {
   return StructuredError.render(
     error,
     key => `${typeof key === "string" ? "property" : "index"} ${key}`,
-    ({ message, value }) => [
-      message,
-      `Offending value: ${JSON.stringify(value)}`,
-    ],
+    ({ message, value }) => [message, `Offending value: ${JSON.stringify(value)}`],
   );
 }
 
@@ -59,9 +41,7 @@ export class Decoder<T> {
   }
 
   public chain<T2>(getNextDecoder: (t: T) => Decoder<T2>): Decoder<T2> {
-    return new Decoder(x =>
-      this.decode(x).chain(y => getNextDecoder(y).decode(x)),
-    );
+    return new Decoder(x => this.decode(x).chain(y => getNextDecoder(y).decode(x)));
   }
 
   public or<T2>(alt: Decoder<T2>): Decoder<T | T2> {
@@ -89,13 +69,8 @@ export class Encoder<T> {
     return new Encoder(x => this.encode(mapping(x)));
   }
 
-  public or<T2>(
-    divide: (input: T | T2) => input is T2,
-    alt: Encoder<T2>,
-  ): Encoder<T | T2> {
-    return new Encoder(input =>
-      divide(input) ? alt.encode(input) : this.encode(input),
-    );
+  public or<T2>(divide: (input: T | T2) => input is T2, alt: Encoder<T2>): Encoder<T | T2> {
+    return new Encoder(input => (divide(input) ? alt.encode(input) : this.encode(input)));
   }
 }
 
@@ -103,31 +78,24 @@ export const Decode = {
   schema<a>(schema: Schema<a, any>): Decoder<a> {
     switch (schema.tag) {
       case "Array":
-        return schema.value((schema_, iso) =>
-          Decode.array(Decode.schema(schema_)).map(iso.to),
-        );
+        return schema.value((_schema, iso) => Decode.array(Decode.schema(_schema)).map(iso.to));
 
       case "Bool":
         return Decode.boolean.map(schema.value.to);
 
       case "Combine":
         return schema.value((schema1, schema2, iso) =>
-          Decode.tuple(Decode.schema(schema1), Decode.schema(schema2)).map(
-            iso.to,
-          ),
+          Decode.tuple(Decode.schema(schema1), Decode.schema(schema2)).map(iso.to),
         );
 
       case "Date":
         return Decode.date.map(schema.value.to);
 
       case "Field":
-        return Decode.field(
-          schema.value.field,
-          Decode.schema(schema.value.schema),
-        );
+        return Decode.field(schema.value.field, Decode.schema(schema.value.schema));
 
       case "Map":
-        return schema.value((f, schema_) => Decode.schema(schema_).map(f));
+        return schema.value((f, _schema) => Decode.schema(_schema).map(f));
 
       case "Null":
         return Decode.null.map(schema.value.to);
@@ -139,9 +107,7 @@ export const Decode = {
         return Decode.only(schema.value);
 
       case "Or":
-        return Decode.schema(schema.value[0]).or(
-          Decode.schema(schema.value[1]),
-        );
+        return Decode.schema(schema.value[0]).or(Decode.schema(schema.value[1]));
 
       case "Pure":
         return Decode.succeed(schema.value);
@@ -150,9 +116,7 @@ export const Decode = {
         return Decode.string.map(schema.value.to);
 
       case "Optional":
-        return schema.value((schema_, iso) =>
-          Decode.optional(Decode.schema(schema_)).map(iso.to),
-        );
+        return schema.value((_schema, iso) => Decode.optional(Decode.schema(_schema)).map(iso.to));
 
       case "Undefined":
         return Decode.fail("JSON values cannot be undefined");
@@ -202,7 +166,7 @@ export const Decode = {
         ),
   ),
   null: new Decoder<null>(x =>
-    typeof x === "object" && x == null
+    typeof x === "object" && x === null
       ? Right(x)
       : Left(
           StructuredError.Failure({
@@ -212,23 +176,17 @@ export const Decode = {
         ),
   ),
   nullable<T>(valueDecoder: Decoder<T>): Decoder<Maybe<T>> {
-    return new Decoder(x =>
-      x === null ? Right(Nothing()) : valueDecoder.decode(x).map(Just),
-    );
+    return new Decoder(x => (x === null ? Right(Nothing()) : valueDecoder.decode(x).map(Just)));
   },
   array<T>(valueDecoder: Decoder<T>): Decoder<T[]> {
     return new Decoder(x => {
       if (Array.isArray(x)) {
         const results = x.map((x, i) =>
-          valueDecoder
-            .decode(x)
-            .mapLeft(error => StructuredError.Path(i, error)),
+          valueDecoder.decode(x).mapLeft(error => StructuredError.Path(i, error)),
         );
         const errors = lefts(results);
 
-        return errors.isEmpty()
-          ? Right(rights(results))
-          : Left(StructuredError.Multiple(errors));
+        return errors.isEmpty() ? Right(rights(results)) : Left(StructuredError.Multiple(errors));
       } else {
         return Left(
           StructuredError.Failure({
@@ -243,9 +201,7 @@ export const Decode = {
     return new Decoder(x => {
       if (x !== null && !Array.isArray(x) && typeof x === "object") {
         return x.hasOwnProperty(name)
-          ? valueDecoder
-              .decode(x[name])
-              .mapLeft(error => StructuredError.Path(name, error))
+          ? valueDecoder.decode(x[name]).mapLeft(error => StructuredError.Path(name, error))
           : Left(
               StructuredError.Failure({
                 message: `Expected a field called ${name}`,
@@ -265,10 +221,9 @@ export const Decode = {
   index<T>(index: number, valueDecoder: Decoder<T>): Decoder<T> {
     return new Decoder(x => {
       if (Array.isArray(x)) {
+        // tslint:disable-next-line: strict-type-predicates
         return x[index] !== undefined
-          ? valueDecoder
-              .decode(x[index])
-              .mapLeft(error => StructuredError.Path(index, error))
+          ? valueDecoder.decode(x[index]).mapLeft(error => StructuredError.Path(index, error))
           : Left(
               StructuredError.Failure({
                 message: `Expected index ${index} to exist`,
@@ -286,9 +241,7 @@ export const Decode = {
     });
   },
   optional<T>(valueDecoder: Decoder<T>): Decoder<Maybe<T>> {
-    return new Decoder(x =>
-      x == null ? Right(Nothing()) : valueDecoder.decode(x).map(Just),
-    );
+    return new Decoder(x => (x === null ? Right(Nothing()) : valueDecoder.decode(x).map(Just)));
   },
   value: new Decoder(Right),
   only<T>(value: T): Decoder<T> {
@@ -328,9 +281,7 @@ export const Decode = {
   succeed<T>(value: T): Decoder<T> {
     return new Decoder(constant(Right(value)));
   },
-  record<T extends Record<string, any>>(
-    spec: { [K in keyof T]: Decoder<T[K]> },
-  ): Decoder<T> {
+  record<T extends Record<string, any>>(spec: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
     return new Decoder(json => {
       if (json !== null && !Array.isArray(json) && typeof json === "object") {
         const results = objectToEntries(spec).map(([key, decoder]) =>
@@ -351,14 +302,10 @@ export const Decode = {
       }
     });
   },
-  tuple<T extends any[]>(
-    ...decoders: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<T> {
+  tuple<T extends any[]>(...decoders: { [K in keyof T]: Decoder<T[K]> }): Decoder<T> {
     return new Decoder(json => {
       if (Array.isArray(json)) {
-        const results = decoders.map((decoder, i) =>
-          Decode.index(i, decoder).decode(json),
-        );
+        const results = decoders.map((decoder, i) => Decode.index(i, decoder).decode(json));
         const errors = lefts(results);
 
         return errors.isEmpty()
@@ -379,9 +326,7 @@ export const Decode = {
 export const Encode = {
   value: new Encoder<Json>(id),
   nullable<T>(valueEncoder: Encoder<T>): Encoder<Maybe<T>> {
-    return new Encoder(x =>
-      x.matchCase({ nothing: () => null, just: valueEncoder.encode }),
-    );
+    return new Encoder(x => x.matchCase({ nothing: () => null, just: valueEncoder.encode }));
   },
   array<T>(valueEncoder: Encoder<T>): Encoder<T[]> {
     return new Encoder(x => x.map(valueEncoder.encode));
@@ -389,9 +334,7 @@ export const Encode = {
   field<T>(name: string, valueEncoder: Encoder<T>): Encoder<T> {
     return new Encoder(x => ({ [name]: valueEncoder.encode(x) }));
   },
-  record<T extends Record<string, any>>(
-    spec: { [K in keyof T]: Encoder<T[K]> },
-  ): Encoder<T> {
+  record<T extends Record<string, any>>(spec: { [K in keyof T]: Encoder<T[K]> }): Encoder<T> {
     return new Encoder(
       value =>
         objectFromEntries(
@@ -405,8 +348,6 @@ export const Encode = {
   tuple<T extends any[]>(
     ...encoders: { [K in keyof T]: K extends number ? Encoder<T[K]> : never }
   ): Encoder<T> {
-    return new Encoder(value =>
-      encoders.map((encoder, i) => encoder.encode(value[i])),
-    );
+    return new Encoder(value => encoders.map((encoder, i) => encoder.encode(value[i])));
   },
 };
