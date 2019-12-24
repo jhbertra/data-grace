@@ -1,6 +1,6 @@
 import { replicate } from "./array";
-import { Maybe, unCons, when } from "./maybe";
-import { Data, data, id } from "./prelude";
+import { Maybe } from "./maybe";
+import { Data, id } from "./prelude";
 
 export type StructuredError<k, e> =
   | Data<"Failure", e>
@@ -10,16 +10,16 @@ export type StructuredError<k, e> =
 
 export const StructuredError = {
   Failure<k, e>(error: e): StructuredError<k, e> {
-    return data("Failure", error);
+    return { tag: "Failure", value: error };
   },
   Multiple<k, e>(errors: StructuredError<k, e>[]): StructuredError<k, e> {
-    return data("Multiple", errors);
+    return { tag: "Multiple", value: errors };
   },
   Or<k, e>(errors: StructuredError<k, e>[]): StructuredError<k, e> {
-    return data("Or", errors);
+    return { tag: "Or", value: errors };
   },
   Path<k, e>(key: k, error: StructuredError<k, e>): StructuredError<k, e> {
-    return data("Path", { key, error });
+    return { tag: "Path", value: { key, error } };
   },
   mapKeys<k1, k2, e>(f: (k: k1) => k2, error: StructuredError<k1, e>): StructuredError<k2, e> {
     switch (error.tag) {
@@ -58,11 +58,13 @@ export const StructuredError = {
       case "Failure":
       case "Multiple":
       case "Or":
-        return when(path.isEmpty()).replacePure(error);
+        return Maybe.when(path.isEmpty()).replacePure(error);
 
       case "Path":
-        return unCons(path).chain(([k, ks]) =>
-          when(k === error.value.key).replace(StructuredError.query(error.value.error, ...ks)),
+        return Maybe.unCons(path).chain(([k, ks]) =>
+          Maybe.when(k === error.value.key).replace(
+            StructuredError.query(error.value.error, ...ks),
+          ),
         );
     }
   },

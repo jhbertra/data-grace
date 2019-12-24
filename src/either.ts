@@ -1,30 +1,6 @@
-export {
-  IEither,
-  EitherCaseScrutinizer,
-  Either,
-  MapEither,
-  Left,
-  Right,
-  arrayToEither,
-  forM,
-  join,
-  lefts,
-  lift,
-  build,
-  mapAndUnzipWith,
-  mapM,
-  maybeToEither,
-  reduceM,
-  rights,
-  sequence,
-  unless,
-  when,
-  zipWithM,
-};
-
 import { MapArray, unzip } from "./array";
-import { Just, Maybe, Nothing } from "./maybe";
-import { constant, Data, data, id, objectFromEntries, objectToEntries } from "./prelude";
+import { Maybe } from "./maybe";
+import { constant, Data, id, objectFromEntries, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -72,7 +48,7 @@ interface IEither<A, B> {
    * result.toString() // "Left (Not Authorized)"
    * ```
    *
-   * @param f a function to produce the next [[Either]] when this [[Either]] is [[Right]].
+   * @param f a to produce the next [[Either]] when this [[Either]] is [[Right]].
    * @returns The result of running `f` if this [[Either]] is [[Right]].
    */
   chain<C>(f: (b: B) => Either<A, C>): Either<A, C>;
@@ -125,7 +101,7 @@ interface IEither<A, B> {
    * Left("error").map(name => name.toUpperCase()).toString(); // "Left (error)"
    * ```
    *
-   * @param f a function that modifies the [[Right]] value within this [[Either]].
+   * @param f a that modifies the [[Right]] value within this [[Either]].
    * @returns an [[Either]] with its [[Right]] value transformed.
    */
   map<C>(f: (b: B) => C): Either<A, C>;
@@ -138,7 +114,7 @@ interface IEither<A, B> {
    * Left("error").mapLeft(name => name.toUpperCase()).toString(); // "Left (ERROR)"
    * ```
    *
-   * @param f a function that modifies the [[Left]] value within this [[Either]].
+   * @param f a that modifies the [[Left]] value within this [[Either]].
    * @returns an [[Either]] with its [[Left]] value transformed.
    */
   mapLeft<C>(f: (a: A) => C): Either<C, B>;
@@ -214,7 +190,7 @@ interface IEither<A, B> {
    *
    * ```ts
    * Right("bob").toArray(); // ["bob"]
-   * Left(false).toArray(); // []
+   * Left(false).toArray(); // void
    * ```
    *
    * @returns A one-element array containing the [[Right]] value contained by this [[Either]], else an empty array.
@@ -244,7 +220,7 @@ interface IEither<A, B> {
    * Discard the value in the [[Either]].
    *
    * ```ts
-   * Right("bob").voidOut().toString(); // "Right ([])"
+   * Right("bob").voidOut().toString(); // "Right (void)"
    * Left(false).voidOut().toString(); // "Left (false)"
    * ```
    *
@@ -277,7 +253,7 @@ interface EitherCaseScrutinizer<A, B, C> {
  * answer, and error results are constructed with the [[Left]] case
  * constructor.
  */
-type Either<A, B> = IEither<A, B> & (Data<"Left", A> | Data<"Right", B>);
+export type Either<A, B> = IEither<A, B> & (Data<"Left", A> | Data<"Right", B>);
 
 /**
  * A type transformer that homomorphically maps the [[Either]] type
@@ -288,443 +264,445 @@ type Either<A, B> = IEither<A, B> & (Data<"Left", A> | Data<"Right", B>);
  * type Example = MapEither<string, {a: string, b: number}>
  * ```
  */
-type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
+export type MapEither<A, B> = { [K in keyof B]: Either<A, B[K]> };
 
 /*------------------------------
   CONSTRUCTORS
   ------------------------------*/
 
-/**
- * Constructs a new [[Either]] resolved to the [[Left]] case using
- * the given value.
- */
-function Left<A, B>(value: A): Either<A, B> {
-  return Object.freeze({
-    ...data("Left", value),
-    defaultLeftWith: constant(value),
-    defaultRightWith: id,
-    chain() {
-      return this;
-    },
-    isLeft() {
-      return true;
-    },
-    isRight() {
-      return false;
-    },
-    leftToMaybe() {
-      return Just(value);
-    },
-    map() {
-      return this;
-    },
-    mapLeft(f) {
-      return Left(f(value));
-    },
-    matchCase({ left }) {
-      return left(value);
-    },
-    or(x) {
-      return x;
-    },
-    replace() {
-      return this;
-    },
-    replacePure() {
-      return this;
-    },
-    swap() {
-      return Right(value);
-    },
-    toArray() {
-      return [];
-    },
-    toMaybe() {
-      return Nothing<B>();
-    },
-    toString() {
-      return `Left (${value})`;
-    },
-    voidOut() {
-      return Left<A, void>(value);
-    },
-  }) as Either<A, B>;
-}
+export const Either = {
+  /**
+   * Constructs a new [[Either]] resolved to the [[Left]] case using
+   * the given value.
+   */
+  Left<A, B>(value: A): Either<A, B> {
+    return Object.freeze({
+      tag: "Left",
+      value,
+      defaultLeftWith: constant(value),
+      defaultRightWith: id,
+      chain() {
+        return this;
+      },
+      isLeft() {
+        return true;
+      },
+      isRight() {
+        return false;
+      },
+      leftToMaybe() {
+        return Maybe.Just(value);
+      },
+      map() {
+        return this;
+      },
+      mapLeft(f) {
+        return Either.Left(f(value));
+      },
+      matchCase({ left }) {
+        return left(value);
+      },
+      or(x) {
+        return x;
+      },
+      replace() {
+        return this;
+      },
+      replacePure() {
+        return this;
+      },
+      swap() {
+        return Either.Right(value);
+      },
+      toArray() {
+        return [];
+      },
+      toMaybe() {
+        return Maybe.Nothing<B>();
+      },
+      toString() {
+        return `Left (${value})`;
+      },
+      voidOut() {
+        return Either.Left<A, void>(value);
+      },
+    }) as Either<A, B>;
+  },
 
-/**
- * Constructs a new [[Either]] resolved to the [[Right]] case using
- * the given value.
- */
-function Right<A, B>(value: B): Either<A, B> {
-  return Object.freeze({
-    ...data("Right", value),
-    defaultLeftWith: id,
-    defaultRightWith: constant(value),
-    chain(f) {
-      return f(value);
-    },
-    isLeft() {
-      return false;
-    },
-    isRight() {
-      return true;
-    },
-    leftToMaybe() {
-      return Nothing();
-    },
-    map(f) {
-      return Right(f(value));
-    },
-    mapLeft() {
-      return this;
-    },
-    matchCase({ right }) {
-      return right(value);
-    },
-    or() {
-      return this;
-    },
-    replace: id,
-    replacePure: Right,
-    swap() {
-      return Left(value);
-    },
-    toArray() {
-      return [value];
-    },
-    toMaybe() {
-      return Just(value);
-    },
-    toString() {
-      return `Right (${value})`;
-    },
-    voidOut() {
-      return Right<A, void>(undefined);
-    },
-  }) as Either<A, B>;
-}
+  /**
+   * Constructs a new [[Either]] resolved to the [[Right]] case using
+   * the given value.
+   */
+  Right<A, B>(value: B): Either<A, B> {
+    return Object.freeze({
+      tag: "Right",
+      value,
+      defaultLeftWith: id,
+      defaultRightWith: constant(value),
+      chain(f) {
+        return f(value);
+      },
+      isLeft() {
+        return false;
+      },
+      isRight() {
+        return true;
+      },
+      leftToMaybe() {
+        return Maybe.Nothing();
+      },
+      map(f) {
+        return Either.Right(f(value));
+      },
+      mapLeft() {
+        return this;
+      },
+      matchCase({ right }) {
+        return right(value);
+      },
+      or() {
+        return this;
+      },
+      replace: id,
+      replacePure: Either.Right,
+      swap() {
+        return Either.Left(value);
+      },
+      toArray() {
+        return [value];
+      },
+      toMaybe() {
+        return Maybe.Just(value);
+      },
+      toString() {
+        return `Right (${value})`;
+      },
+      voidOut() {
+        return Either.Right<A, void>(undefined);
+      },
+    }) as Either<A, B>;
+  },
 
-/*------------------------------
-  EITHER FUNCTIONS
-  ------------------------------*/
+  /*------------------------------
+    EITHER FUNCTIONS
+    ------------------------------*/
 
-/**
- * Creates a new [[Either]] that either contains
- * the first element of arr if it exists, or
- * nothing.
- *
- * ```ts
- * arrayToEither([], "error"); // Left (error)
- * arrayToEither([1], "error"); // Right (1)
- * arrayToEither([1, 2, 3], "error"); // Right(1)
- * ```
- *
- * @param arr An array to convert to an [[Either]]
- * @param a A left value to return if `arr` is empty
- * @returns An [[Either]] containing the first element of `arr`, or a [[Left]] with `a` if it is empty.
- */
-function arrayToEither<A, B>(arr: B[], a: A): Either<A, B> {
-  return arr.length === 0 ? Left(a) : Right(arr[0]);
-}
+  /**
+   * Creates a new [[Either]] that either contains
+   * the first element of arr if it exists, or
+   * nothing.
+   *
+   * ```ts
+   * arrayToEither(void, "error"); // Left (error)
+   * arrayToEither([1], "error"); // Right (1)
+   * arrayToEither([1, 2, 3], "error"); // Right(1)
+   * ```
+   *
+   * @param arr An array to convert to an [[Either]]
+   * @param a A left value to return if `arr` is empty
+   * @returns An [[Either]] containing the first element of `arr`, or a [[Left]] with `a` if it is empty.
+   */
+  arrayToEither<A, B>(arr: B[], a: A): Either<A, B> {
+    return arr.length === 0 ? Either.Left(a) : Either.Right(arr[0]);
+  },
 
-/**
- * Creates a new [[Either]] that either contains
- * the first element of arr if it exists, or
- * nothing.
- *
- * ```ts
- * maybeToEither(Nothing(), "error"); // Left (error)
- * maybeToEither(Just(1), "error"); // Right (1)
- * ```
- *
- * @param maybe A [[Maybe]] to convert to an [[Either]]
- * @param a A left value to return if `maybe` is empty
- * @returns An [[Either]] containing the value in `maybe`, or a [[Left]] with `a` if it is empty.
- */
-function maybeToEither<A, B>(maybe: Maybe<B>, a: A): Either<A, B> {
-  return maybe.matchCase({ just: (b: B) => Right(b), nothing: () => Left(a) });
-}
+  /**
+   * Creates a new [[Either]] that either contains
+   * the first element of arr if it exists, or
+   * nothing.
+   *
+   * ```ts
+   * maybeToEither(Nothing(), "error"); // Left (error)
+   * maybeToEither(Just(1), "error"); // Right (1)
+   * ```
+   *
+   * @param maybe A [[Maybe]] to convert to an [[Either]]
+   * @param a A left value to return if `maybe` is empty
+   * @returns An [[Either]] containing the value in `maybe`, or a [[Left]] with `a` if it is empty.
+   */
+  maybeToEither<A, B>(maybe: Maybe<B>, a: A): Either<A, B> {
+    return maybe.matchCase({ just: (b: B) => Either.Right(b), nothing: () => Either.Left(a) });
+  },
 
-/**
- * Filter out all the [[Right]] cases.
- *
- * ```ts
- * lefts(Right("bob"), Left("error"), Right("sue")); // ["error"]
- * ```
- *
- * @param es An array of [[Either]] values.
- * @returns an array containing all [[Left]] values found in `es`.
- */
-function lefts<A, B>(es: Array<Either<A, B>>): A[] {
-  const result: A[] = [];
-  for (const e of es) {
-    if (e.isLeft()) {
-      result.push(e.value);
+  /**
+   * Filter out all the [[Right]] cases.
+   *
+   * ```ts
+   * lefts(Right("bob"), Left("error"), Right("sue")); // ["error"]
+   * ```
+   *
+   * @param es An array of [[Either]] values.
+   * @returns an array containing all [[Left]] values found in `es`.
+   */
+  lefts<A, B>(es: Array<Either<A, B>>): A[] {
+    const result: A[] = [];
+    for (const e of es) {
+      if (e.isLeft()) {
+        result.push(e.value);
+      }
     }
-  }
-  return result;
-}
+    return result;
+  },
 
-/**
- * Filter out all the [[Left]] cases.
- *
- * ```ts
- * rights(Right("bob"), Left("error"), Right("sue")); // ["bob", "sue"]
- * ```
- *
- * @param es An array of [[Either]] values.
- * @returns an array containing all [[Right]] values found in `es`.
- */
-function rights<A, B>(es: Array<Either<A, B>>): B[] {
-  const result: B[] = [];
-  for (const e of es) {
-    if (e.isRight()) {
-      result.push(e.value);
+  /**
+   * Filter out all the [[Left]] cases.
+   *
+   * ```ts
+   * rights(Right("bob"), Left("error"), Right("sue")); // ["bob", "sue"]
+   * ```
+   *
+   * @param es An array of [[Either]] values.
+   * @returns an array containing all [[Right]] values found in `es`.
+   */
+  rights<A, B>(es: Array<Either<A, B>>): B[] {
+    const result: B[] = [];
+    for (const e of es) {
+      if (e.isRight()) {
+        result.push(e.value);
+      }
     }
-  }
-  return result;
-}
+    return result;
+  },
 
-/*------------------------------
-  GENERAL LIFTING FUNCTIONS
-  ------------------------------*/
+  /*------------------------------
+    GENERAL LIFTING FUNCTIONS
+    ------------------------------*/
 
-/**
- * Composes an Either by applying a function to each argument
- * if they are all [[Right]]
- *
- * In order to satisfy the consistency of results between
- *
- * ```ts
- * lift(f, e1, e2) == e1.chain(v1 => e2.map(v2 => f(v1, v2)));
- * ```
- *
- * The first failure will be returned. For a similar structure that
- * aggregates failures, [[Validation]] which does not provide and implementation of [[chain]]
- *
- * ```ts
- * function answerTrueFalse(question: string, answer: boolean): string {
- *     return `${question} ${answer}`;
- * }
- *
- * lift(answerTrueFalse, Left("error1"), Left("error2")).toString(); // "Left (error2)"
- * lift(answerTrueFalse, Right("The meaning of life is 42."), Left("error2")).toString(); // "Left (error2)"
- * // "Right (The meaning of life is 42. true)"
- * lift(answerTrueFalse, Right("The meaning of life is 42."), Right(true)).toString();
- * ```
- *
- * @param f a function to lift to operate on [[Either]] values.
- * @param args lifted arguments to `f`.
- * @returns the result of evaluating `f` in an [[Either]] on the [[Right]] values contained by `args`.
- */
-function lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
-  const values = [];
-  for (const arg of args) {
-    if (arg.isLeft()) {
-      return arg;
-    } else {
-      values.push(arg.value);
+  /**
+   * Composes an Either by applying a to each argument
+   * if they are all [[Right]]
+   *
+   * In order to satisfy the consistency of results between
+   *
+   * ```ts
+   * lift(f, e1, e2) == e1.chain(v1 => e2.map(v2 => f(v1, v2)));
+   * ```
+   *
+   * The first failure will be returned. For a similar structure that
+   * aggregates failures, [[Validation]] which does not provide and implementation of [[chain]]
+   *
+   * ```ts
+   * answerTrueFalse(question: string, answer: boolean): string {
+   *     return `${question} ${answer}`;
+   * }
+   *
+   * lift(answerTrueFalse, Left("error1"), Left("error2")).toString(); // "Left (error2)"
+   * lift(answerTrueFalse, Right("The meaning of life is 42."), Left("error2")).toString(); // "Left (error2)"
+   * // "Right (The meaning of life is 42. true)"
+   * lift(answerTrueFalse, Right("The meaning of life is 42."), Right(true)).toString();
+   * ```
+   *
+   * @param f a to lift to operate on [[Either]] values.
+   * @param args lifted arguments to `f`.
+   * @returns the result of evaluating `f` in an [[Either]] on the [[Right]] values contained by `args`.
+   */
+  lift<A, P extends any[], R>(f: (...args: P) => R, ...args: MapEither<A, P>): Either<A, R> {
+    const values = [];
+    for (const arg of args) {
+      if (arg.isLeft()) {
+        return arg;
+      } else {
+        values.push(arg.value);
+      }
     }
-  }
-  return Right(f(...(values as P)));
-}
+    return Either.Right(f(...(values as P)));
+  },
 
-/**
- * Composes an [[Either]] by constructing an object out of
- * multiple [[Either]]s. If all the components are [[Right]],
- * The object will be constructed, otherwise the first error will
- * be returned.
- *
- * ```ts
- * type Foo = { bar: string, baz: Maybe<boolean> };
- *
- * // Left (invalid bar)
- * build<string, Foo>({
- *     bar: Left("invalid bar"),
- *     baz: Left("invalid baz")
- * });
- *
- * // Left (invalid baz)
- * build<string, Foo>({
- *     bar: Right("BAR"),
- *     baz: Left("invalid baz")
- * });
- *
- * // Right ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
- * build<string, Foo>({
- *     bar: Right("BAR"),
- *     baz: Right(Just("baz"))
- * });
- * ```
- *
- * @param spec an object composed of [[Either]]s to build the result out of in an [[Either]].
- * @returns an [[Either]] which will produce a `T` with the [[Right]] values of the [[Either]]s in `spec`.
- */
-function build<A, T extends object>(spec: MapEither<A, T>): Either<A, T> {
-  const maybeKvps = sequence(
-    objectToEntries(spec).map(([key, value]) =>
-      value.map(x => [key, x] as [keyof T, T[typeof key]]),
-    ),
-  );
+  /**
+   * Composes an [[Either]] by constructing an object out of
+   * multiple [[Either]]s. If all the components are [[Right]],
+   * The object will be constructed, otherwise the first error will
+   * be returned.
+   *
+   * ```ts
+   * type Foo = { bar: string, baz: Maybe<boolean> };
+   *
+   * // Left (invalid bar)
+   * record<string, Foo>({
+   *     bar: Left("invalid bar"),
+   *     baz: Left("invalid baz")
+   * });
+   *
+   * // Left (invalid baz)
+   * record<string, Foo>({
+   *     bar: Right("BAR"),
+   *     baz: Left("invalid baz")
+   * });
+   *
+   * // Right ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
+   * record<string, Foo>({
+   *     bar: Right("BAR"),
+   *     baz: Right(Just("baz"))
+   * });
+   * ```
+   *
+   * @param spec an object composed of [[Either]]s to build the result out of in an [[Either]].
+   * @returns an [[Either]] which will produce a `T` with the [[Right]] values of the [[Either]]s in `spec`.
+   */
+  record<A, T extends object>(spec: MapEither<A, T>): Either<A, T> {
+    const maybeKvps = Either.sequence(
+      objectToEntries(spec).map(([key, value]) =>
+        value.map(x => [key, x] as [keyof T, T[typeof key]]),
+      ),
+    );
 
-  return maybeKvps.map(objectFromEntries);
-}
+    return maybeKvps.map(objectFromEntries);
+  },
 
-/*------------------------------
-  KLIESLI COMPOSITION FUNCTIONS
-  ------------------------------*/
+  /*------------------------------
+    KLIESLI COMPOSITION FUNCTIONS
+    ------------------------------*/
 
-/**
- * Maps a function over an array of inputs and produces an [[Either]] for each,
- * then aggregates the results inside of an [[Either]].
- *
- * ```ts
- * mapM(person => maybeToEither(person.middleName, "middleNameRequired"), people); // Either<string, string[]>
- * ```
- *
- * @param f produces an [[Either]] for each element in `bs`
- * @param bs an array of inputs.
- * @returns an [[Either]] witch produces the values produced by `f` in order.
- */
-function mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
-  return sequence(bs.map(f));
-}
+  /**
+   * Maps a over an array of inputs and produces an [[Either]] for each,
+   * then aggregates the results inside of an [[Either]].
+   *
+   * ```ts
+   * mapM(person => maybeToEither(person.middleName, "middleNameRequired"), people); // Either<string, stringvoid>
+   * ```
+   *
+   * @param f produces an [[Either]] for each element in `bs`
+   * @param bs an array of inputs.
+   * @returns an [[Either]] witch produces the values produced by `f` in order.
+   */
+  mapM<A, B, C>(f: (value: B) => Either<A, C>, bs: B[]): Either<A, C[]> {
+    return Either.sequence(bs.map(f));
+  },
 
-/**
- * [[mapM]] with its arguments reversed. Generally provides better
- * ergonomics when `f` is a lambda (squint and it looks a bit like a `for` loop).
- *
- * ```ts
- * forM(people, person =>
- *     maybeToEither(person.middleName, "middleNameRequired")); // Either<string, string[]>
- * ```
- *
- * @param f produces an [[Either]] for each element in `bs`
- * @param bs an array of inputs.
- * @returns an [[Either]] witch produces the values produced by `f` in order.
- */
-function forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
-  return mapM(f, bs);
-}
+  /**
+   * [[mapM]] with its arguments reversed. Generally provides better
+   * ergonomics when `f` is a lambda (squint and it looks a bit like a `for` loop).
+   *
+   * ```ts
+   * forM(people, person =>
+   *     maybeToEither(person.middleName, "middleNameRequired")); // Either<string, stringvoid>
+   * ```
+   *
+   * @param f produces an [[Either]] for each element in `bs`
+   * @param bs an array of inputs.
+   * @returns an [[Either]] witch produces the values produced by `f` in order.
+   */
+  forM<A, B, C>(bs: B[], f: (value: B) => Either<A, C>): Either<A, C[]> {
+    return Either.mapM(f, bs);
+  },
 
-/**
- * Aggregate a sequence of [[Either]]s and combine their results.
- *
- * ```ts
- * sequence([]); // Right([])
- * sequence([Left("error")]); // Left(error)
- * sequence([Right(1)]); // Right([1])
- * sequence([Right(1), Left("error"), Right(3)]); // Left(error)
- * sequence([Right(1), Right(2), Right(3)]); // Right([1, 2, 3])
- * ```
- *
- * @param mas an array of [[Maybe]]s to sequence
- * @returns a [[Maybe]] of size `mas.length` if all elements have a value, else [[Nothing]].
- */
-function sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
-  return lift((...bs: B[]) => bs, ...ebs);
-}
+  /**
+   * Aggregate a sequence of [[Either]]s and combine their results.
+   *
+   * ```ts
+   * sequence(void); // Right(void)
+   * sequence([Left("error")]); // Left(error)
+   * sequence([Right(1)]); // Right([1])
+   * sequence([Right(1), Left("error"), Right(3)]); // Left(error)
+   * sequence([Right(1), Right(2), Right(3)]); // Right([1, 2, 3])
+   * ```
+   *
+   * @param mas an array of [[Maybe]]s to sequence
+   * @returns a [[Maybe]] of size `mas.length` if all elements have a value, else [[Nothing]].
+   */
+  sequence<A, B>(ebs: Array<Either<A, B>>): Either<A, B[]> {
+    return Either.lift((...bs: B[]) => bs, ...ebs);
+  },
 
-/**
- * Maps a decomposition of parts over an array of inputs.
- *
- * @param f A decomposition function
- * @param as An array of inputs
- * @param n optional param to control the number of buckets in the case of empty input.
- */
-function mapAndUnzipWith<A, N extends number, B, P extends any[] & { length: N }>(
-  f: (b: B) => Either<A, P>,
-  bs: B[],
-  n: N = 0 as any,
-): Either<A, MapArray<P>> {
-  return mapM(f, bs).map(x => unzip(x, n));
-}
+  /**
+   * Maps a decomposition of parts over an array of inputs.
+   *
+   * @param f A decomposition function
+   * @param as An array of inputs
+   * @param n optional param to control the number of buckets in the case of empty input.
+   */
+  mapAndUnzipWith<A, N extends number, B, P extends any[] & { length: N }>(
+    f: (b: B) => Either<A, P>,
+    bs: B[],
+    n: N = 0 as any,
+  ): Either<A, MapArray<P>> {
+    return Either.mapM(f, bs).map(x => unzip(x, n));
+  },
 
-/**
- * Reads two input arrays in-order and produces an [[Either]] for each pair,
- * then aggregates the results.
- *
- * @param f A function to combine each element of the input arrays in-order into an [[Either]].
- * @param bs An input array.
- * @param params Additional arrays to zip.
- */
-function zipWithM<A, B, P extends any[], C>(
-  f: (b: B, ...params: P) => Either<A, C>,
-  bs: B[],
-  ...params: MapArray<P>
-): Either<A, C[]> {
-  return sequence(bs.zipWith(f, ...(params as any)));
-}
+  /**
+   * Reads two input arrays in-order and produces an [[Either]] for each pair,
+   * then aggregates the results.
+   *
+   * @param f A to combine each element of the input arrays in-order into an [[Either]].
+   * @param bs An input array.
+   * @param params Additional arrays to zip.
+   */
+  zipWithM<A, B, P extends any[], C>(
+    f: (b: B, ...params: P) => Either<A, C>,
+    bs: B[],
+    ...params: MapArray<P>
+  ): Either<A, C[]> {
+    return Either.sequence(bs.zipWith(f, ...(params as any)));
+  },
 
-/**
- * Reduce an initial state over an array of inputs, with a 2-track decision
- * being made at each step.
- *
- * ```ts
- * function validateSequential([first, ...ns]: number[]): Either<string, number[]> {
- * return reduceM(
- *     ([...x, prev], next) => next - prev === 1
- *         ? Right([...x, prev, next])
- *         : Left(`${next} does not follow ${prev}`),
- *     [first],
- *     ns);
- * }
- * ```
- *
- * @param f a state-reducing function which may short-circuit at any step by returning [[Left]].
- * @returns The result of the reduction in an [[Either]].
- */
-function reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
-  let state = Right<A, C>(seed);
-  for (const b of bs) {
-    if (state.isLeft()) {
-      return state;
-    } else {
-      state = state.chain(c => f(c, b));
+  /**
+   * Reduce an initial state over an array of inputs, with a 2-track decision
+   * being made at each step.
+   *
+   * ```ts
+   * validateSequential([first, ...ns]: number[]): Either<string, number[]> {
+   * return reduceM(
+   *     ([...x, prev], next) => next - prev === 1
+   *         ? Right([...x, prev, next])
+   *         : Left(`${next} does not follow ${prev}`),
+   *     [first],
+   *     ns);
+   * }
+   * ```
+   *
+   * @param f a state-reducing which may short-circuit at any step by returning [[Left]].
+   * @returns The result of the reduction in an [[Either]].
+   */
+  reduceM<A, B, C>(f: (state: C, b: B) => Either<A, C>, seed: C, bs: B[]): Either<A, C> {
+    let state = Either.Right<A, C>(seed);
+    for (const b of bs) {
+      if (state.isLeft()) {
+        return state;
+      } else {
+        state = state.chain(c => f(c, b));
+      }
     }
-  }
-  return state;
-}
+    return state;
+  },
 
-/*------------------------------
-  GENERAL MONAD FUNCTIONS
-  ------------------------------*/
+  /*------------------------------
+    GENERAL MONAD FUNCTIONS
+    ------------------------------*/
 
-/**
- * Flatten a nested structure.
- */
-function join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
-  return m.chain(id);
-}
+  /**
+   * Flatten a nested structure.
+   */
+  join<A, B>(m: Either<A, Either<A, B>>): Either<A, B> {
+    return m.chain(id);
+  },
 
-const empty = Right([]);
+  /**
+   * If a condition is true, run the given choice, otherwise skip it.
+   *
+   * ```ts
+   * when(middleNameRequired,
+   *     maybeToEither(person.middleName, "Middle name required").voidOut());
+   * ```
+   *
+   * @param b the condition which must be satisfied to run `e`.
+   * @returns If `b` is `true`, `e`, else `Right(undefined)`.
+   */
+  when<A>(b: boolean, e: Either<A, void>): Either<A, void> {
+    return b ? e : (Either.Right(undefined) as Either<A, void>);
+  },
 
-/**
- * If a condition is true, run the given choice, otherwise skip it.
- *
- * ```ts
- * when(middleNameRequired,
- *     maybeToEither(person.middleName, "Middle name required").voidOut());
- * ```
- *
- * @param b the condition which must be satisfied to run `e`.
- * @returns If `b` is `true`, `e`, else `Right([])`.
- */
-function when<A>(b: boolean, e: Either<A, []>): Either<A, []> {
-  return b ? e : (empty as Either<A, []>);
-}
-
-/**
- * Unless a condition is true, run the given choice, otherwise skip it.
- *
- * ```ts
- * unless(middleNameOptional,
- *     maybeToEither(person.middleName, "Middle name required").voidOut());
- * ```
- *
- * @param b the condition which must be dissatisfied to run `e`.
- * @returns If `b` is `false`, `e`, else `Right([])`.
- */
-function unless<A>(b: boolean, e: Either<A, []>): Either<A, []> {
-  return when(!b, e);
-}
+  /**
+   * Unless a condition is true, run the given choice, otherwise skip it.
+   *
+   * ```ts
+   * unless(middleNameOptional,
+   *     maybeToEither(person.middleName, "Middle name required").voidOut());
+   * ```
+   *
+   * @param b the condition which must be dissatisfied to run `e`.
+   * @returns If `b` is `false`, `e`, else `Right(void)`.
+   */
+  unless<A>(b: boolean, e: Either<A, void>): Either<A, void> {
+    return Either.when(!b, e);
+  },
+};

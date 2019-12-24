@@ -1,9 +1,24 @@
-import { Either, Left, lefts, Right, rights } from "./either";
-import { Maybe, Nothing } from "./maybe";
-import { constant, objectFromEntries, objectToEntries } from "./prelude";
+import { Either } from "./either";
+import { Maybe } from "./maybe";
+import { Lazy } from "./lazy";
+import {
+  constant,
+  objectFromEntries,
+  objectToEntries,
+  Constructors,
+  Constructor,
+  traverseObject,
+} from "./prelude";
 import { StructuredError } from "./structuredError";
 
 export type FormError = StructuredError<string | number, string>;
+
+export const FormError = Constructors({
+  Failure: Constructor<string>(),
+  Multiple: Constructor<FormError[]>(),
+  Or: Constructor<FormError[]>(),
+  Path: Constructor<{ key: string | number; error: FormError }>(),
+});
 
 export type FormValidator<input, a> = (input: input) => Either<FormError, a>;
 
@@ -15,7 +30,7 @@ export class Form<input, a = input> {
     public readonly validate: FormValidator<input, a>,
     public readonly dirty: boolean = false,
   ) {
-    this.result = lazy(() => validate(value));
+    this.result = Lazy.delay(() => validate(value));
   }
 
   public chain<b>(f: (a: a) => Form<input, b>): Form<input, b> {
@@ -27,7 +42,7 @@ export class Form<input, a = input> {
   }
 
   public getResult(): Either<FormError, a> {
-    return this.result.value();
+    return this.result.force();
   }
 
   public load(value: input): Form<input, a> {
@@ -35,7 +50,7 @@ export class Form<input, a = input> {
   }
 
   public map<b>(f: (a: a) => b): Form<input, b> {
-    return this.chain(a => new Form(this.value, constant(Right(f(a)))));
+    return this.chain(a => new Form(this.value, constant(Either.Right(f(a)))));
   }
 
   public or(alt: Form<input, a>): Form<input, a> {
@@ -43,12 +58,12 @@ export class Form<input, a = input> {
       validate: input =>
         this.validate(input).matchCase({
           left: () => alt.validate(input),
-          right: x => Right(x),
+          right: x => Either.Right(x),
         }),
     });
   }
 
-  public queryError(error: FormError, ...path: Array<string | number>): Maybe<FormError> {
+  public queryError(...path: Array<string | number>): Maybe<FormError> {
     return this.getResult()
       .leftToMaybe()
       .chain(x => StructuredError.query(x, ...path));
@@ -69,62 +84,42 @@ export class Form<input, a = input> {
       updates.dirty ?? this.dirty,
     );
   }
-}
 
-type Lazy<a> = {
-  value(): a;
-};
-
-function lazy<a>(thunk: () => a): Lazy<a> {
-  let value: a;
-
-  return {
-    value() {
-      if (!value) {
-        value = thunk();
-      }
-      return value;
-    },
-  };
-}
-
-export const Forms = {
-  checkbox<a>(validate: FormValidator<boolean, a>): Form<boolean, a> {
+  public static checkbox<a>(validate: FormValidator<boolean, a>): Form<boolean, a> {
     return new Form(false as boolean, validate);
-  },
-  options<a, b>(validate: FormValidator<a[], b>): Form<a[], b> {
+  }
+
+  public static options<a, b>(validate: FormValidator<a[], b>): Form<a[], b> {
     return new Form<a[], b>([], validate);
-  },
-  record<input extends object, a extends { [K in keyof input]: a[K] }>(
+  }
+
+  public static record<input extends object, a extends { [K in keyof input]: a[K] }>(
     spec: { [K in keyof input]: Form<input[K], a[K]> },
   ): Form<input, a> {
     return new Form(
-      objectFromEntries(
-        objectToEntries(spec).map<[keyof input, input[keyof input]]>(([key, value]) => [
-          key,
-          value.value,
-        ]),
-      ),
+      traverseObject(spec, (_key, value) => value.value),
       input => {
         const results = objectToEntries(spec).map(([key, form]) =>
           form
             .validate(input[key])
-            .map<[keyof a, a[keyof a]]>(x => [key, x])
-            .mapLeft(error => StructuredError.Path(key as string, error)),
+            .map(x => [key, x] as const)
+            .mapLeft(error => FormError.Path({ key: key as string, error })),
         );
 
-        const errors = lefts(results);
+        const errors = Either.lefts(results);
 
         return errors.isEmpty()
-          ? Right(objectFromEntries(rights(results)))
-          : Left(StructuredError.Multiple(errors));
+          ? Either.Right(objectFromEntries(Either.rights(results)))
+          : Either.Left(FormError.Multiple(errors));
       },
     );
-  },
-  select<a, b>(validate: FormValidator<Maybe<a>, b>): Form<Maybe<a>, b> {
-    return new Form(Nothing(), validate);
-  },
-  setField<input extends object, field extends keyof input, a>(
+  }
+
+  public static select<a, b>(validate: FormValidator<Maybe<a>, b>): Form<Maybe<a>, b> {
+    return new Form(Maybe.Nothing(), validate);
+  }
+
+  public static setField<input extends object, field extends keyof input, a>(
     field: field,
     value: input[field],
     form: Form<input, a>,
@@ -133,26 +128,29 @@ export const Forms = {
       ...form.value,
       [field]: value,
     });
-  },
-  slider<a>(validate: FormValidator<number, a>): Form<number, a> {
+  }
+
+  public static slider<a>(validate: FormValidator<number, a>): Form<number, a> {
     return new Form(0 as number, validate);
-  },
-  text<a>(validate: FormValidator<string, a>): Form<string, a> {
+  }
+
+  public static text<a>(validate: FormValidator<string, a>): Form<string, a> {
     return new Form("" as string, validate);
-  },
-  tuple<input extends any[], a extends { [K in keyof input]: a[K] }>(
+  }
+
+  public static tuple<input extends any[], a extends { [K in keyof input]: a[K] }>(
     ...forms: { [K in keyof input]: Form<input[K], a[K]> }
   ): Form<input, a> {
     return new Form(forms.map(x => x.value) as input, input => {
       const results = forms.map((form, i) =>
-        form.validate(input[i]).mapLeft(error => StructuredError.Path(i, error)),
+        form.validate(input[i]).mapLeft(error => FormError.Path({ key: i, error })),
       );
 
-      const errors = lefts(results);
+      const errors = Either.lefts(results);
 
       return errors.isEmpty()
-        ? Right(rights(results) as any)
-        : Left(StructuredError.Multiple(errors));
+        ? Either.Right(Either.rights(results) as any)
+        : Either.Left(FormError.Multiple(errors));
     });
-  },
-};
+  }
+}

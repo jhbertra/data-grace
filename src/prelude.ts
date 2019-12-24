@@ -1,34 +1,96 @@
-import "core-js";
 import { Curry, Equals } from "./utilityTypes";
 
 export {
-  Data,
   absurd,
   constant,
+  Constructor,
+  Constructors,
   curry,
-  data,
+  Data,
   id,
+  match,
   objectFromEntries,
   objectToEntries,
   pipe,
   pipeWith,
   prove,
   proveNever,
+  Proxy,
+  ReturnTypes,
   simplify,
+  traverseObject,
+  Values,
 };
+
+interface Proxy<a> {}
+const Proxy = <a>() => ({});
 
 type Data<Tag extends string, Value = undefined> = {
   readonly tag: Tag;
   readonly value: Value;
 };
 
-function data<Tag extends string>(tag: Tag): Data<Tag, undefined>;
-function data<Tag extends string, Value>(tag: Tag, value: Value): Data<Tag, Value>;
+type Constructor<value = undefined> = Proxy<value>;
 
-function data(tag: string, value?: any) {
+function Constructor<value = undefined>(): Constructor<value> {
+  return {};
+}
+
+interface ConstructorPrototypes {
+  [tag: string]: Constructor;
+}
+
+type ConstructorFn<tag extends string, value = undefined> = undefined extends value
+  ? () => Data<tag>
+  : (value: value) => Data<tag, value>;
+
+function ConstructorFn<tag extends string, value = undefined>(
+  tag: tag,
+  _prototype: Constructor<value>,
+): ConstructorFn<tag, value> {
+  return ((value: value) => Object.freeze({ tag, value })) as any;
+}
+
+type Constructors<prototypes extends ConstructorPrototypes> = {
+  [tag in keyof prototypes]: prototypes[tag] extends Constructor<infer value>
+    ? tag extends string
+      ? ConstructorFn<tag, value>
+      : never
+    : never;
+};
+
+function Constructors<prototypes extends ConstructorPrototypes>(
+  prototypes: prototypes,
+): Constructors<prototypes> {
+  return traverseObject(
+    prototypes,
+    (tag, prototype) => ConstructorFn(tag as string, prototype) as any,
+  );
+}
+
+type Values<a> = a extends { [_: string]: infer v } ? v : never;
+type ReturnTypes<a extends { [_: string]: (...args: any) => any }> = ReturnType<Values<a>>;
+
+interface Matcher<constructor extends Constructor, a> {
+  (value: constructor extends Constructor<infer value> ? value : never): a;
+}
+
+type Matchers<prototypes extends ConstructorPrototypes, a> = {
+  readonly [k in keyof prototypes]: Matcher<prototypes[k], a>;
+};
+
+interface Match<prototypes extends ConstructorPrototypes> {
+  with<a>(matchers: Matchers<prototypes, a>): a;
+}
+
+function match<constructors extends Constructors<any>>(
+  constructors: constructors,
+  data: ReturnTypes<constructors>,
+): Match<constructors extends Constructors<infer prototypes> ? prototypes : never> {
   return Object.freeze({
-    tag,
-    value,
+    with(matchers) {
+      return matchers[data.tag](data.value as any);
+    },
   });
 }
 
@@ -320,7 +382,7 @@ function curryImpl(f: Function, arity: number): Function {
 /**
  * Convert an object to an array of key-value pairs.
  */
-function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]]> {
+function objectToEntries<T extends object>(value: T): Array<readonly [keyof T, T[keyof T]]> {
   const entries: Array<[keyof T, T[keyof T]]> = [];
   for (const key in value) {
     if (value.hasOwnProperty(key)) {
@@ -333,12 +395,21 @@ function objectToEntries<T extends object>(value: T): Array<[keyof T, T[keyof T]
 /**
  * Convert an array of key-value pairs to an object.
  */
-function objectFromEntries<T extends object>(entries: Array<[keyof T, T[keyof T]]>): T {
+function objectFromEntries<T extends object>(entries: Array<readonly [keyof T, T[keyof T]]>): T {
   const result = {} as T;
   for (const [key, value] of entries) {
     result[key] = value;
   }
   return result;
+}
+
+function traverseObject<a extends object, b extends { [k in keyof a]: b[k] }>(
+  value: a,
+  f: (key: keyof a, value: a[keyof a]) => b[keyof a],
+): b {
+  return objectFromEntries(
+    objectToEntries(value).map(([key, value]) => [key, f(key, value)] as const),
+  );
 }
 
 function simplify(x: any): any {

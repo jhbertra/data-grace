@@ -1,8 +1,8 @@
 import * as fc from "fast-check";
 import { unzip } from "../src/array";
 import { prove, simplify } from "../src/prelude";
-import * as P from "../src/promise";
 import { Equals } from "../src/utilityTypes";
+import { Promises, MapPromise } from "../src";
 
 /*------------------------------
   TYPE TESTS
@@ -10,13 +10,13 @@ import { Equals } from "../src/utilityTypes";
 
 // Map the fields of an object
 type MapPromiseObject = Equals<
-  P.MapPromise<{ bar: number; baz: string }>,
+  MapPromise<{ bar: number; baz: string }>,
   { bar: Promise<number>; baz: Promise<string> }
 >;
 prove<MapPromiseObject>("proof");
 
 // Map the items of an array
-type MapPromiseArray = Equals<P.MapPromise<string[]>, Array<Promise<string>>>;
+type MapPromiseArray = Equals<MapPromise<string[]>, Array<Promise<string>>>;
 prove<MapPromiseArray>("proof");
 
 /*------------------------------
@@ -39,7 +39,7 @@ describe("build", () => {
         (bar: number, baz: boolean, qux: string) => {
           expect(
             simplify(
-              P.build<Foo>({
+              Promises.record<Foo>({
                 bar: Promise.resolve(bar),
                 baz: Promise.resolve(baz),
                 qux: Promise.resolve(qux),
@@ -67,13 +67,13 @@ describe("build", () => {
         fc.array(fc.integer(0, 2), 1, 3),
         (bar: number, baz: boolean, qux: string, empties: number[]) => {
           function getComponent<T>(i: number, value: T): Promise<T> {
-            return empties.find(x => x === i) != null
+            return empties.find(x => x === i) !== undefined
               ? Promise.reject("error")
               : Promise.resolve(value);
           }
           expect(
             simplify(
-              P.build<Foo>({
+              Promises.record<Foo>({
                 bar: getComponent(0, bar),
                 baz: getComponent(1, baz),
                 qux: getComponent(2, qux),
@@ -90,8 +90,8 @@ describe("mapM and forM", () => {
   it("is equal to map + wrap for only pure results", () => {
     fc.assert(
       fc.property(fc.array(fc.integer()), (xs: number[]) => {
-        const resultForM = simplify(P.forM(xs, x => Promise.resolve(x.toString())));
-        const resultMapM = simplify(P.mapM(x => Promise.resolve(x.toString()), xs));
+        const resultForM = simplify(Promises.forM(xs, x => Promise.resolve(x.toString())));
+        const resultMapM = simplify(Promises.mapM(x => Promise.resolve(x.toString()), xs));
         expect(resultForM).toEqual(resultMapM);
         expect(resultMapM).toEqual(simplify(Promise.resolve(xs.map(x => x.toString()))));
       }),
@@ -115,12 +115,12 @@ describe("mapM and forM", () => {
           }
 
           const mapping = (i: number) =>
-            empties.find(x => x === i) != null
+            empties.find(x => x === i) !== undefined
               ? Promise.reject("Error")
               : Promise.resolve(i.toString());
 
-          const resultForM = simplify(P.forM(input, mapping).catch(e => e));
-          const resultMapM = simplify(P.mapM(mapping, input).catch(e => e));
+          const resultForM = simplify(Promises.forM(input, mapping).catch(e => e));
+          const resultMapM = simplify(Promises.mapM(mapping, input).catch(e => e));
           expect(resultForM).toEqual(resultMapM);
           expect(resultMapM).toEqual(simplify(Promise.reject("error").catch(e => e)));
         },
@@ -131,17 +131,17 @@ describe("mapM and forM", () => {
 
 describe("join", () => {
   it("equals Nothing when outer is empty", () => {
-    expect(simplify(P.join(Promise.reject("error")).catch(e => e))).toEqual(
+    expect(simplify(Promises.join(Promise.reject("error")).catch(e => e))).toEqual(
       simplify(Promise.reject("error").catch(e => e)),
     );
   });
   it("equals Nothing when inner is empty", () => {
-    expect(simplify(P.join(Promise.resolve(Promise.reject("error"))).catch(e => e))).toEqual(
+    expect(simplify(Promises.join(Promise.resolve(Promise.reject("error"))).catch(e => e))).toEqual(
       simplify(Promise.reject("error").catch(e => e)),
     );
   });
   it("equals inner when both levels non-empty", () => {
-    expect(simplify(P.join(Promise.resolve<Promise<number>>(Promise.resolve(12))))).toEqual(
+    expect(simplify(Promises.join(Promise.resolve<Promise<number>>(Promise.resolve(12))))).toEqual(
       simplify(Promise.resolve(12)),
     );
   });
@@ -153,7 +153,7 @@ describe("lift", () => {
     fc.assert(
       fc.property(fc.float(), fc.boolean(), fc.string(), (a: number, b: boolean, c: string) => {
         expect(
-          simplify(P.lift(f, Promise.resolve(a), Promise.resolve(b), Promise.resolve(c))),
+          simplify(Promises.lift(f, Promise.resolve(a), Promise.resolve(b), Promise.resolve(c))),
         ).toEqual(simplify(Promise.resolve(f(a, b, c))));
       }),
     );
@@ -167,13 +167,13 @@ describe("lift", () => {
         fc.array(fc.integer(0, 2), 1, 3),
         (a: number, b: boolean, c: string, empties: number[]) => {
           function getArg<T>(i: number, value: T): Promise<T> {
-            return empties.find(x => x === i) != null
+            return empties.find(x => x === i) !== undefined
               ? Promise.reject("error")
               : Promise.resolve(value);
           }
 
           expect(
-            simplify(P.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)).catch(e => e)),
+            simplify(Promises.lift(f, getArg(0, a), getArg(1, b), getArg(2, c)).catch(e => e)),
           ).toEqual(simplify(Promise.reject("error").catch(e => e)));
         },
       ),
@@ -187,7 +187,7 @@ describe("mapAndUnzipWith", () => {
       fc.property(fc.array(fc.tuple(fc.integer(), fc.string())), (xys: Array<[number, string]>) => {
         expect(
           simplify(
-            P.mapAndUnzipWith(
+            Promises.mapAndUnzipWith(
               ([x, y]) => Promise.resolve<[string, number]>([y, x]),
               xys,
             ),
@@ -211,9 +211,9 @@ describe("mapAndUnzipWith", () => {
         ([xys, empties]) => {
           expect(
             simplify(
-              P.mapAndUnzipWith(
+              Promises.mapAndUnzipWith(
                 ([[x, y], i]) =>
-                  empties.find(e => e === i) != null
+                  empties.find(e => e === i) !== undefined
                     ? Promise.reject("error")
                     : Promise.resolve<[string, number]>([y, x]),
                 xys.map((xy, i) => [xy, i] as [[number, string], number]),
@@ -230,9 +230,9 @@ describe("zipWithM", () => {
   it("is equal to zipWith + wrap for only pure results", () => {
     fc.assert(
       fc.property(fc.array(fc.string()), fc.array(fc.integer()), (strs: string[], ns: number[]) => {
-        expect(simplify(P.zipWithM((str, n) => Promise.resolve(str.length + n), strs, ns))).toEqual(
-          simplify(Promise.resolve(strs.zipWith((str, n) => str.length + n, ns))),
-        );
+        expect(
+          simplify(Promises.zipWithM((str, n) => Promise.resolve(str.length + n), strs, ns)),
+        ).toEqual(simplify(Promise.resolve(strs.zipWith((str, n) => str.length + n, ns))));
       }),
     );
   });
@@ -253,10 +253,10 @@ describe("zipWithM", () => {
 
     fc.assert(
       fc.property(arb, ([strs, ns, empties]) => {
-        const predicate = (i: number) => empties.find(x => x === i) == null;
+        const predicate = (i: number) => empties.find(x => x === i) === undefined;
         expect(
           simplify(
-            P.zipWithM(
+            Promises.zipWithM(
               ([str, i], n) =>
                 predicate(i) ? Promise.resolve(str.length + n) : Promise.reject("error"),
               strs,
