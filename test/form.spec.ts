@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
-import { Form, FormError, Either } from "../src";
-import { id, simplify, constant } from "../src/prelude";
-import { arbitraryEither } from "./either.spec";
+import { Form, FormError, Result } from "../src";
+import { simplify, constant } from "../src/prelude";
+import { arbitraryEither } from "./result.spec";
 
 describe("chain", () => {
   it("short circuits if the first Form fails", () => {
@@ -11,7 +11,7 @@ describe("chain", () => {
           .chain(constant(Form.succeed(undefined, "test")))
           .getResult(),
       ),
-    ).toEqual(simplify(Either.Left(FormError.Failure("Fail"))));
+    ).toEqual(simplify(Result.Error(FormError.Failure("Fail"))));
   });
   it("runs the second Form if the first Form fails", () => {
     expect(
@@ -20,7 +20,7 @@ describe("chain", () => {
           .chain(constant(Form.succeed(undefined, "test")))
           .getResult(),
       ),
-    ).toEqual(simplify(Either.Right("test")));
+    ).toEqual(simplify(Result.Ok("test")));
   });
 });
 
@@ -63,16 +63,14 @@ describe("load", () => {
         expect(
           simplify(
             Form.text(x =>
-              x.length % 2 === 0 ? Either.Left(FormError.Failure("fail")) : Either.Right("success"),
+              x.length % 2 === 0 ? Result.Error(FormError.Failure("fail")) : Result.Ok("success"),
             )
               .load(value)
               .getResult(),
           ),
         ).toEqual(
           simplify(
-            value.length % 2 === 0
-              ? Either.Left(FormError.Failure("fail"))
-              : Either.Right("success"),
+            value.length % 2 === 0 ? Result.Error(FormError.Failure("fail")) : Result.Ok("success"),
           ),
         );
       }),

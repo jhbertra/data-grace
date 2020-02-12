@@ -16,7 +16,7 @@
   },
   "include": [
     "src",
-    "test/either.spec.ts",
+    "test/result.spec.ts",
     "test/maybe.spec.ts",
     "test/prelude.spec.ts",
     "test/promise.spec.ts",

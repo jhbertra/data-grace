@@ -330,7 +330,7 @@ export class Encoder<T> {
   public static value = new Encoder<Json>(id);
 
   public static nullable<T>(valueEncoder: Encoder<T>): Encoder<Maybe<T>> {
-    return new Encoder(x => x.matchCase({ nothing: () => null, just: valueEncoder.encode }));
+    return new Encoder(x => x.matchCase({ Nothing: () => null, Just: valueEncoder.encode }));
   }
 
   public static array<T>(valueEncoder: Encoder<T>): Encoder<T[]> {

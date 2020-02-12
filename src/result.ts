@@ -143,7 +143,7 @@ export class Result<value, error> {
    * @param spec an object composed of [[Result]]s to build the result out of in a [[Result]].
    * @returns a [[Result]] which will produce a `recod` with the [[Ok]] values of the [[Result]]s in `spec`.
    */
-  static record<error, record>(
+  static record<record, error>(
     spec: { [key in keyof record]: Result<record[key], error> },
   ): Result<record, error> {
     return objectToEntries(spec).reduce(
@@ -292,7 +292,7 @@ export class Result<value, error> {
    * @returns A [[Maybe]] containing the [[Ok]] value contained by this [[Result]], else [[Nothing]].
    */
   get maybeValue(): Maybe<value> {
-    return Maybe.fromData(this.data, "Value");
+    return Maybe.fromData(this.data, "Ok");
   }
 
   /**
