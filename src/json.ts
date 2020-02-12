@@ -6,9 +6,9 @@ import {
   id,
   objectFromEntries,
   objectToEntries,
-  Constructors,
-  Constructor,
   traverseObject,
+  Union,
+  UnionMember,
 } from "./prelude";
 import { Schema } from "./schema";
 import { StructuredError } from "./structuredError";
@@ -53,11 +53,11 @@ export type JsonPathKey = string | number;
 
 export type DecoderError = StructuredError<JsonPathKey, { message: string; value: Json }>;
 
-export const DecoderError = Constructors({
-  Failure: Constructor<{ message: string; value: Json }>(),
-  Multiple: Constructor<DecoderError[]>(),
-  Or: Constructor<DecoderError[]>(),
-  Path: Constructor<{ key: JsonPathKey; error: DecoderError }>(),
+export const DecoderError = Union({
+  Failure: UnionMember<{ message: string; value: Json }>(),
+  Multiple: UnionMember<DecoderError[]>(),
+  Or: UnionMember<DecoderError[]>(),
+  Path: UnionMember<{ key: JsonPathKey; error: DecoderError }>(),
 });
 
 export class Decoder<a> {

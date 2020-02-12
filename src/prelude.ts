@@ -3,41 +3,36 @@ import { Curry, Equals } from "./utilityTypes";
 export {
   absurd,
   constant,
-  Constructor,
-  Constructors,
+  UnionMember,
+  Union,
   curry,
   Data,
   id,
-  match,
   objectFromEntries,
   objectToEntries,
   pipe,
   pipeWith,
   prove,
   proveNever,
-  Proxy,
   ReturnTypes,
   simplify,
   traverseObject,
   Values,
 };
 
-interface Proxy<a> {}
-const Proxy = <a>() => ({});
-
 type Data<Tag extends string, Value = undefined> = {
   readonly tag: Tag;
   readonly value: Value;
 };
 
-type Constructor<value = undefined> = Proxy<value>;
+interface UnionMember<value = undefined> {}
 
-function Constructor<value = undefined>(): Constructor<value> {
+function UnionMember<value = undefined>(): UnionMember<value> {
   return {};
 }
 
-interface ConstructorPrototypes {
-  [tag: string]: Constructor;
+interface UnionMembers {
+  [tag: string]: UnionMember;
 }
 
 type ConstructorFn<tag extends string, value = undefined> = value extends undefined
@@ -46,53 +41,25 @@ type ConstructorFn<tag extends string, value = undefined> = value extends undefi
 
 function ConstructorFn<tag extends string, value = undefined>(
   tag: tag,
-  _prototype: Constructor<value>,
+  _member: UnionMember<value>,
 ): ConstructorFn<tag, value> {
   return ((value: value) => Object.freeze({ tag, value })) as any;
 }
 
-type Constructors<prototypes extends ConstructorPrototypes> = {
-  [tag in keyof prototypes]: prototypes[tag] extends Constructor<infer value>
+type Union<prototypes extends UnionMembers> = {
+  [tag in keyof prototypes]: prototypes[tag] extends UnionMember<infer value>
     ? tag extends string
       ? ConstructorFn<tag, value>
       : never
     : never;
 };
 
-function Constructors<prototypes extends ConstructorPrototypes>(
-  prototypes: prototypes,
-): Constructors<prototypes> {
-  return traverseObject(
-    prototypes,
-    (tag, prototype) => ConstructorFn(tag as string, prototype) as any,
-  );
+function Union<members extends UnionMembers>(members: members): Union<members> {
+  return traverseObject(members, (tag, member) => ConstructorFn(tag as string, member) as any);
 }
 
 type Values<a> = a extends { [_: string]: infer v } ? v : never;
 type ReturnTypes<a extends { [_: string]: (...args: any) => any }> = ReturnType<Values<a>>;
-
-interface Matcher<constructor extends Constructor, a> {
-  (value: constructor extends Constructor<infer value> ? value : never): a;
-}
-
-type Matchers<prototypes extends ConstructorPrototypes, a> = {
-  readonly [k in keyof prototypes]: Matcher<prototypes[k], a>;
-};
-
-interface Match<prototypes extends ConstructorPrototypes> {
-  with<a>(matchers: Matchers<prototypes, a>): a;
-}
-
-function match<constructors extends Constructors<any>>(
-  constructors: constructors,
-  data: ReturnTypes<constructors>,
-): Match<constructors extends Constructors<infer prototypes> ? prototypes : never> {
-  return Object.freeze({
-    with(matchers) {
-      return matchers[data.tag](data.value as any);
-    },
-  });
-}
 
 /**
  * A function which can never be called. Can be useful for

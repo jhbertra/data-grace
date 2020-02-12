@@ -5,19 +5,19 @@ import {
   constant,
   objectFromEntries,
   objectToEntries,
-  Constructors,
-  Constructor,
   traverseObject,
+  Union,
+  UnionMember,
 } from "./prelude";
 import { StructuredError } from "./structuredError";
 
 export type FormError = StructuredError<string | number, string>;
 
-export const FormError = Constructors({
-  Failure: Constructor<string>(),
-  Multiple: Constructor<FormError[]>(),
-  Or: Constructor<FormError[]>(),
-  Path: Constructor<{ key: string | number; error: FormError }>(),
+export const FormError = Union({
+  Failure: UnionMember<string>(),
+  Multiple: UnionMember<FormError[]>(),
+  Or: UnionMember<FormError[]>(),
+  Path: UnionMember<{ key: string | number; error: FormError }>(),
 });
 
 export type FormValidator<input, a> = (input: input) => Result<a, FormError>;
