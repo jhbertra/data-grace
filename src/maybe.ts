@@ -8,312 +8,26 @@ import { Data, id, objectFromEntries, objectToEntries } from "./prelude";
 /**
  * The public methods exposed by the [[Maybe]] type.
  */
-export interface IMaybe<A> {
-  /**
-   * Extract the value of this [[Maybe]] if it has one, or default to a.
-   *
-   * ```ts
-   * Maybe.Just("foo").defaultWith("bar"); // "foo"
-   * Nothing().defaultWith("bar"); // "bar"
-   * ```
-   *
-   * @param a The value to return in case this is [[Nothing]]
-   * @returns The value within this [[Maybe]] or `a`.
-   */
-  defaultWith(a: A): A;
+export class Maybe<value> {
+  private static staticNothing: Maybe<any> = new Maybe({ tag: "Nothing", value: undefined });
 
   /**
-   * Remove unwanted values from this [[Maybe]] with a predicate.
+   * Creates a [[Maybe]] which contains a value.
    *
-   * ```ts
-   * Maybe.Just("foo").filter(x => x === "foo"); // Maybe.Just (foo)
-   * Maybe.Just("bar").filter(x => x === "foo"); // Nothing
-   * Nothing().filter(x => x === "foo"); // Nothing
-   * ```
-   *
-   * @param p a predicate to test the value against
-   * @returns a [[Maybe]] where any value which doesn't satisfy `p` is removed.
+   * @param value the value.
    */
-  filter(p: (a: A) => boolean): Maybe<A>;
+  public static Just<value>(value: value): Maybe<value> {
+    return new Maybe({ tag: "Just", value });
+  }
 
   /**
-   * Chain a calculation that may also resolve to a nothing value
-   * on the value contained by this [[Maybe]].
+   * Creates a [[Maybe]] which contains no value.
    *
-   * ```ts
-   * Maybe.Just("foo").chain(x => Maybe.Just(`${x}bar`)); // Maybe.Just (foobar)
-   * Maybe.Just("foo").chain(x => Nothing()); // Nothing
-   * Nothing().chain(x => Maybe.Just(`${x}bar`)); // Nothing
-   * Nothing().chain(x => Nothing()); // Nothing
-   * ```
-   *
-   * @param f a to produce the next [[Maybe]] when this [[Maybe]] has a value.
-   * @returns The result of running `f` if this [[Maybe]] has a value/.
+   * @param error the error produced by the failed operation.
    */
-  chain<B>(f: (a: A) => Maybe<B>): Maybe<B>;
-
-  /**
-   * A type guard which determines if this [[Maybe]] is a [[Just]].
-   *
-   * ```ts
-   * const result = Maybe.Just("foo");
-   * if (result.isJust()) {
-   *     result.value; // "foo";
-   * }
-   * ```
-   *
-   * @returns true if this is a [[Just]], false otherwise.
-   */
-  isJust(): this is Data<"Just", A>;
-
-  /**
-   * A type guard which determines if this [[Maybe]] is a [[Nothing]].
-   *
-   * ```ts
-   * const result = Nothing();
-   * if (result.isNothing()) {
-   *     result.value; // undefined / compiler error.
-   * }
-   * ```
-   *
-   * @returns true if this is a [[Nothing]], false otherwise.
-   */
-  isNothing(): this is Data<"Nothing">;
-
-  /**
-   * Transform the value contained by this [[Maybe]].
-   *
-   * ```ts
-   * Maybe.Just("foo").map(x => `${x}bar`); // Maybe.Just (foobar)
-   * Nothing().map(x => `${x}bar`); // Nothing
-   * ```
-   *
-   * @param f a that modifies the value within the [[Maybe]].
-   * @returns a [[Maybe]] with its contents transformed.
-   */
-  map<B>(f: (a: A) => B): Maybe<B>;
-
-  /**
-   * Run a callback based on the case of the [[Maybe]].
-   *
-   * ```ts
-   * Maybe.Just("foo").matchCase({
-   *     just: x => x.toUpperCase(),
-   *     nothing: () => "got nothing"); // "FOO"
-   *
-   * Nothing().matchCase({
-   *     just: x => x.toUpperCase(),
-   *     nothing: () => "got nothing"); // "got nothing"
-   * ```
-   *
-   * @param cases an object containing callbacks that scrutinize the structure of this [[Maybe]]
-   * @returns the result of calling the appropriate callback in `cases`.
-   */
-  matchCase<B>(cases: MaybeCaseScrutinizer<A, B>): B;
-
-  /**
-   * Pick this @Maybe if it has a value otherwise pick the other.
-   *
-   * ```ts
-   * Maybe.Just("bob").or(Just("sue")).toString(); // "Just (bob)"
-   * Nothing().or(Just("sue")).toString(); // "Just (sue)"
-   * Nothing().or(Nothing()).toString(); // "Nothing"
-   * ```
-   *
-   * @param other a [[Maybe]] to chose if this one is [[Nothing]].
-   * @returns the first of `this, other` which has a value, else [[Nothing]].
-   */
-  or(other: Maybe<A>): Maybe<A>;
-
-  /**
-   * Replace the value in this [[Maybe]] with another [[Maybe]].
-   *
-   * ```ts
-   * Maybe.Just("bob").replace(Just("sue")).toString(); // "Just (sue)"
-   * Maybe.Just("bob").replace(Nothing()).toString(); // "Nothing"
-   * Nothing().replace(Just("sue")).toString(); // "Nothing"
-   * Nothing().replace(Nothing()).toString(); // "Nothing"
-   * ```
-   *
-   * @param m The [[Maybe]] to replace this one with if it has a value.
-   * @returns `m` if this has a value, else [[Nothing]].
-   */
-  replace<B>(m: Maybe<B>): Maybe<B>;
-
-  /**
-   * Replace the value in this [[Maybe]] with a new value.
-   *
-   * ```ts
-   * Maybe.Just("bob").replace(42).toString(); // "Just (42)"
-   * Nothing().replace(42).toString(); // "Nothing"
-   * ```
-   *
-   * @param b the value to replace the contents of this [[Maybe]] with.
-   * @returns A [[Maybe]] containing `b` if this has a value, else [[Nothing]].
-   */
-  replacePure<B>(b: B): Maybe<B>;
-
-  /**
-   * Convert this [[Maybe]] to an array with either one or
-   * zero elements.
-   *
-   * ```ts
-   * Maybe.Just("bob").toArray(); // [42]
-   * Nothing().toArray(); // []
-   * ```
-   *
-   * @returns A one-element array containing the value contained by this [[Maybe]], else an empty array.
-   */
-  toArray(): A[];
-
-  /**
-   * Pretty-print this [[Maybe]]
-   *
-   * @returns a string formatted `"Just (...)"` or `"Nothing"`.
-   */
-  toString(): string;
-
-  /**
-   * Discard any value contained by this [[Maybe]]
-   *
-   * @returns A [[Maybe]] with an empty array in it, or [[Nothing]] if this is [[Nothing]].
-   */
-  voidOut(): Maybe<void>;
-}
-
-/**
- * Defines the set of functions required to scrutinize the cases of a [[Maybe]].
- */
-interface MaybeCaseScrutinizer<A, B> {
-  /**
-   * Callback which is called in the case a [[Maybe]] has a value.
-   */
-  just(a: A): B;
-
-  /**
-   * Callback which is called in the case a [[Maybe]] has no value.
-   */
-  nothing(): B;
-}
-
-/**
- * A data type that represents an optional / nullable value.
- * It can either have a value of "just A", or "nothing".
- */
-export type Maybe<A> = IMaybe<A> & (Data<"Just", A> | Data<"Nothing">);
-
-/**
- * A type transformer that homomorphically maps the [[Maybe]] type
- * onto the types of A.
- *
- * ```ts
- * type Example = MapMaybe<{a: string, b: number}> // Example = {a: Maybe<string>, b: Maybe<number>}
- * ```
- */
-export type MapMaybe<A> = { [K in keyof A]: Maybe<A[K]> };
-
-const staticNothing: Maybe<any> = Object.freeze({
-  tag: "Nothing",
-  value: undefined,
-  defaultWith: id,
-  filter() {
-    return this;
-  },
-  chain() {
-    return this;
-  },
-  isJust() {
-    return false;
-  },
-  isNothing() {
-    return true;
-  },
-  map() {
-    return this;
-  },
-  matchCase({ nothing }) {
-    return nothing();
-  },
-  or(m2) {
-    return m2;
-  },
-  replace() {
-    return this;
-  },
-  replacePure() {
-    return this;
-  },
-  toArray() {
-    return [];
-  },
-  toString() {
-    return "Nothing";
-  },
-  voidOut() {
-    return staticNothing;
-  },
-});
-
-export const Maybe = {
-  /*------------------------------
-    CONSTRUCTORS
-    ------------------------------*/
-
-  /**
-   * Constructs a new [[Maybe]] that contains a given value.
-   */
-  Just<A>(value: A): Maybe<A> {
-    return Object.freeze({
-      tag: "Just",
-      value,
-      defaultWith() {
-        return value;
-      },
-      filter(p) {
-        return p(value) ? this : staticNothing;
-      },
-      chain(f) {
-        return f(value);
-      },
-      isJust() {
-        return true;
-      },
-      isNothing() {
-        return false;
-      },
-      map(f) {
-        return Maybe.Just(f(value));
-      },
-      matchCase({ just }) {
-        return just(value);
-      },
-      or() {
-        return this;
-      },
-      replace: id,
-      replacePure: Maybe.Just,
-      toArray() {
-        return [value];
-      },
-      toString() {
-        return `Just (${value})`;
-      },
-      voidOut() {
-        return Maybe.Just(undefined as void);
-      },
-    });
-  },
-
-  /**
-   * Constructs a new [[Maybe]] that contains no value.
-   */
-  Nothing<A>(): Maybe<A> {
-    return staticNothing as Maybe<A>;
-  },
-
-  /*------------------------------
-    MAYBE FUNCTIONS
-    ------------------------------*/
+  public static Nothing<value>(): Maybe<value> {
+    return Maybe.staticNothing;
+  }
 
   /**
    * Creates a new [[Maybe]] that either contains
@@ -329,9 +43,9 @@ export const Maybe = {
    * @param arr An array to convert to a [[Maybe]]
    * @returns A [[Maybe]] containing the first element of `arr`, or [[Nothing]] if it is empty.
    */
-  arrayToMaybe<A>(arr: A[]): Maybe<A> {
-    return arr.length === 0 ? staticNothing : Maybe.Just(arr[0]);
-  },
+  public static fromArray<A>(arr: A[]): Maybe<A> {
+    return arr.length === 0 ? Maybe.staticNothing : Maybe.Just(arr[0]);
+  }
 
   /**
    * Creates a new [[Maybe]] that either contains
@@ -347,38 +61,38 @@ export const Maybe = {
    * @param arr An array to convert to a [[Maybe]]
    * @returns A [[Maybe]] containing the first element of `arr` and the tail, or [[Nothing]] if it is empty.
    */
-  unCons<A>(arr: A[]): Maybe<[A, A[]]> {
-    return arr.length === 0 ? staticNothing : Maybe.Just([arr[0], arr.slice(1)]);
-  },
+  public static unCons<A>(arr: A[]): Maybe<[A, A[]]> {
+    return arr.length === 0 ? Maybe.staticNothing : Maybe.Just([arr[0], arr.slice(1)]);
+  }
 
   /**
    * Returns a list of all values found in the input list.
    *
    * ```ts
-   * catMaybes([Just("foo"), Nothing(), Maybe.Just("bar")]); // ["foo", "bar"]
+   * catMaybes([Just("foo"), Maybe.Nothing(), Maybe.Just("bar")]); // ["foo", "bar"]
    * ```
    *
    * @param ms An array of [[Maybe]] values.
    * @returns an array containing all data found in `ms`.
    */
-  catMaybes<A>(ms: Array<Maybe<A>>): A[] {
+  public static catMaybes<A>(ms: Array<Maybe<A>>): A[] {
     const results: A[] = [];
     for (const m of ms) {
-      if (m.isJust()) {
-        results.push(m.value);
+      if (m.data.tag === "Just") {
+        results.push(m.data.value);
       }
     }
     return results;
-  },
+  }
 
-  dataToMaybe<
+  public static fromData<
     Case extends Tag,
     Tag extends string,
     TData extends Data<Tag, any>,
     T extends TData extends Data<Case, infer TT> ? TT : never
-  >(match: Case, data: TData): Maybe<T> {
+  >(data: TData, match: Case): Maybe<T> {
     return data.tag === match ? Maybe.Just(data.value) : Maybe.Nothing();
-  },
+  }
 
   /**
    * Analog of
@@ -392,16 +106,16 @@ export const Maybe = {
    * @param f a mapping which can discard values if desired.
    * @returns the contents of `as` transformed by `f` when a value was returned.
    */
-  mapMaybe<A, B>(f: (value: A) => Maybe<B>, as: A[]): B[] {
-    const results: B[] = [];
+  public static mapMaybe<A, value2>(f: (value: A) => Maybe<value2>, as: A[]): value2[] {
+    const results: value2[] = [];
     for (const a of as) {
       const m = f(a);
-      if (m.isJust()) {
-        results.push(m.value);
+      if (m.data.tag === "Just") {
+        results.push(m.data.value);
       }
     }
     return results;
-  },
+  }
 
   /**
    * Creates a new [[Maybe]] from an optional value, either returning a [[Just]] or a
@@ -416,44 +130,9 @@ export const Maybe = {
    * @param value the value to wrap in a [[Maybe]].
    * @returns `Just(value)` if value is non-null and defined, else `Nothing`.
    */
-  toMaybe<A>(value: A | null | undefined): Maybe<A> {
-    return value == null ? staticNothing : Maybe.Just(value);
-  },
-
-  /*------------------------------
-    GENERAL LIFTING FUNCTIONS
-    ------------------------------*/
-
-  /**
-   * Composes a Maybe by applying a to each argument
-   * if they all have values
-   *
-   * ```ts
-   * answerTrueFalse(question: string, answer: boolean): string {
-   *     return `${question} ${answer}`;
-   * }
-   *
-   * lift(answerTrueFalse, Nothing(), Nothing()).toString(); // "Nothing"
-   * lift(answerTrueFalse, Maybe.Just("The meaning of life is 42."), Nothing()).toString(); // "Nothing"
-   * // "Just (The meaning of life is 42. true)"
-   * lift(answerTrueFalse, Maybe.Just("The meaning of life is 42."), Maybe.Just(true)).toString();
-   * ```
-   *
-   * @param f a to lift to operate on [[Maybe]] values.
-   * @param args lifted arguments to `f`.
-   * @returns the result of evaluating `f` in a [[Maybe]] on the values contained by `args`.
-   */
-  lift<P extends any[], R>(f: (...args: P) => R, ...args: MapMaybe<P>): Maybe<R> {
-    const values = [];
-    for (const arg of args) {
-      if (arg.isNothing()) {
-        return arg;
-      } else {
-        values.push(arg.value);
-      }
-    }
-    return Maybe.Just(f(...(values as P)));
-  },
+  public static fromJS<A>(value: A | null | undefined): Maybe<A> {
+    return value == null ? Maybe.staticNothing : Maybe.Just(value);
+  }
 
   /**
    * Composes a [[Maybe]] by constructing an object out of
@@ -466,14 +145,14 @@ export const Maybe = {
    *
    * // Nothing
    * record<Foo>({
-   *     bar: Nothing(),
-   *     baz: Nothing()
+   *     bar: Maybe.Nothing(),
+   *     baz: Maybe.Nothing()
    * });
    *
    * // Nothing
    * record<Foo>({
    *     bar: Maybe.Just("BAR"),
-   *     baz: Nothing()
+   *     baz: Maybe.Nothing()
    * });
    *
    * // Maybe.Just ({ bar: "BAR", baz: { tag: "Just", value: "baz" } })
@@ -486,182 +165,276 @@ export const Maybe = {
    * @param spec an object composed of [[Maybe]]s to build the result out of in a [[Maybe]].
    * @returns a [[Maybe]] which will produce a `T` with the outputs of the [[Maybe]]s in `spec`.
    */
-  record<T extends object>(spec: MapMaybe<T>): Maybe<T> {
-    const maybeKvps = Maybe.sequence(
-      objectToEntries(spec).map(([key, value]) =>
-        value.map(x => [key, x] as [keyof T, T[typeof key]]),
-      ),
+  public static record<record extends object>(
+    spec: { [key in keyof record]: Maybe<record[key]> },
+  ): Maybe<record> {
+    return objectToEntries(spec).reduce(
+      (recResult, [k, result]) =>
+        recResult.combine(result).map(([record, v]) => ({ ...record, [k]: v })),
+      Maybe.Just({} as record),
     );
-
-    return maybeKvps.map(objectFromEntries);
-  },
-
-  /*------------------------------
-    KLIESLI COMPOSITION FUNCTIONS
-    ------------------------------*/
-
-  /**
-   * Maps a over an array of inputs and produces a [[Maybe]] for each,
-   * then aggregates the results inside of a [[Maybe]].
-   *
-   * ```ts
-   * mapM(person => person.middleName, people); // Maybe<string[]>
-   * ```
-   *
-   * @param f produces a [[Maybe]] for each element in `as`
-   * @param as an array of inputs.
-   * @returns a [[Maybe]] witch produces the values produced by `f` in order.
-   */
-  mapM<A, B>(f: (value: A) => Maybe<B>, as: A[]): Maybe<B[]> {
-    return Maybe.sequence(as.map(f));
-  },
-
-  /**
-   * [[mapM]] with its arguments reversed. Generally provides better
-   * ergonomics when `f` is a lambda (squint and it looks a bit like a `for` loop).
-   *
-   * ```ts
-   * forM(people, person => person.middleName); // Maybe<string[]>
-   * ```
-   *
-   * @param f produces a [[Maybe]] for each element in `as`
-   * @param as an array of inputs.
-   * @returns a [[Maybe]] witch produces the values produced by `f` in order.
-   */
-  forM<A, B>(as: A[], f: (value: A) => Maybe<B>): Maybe<B[]> {
-    return Maybe.mapM(f, as);
-  },
+  }
 
   /**
    * Aggregate a sequence of [[Maybe]]s and combine their results.
    *
    * ```ts
    * sequence([]); // Maybe.Just([])
-   * sequence([Nothing()]); // Nothing
+   * sequence([Maybe.Nothing()]); // Nothing
    * sequence([Just(1)]); // Maybe.Just([1])
-   * sequence([Just(1), Nothing(), Maybe.Just(3)]); // Nothing
+   * sequence([Just(1), Maybe.Nothing(), Maybe.Just(3)]); // Nothing
    * sequence([Just(1), Maybe.Just(2), Maybe.Just(3)]); // Maybe.Just([1, 2, 3])
    * ```
    *
    * @param mas an array of [[Maybe]]s to sequence
    * @returns a [[Maybe]] of size `mas.length` if all elements have a value, else [[Nothing]].
    */
-  sequence<A>(mas: Array<Maybe<A>>): Maybe<A[]> {
-    return Maybe.lift((...as: A[]) => as, ...mas);
-  },
+  public static sequence<value>(maybes: Array<Maybe<value>>): Maybe<value[]> {
+    return maybes.reduce(
+      (arr, result) => arr.combine(result).map(([vs, v]) => [...vs, v]),
+      Maybe.Just([] as value[]),
+    );
+  }
+
+  private constructor(private readonly data: Data<"Just", value> | Data<"Nothing">) {}
 
   /**
-   * Maps a decomposition of parts over an array of inputs.
-   *
-   * @param f A decomposition function.
-   * @param as An array of inputs.
-   * @param n optional param to control the number of buckets in the case of empty input.
-   */
-  mapAndUnzipWith<N extends number, A, P extends any[] & { length: N }>(
-    f: (a: A) => Maybe<P>,
-    as: A[],
-    n: N = 0 as any,
-  ): Maybe<MapArray<P>> {
-    return Maybe.mapM(f, as).map(x => unzip(x, n));
-  },
-
-  /**
-   * Reads two input arrays in-order and produces a [[Maybe]] for each pair,
-   * then aggregates the results.
-   *
-   * @param f A to combine each element of the input arrays in-order into a [[Maybe]].
-   * @param as An input array.
-   * @param params Additional arrays to zip.
-   */
-  zipWithM<A, P extends any[], C>(
-    f: (a: A, ...params: P) => Maybe<C>,
-    as: A[],
-    ...params: MapArray<P>
-  ): Maybe<C[]> {
-    return Maybe.sequence(as.zipWith(f, ...(params as any)));
-  },
-
-  /**
-   * Reduce an initial state over an array of inputs, with an optional result calculated
-   * over each step.
+   * Extract the value of this [[Maybe]] if it has one, or default to a.
    *
    * ```ts
-   * nothingIfNotSequential([first, ...ns]: number[]): Maybe<number[]> {
-   *     return reduceM(
-   *         ([...x, prev], next) => next - prev === 1
-   *             ? Maybe.Just([...x, prev, next])
-   *             : staticNothing,
-   *         [first],
-   *         ns);
+   * Maybe.Just("foo").defaultWith("bar"); // "foo"
+   * Maybe.Nothing().defaultWith("bar"); // "bar"
+   * ```
+   *
+   * @param a The value to return in case this is [[Nothing]]
+   * @returns The value within this [[Maybe]] or `a`.
+   */
+  defaultWith(value: value): value {
+    return this.data.tag === "Just" ? this.data.value : value;
+  }
+
+  /**
+   * Remove unwanted values from this [[Maybe]] with a predicate.
+   *
+   * ```ts
+   * Maybe.Just("foo").filter(x => x === "foo"); // Maybe.Just (foo)
+   * Maybe.Just("bar").filter(x => x === "foo"); // Nothing
+   * Maybe.Nothing().filter(x => x === "foo"); // Nothing
+   * ```
+   *
+   * @param p a predicate to test the value against
+   * @returns a [[Maybe]] where any value which doesn't satisfy `p` is removed.
+   */
+  filter(p: (value: value) => boolean): Maybe<value> {
+    return this.data.tag === "Just" && p(this.data.value) ? this : Maybe.Nothing();
+  }
+
+  /**
+   * Chain a calculation that may also resolve to a nothing value
+   * on the value contained by this [[Maybe]].
+   *
+   * ```ts
+   * Maybe.Just("foo").chain(x => Maybe.Just(`${x}bar`)); // Maybe.Just (foobar)
+   * Maybe.Just("foo").chain(x => Maybe.Nothing()); // Nothing
+   * Maybe.Nothing().chain(x => Maybe.Just(`${x}bar`)); // Nothing
+   * Maybe.Nothing().chain(x => Maybe.Nothing()); // Nothing
+   * ```
+   *
+   * @param f a to produce the next [[Maybe]] when this [[Maybe]] has a value.
+   * @returns The result of running `f` if this [[Maybe]] has a value/.
+   */
+  chain<value2>(f: (value: value) => Maybe<value2>): Maybe<value2> {
+    return this.data.tag === "Just" ? f(this.data.value) : Maybe.staticNothing;
+  }
+
+  /**
+   * Combine a calculation that may also resolve to a nothing value
+   * with the value contained by this [[Maybe]].
+   *
+   * ```ts
+   * Maybe.Nothing().combine(Maybe.Nothing()); // Nothing
+   * Maybe.Just("Bob").combine(Maybe.Nothing()); // Nothing
+   * Maybe.Just("Bob").combine(Maybe.Just("Jim")); // Just (["Bob", "Jim"])
+   * ```
+   *
+   * @param m a second [[Maybe]] whose value to combine with this one.
+   * @returns The result of combining the value of `m` with the value of `this`.
+   */
+  combine<value2>(m: Maybe<value2>): Maybe<readonly [value, value2]> {
+    return this.data.tag === "Just" && m.data.tag === "Just"
+      ? Maybe.Just([this.data.value, m.data.value])
+      : Maybe.staticNothing;
+  }
+
+  /**
+   * A type guard which determines if this [[Maybe]] is a [[Just]].
+   *
+   * ```ts
+   * const result = Maybe.Just("foo");
+   * if (result.isJust) {
+   *     result.value; // "foo";
    * }
    * ```
    *
-   * @param f a state-reducing which may short-circuit at any step by returning [[Nothing]].
-   * @returns The result of the reduction in a [[Maybe]].
+   * @returns true if this is a [[Just]], false otherwise.
    */
-  reduceM<A, B>(f: (state: B, a: A) => Maybe<B>, seed: B, as: A[]): Maybe<B> {
-    let state = Maybe.Just<B>(seed);
-    for (const a of as) {
-      if (state.isNothing()) {
-        return state;
-      } else {
-        state = state.chain(b => f(b, a));
-      }
-    }
-    return state;
-  },
-
-  /*------------------------------
-    GENERAL MONAD FUNCTIONS
-    ------------------------------*/
+  get isJust(): boolean {
+    return this.data.tag === "Just";
+  }
 
   /**
-   * Create a [[Maybe]] that has a value when a condition is
-   * true. Slightly more optimal when the condition
-   * and value are both known ahead of time. Often useful for
-   * ensuring a chain of computations only happens when some condition
-   * is known upfront.
+   * A type guard which determines if this [[Maybe]] is a [[Nothing]].
    *
    * ```ts
-   * const censoredFileContents = when(hasPermission).replacePure(fileContents);
-   *
-   * // Produces the same result, but is slightly less efficient due to the need
-   * // to create a closure.
-   * const censoredFileContents = Maybe.Just(fileContents).filter(() => hasPermission);
+   * const result = Maybe.Nothing();
+   * if (result.isMaybe.Nothing()) {
+   *     result.value; // undefined / compiler error.
+   * }
    * ```
    *
-   * @param b the condition which must be satisfied to produce a value.
-   * @returns A [[Maybe]] with an empty array if `b` is `true`, else [[Nothing]].
+   * @returns true if this is a [[Nothing]], false otherwise.
    */
-  when(b: boolean): Maybe<void> {
-    return b ? Maybe.Just(undefined) : staticNothing;
-  },
+  get isNothing(): boolean {
+    return this.data.tag === "Nothing";
+  }
 
   /**
-   * Create a [[Maybe]] that has a value when a condition is false.
+   * Transform the value contained by this [[Maybe]].
    *
    * ```ts
-   * const censoredFileContents = unless(isClassified).replacePure(fileContents);
-   *
-   * // Produces the same result, but is slightly less efficient due to the need
-   * // to create a closure.
-   * const censoredFileContents = Maybe.Just(fileContents).filter(() => !isClassified);
+   * Maybe.Just("foo").map(x => `${x}bar`); // Maybe.Just (foobar)
+   * Maybe.Nothing().map(x => `${x}bar`); // Nothing
    * ```
    *
-   * @param b the condition which must be dissatisfied to produce a value.
-   * @returns A [[Maybe]] with an empty array if `b` is `false`, else [[Nothing]].
+   * @param f a that modifies the value within the [[Maybe]].
+   * @returns a [[Maybe]] with its contents transformed.
    */
-  unless(b: boolean): Maybe<void> {
-    return Maybe.when(!b);
-  },
+  map<value2>(f: (value: value) => value2): Maybe<value2> {
+    return this.data.tag === "Just" ? Maybe.Just(f(this.data.value)) : Maybe.staticNothing;
+  }
 
   /**
-   * Flatten a nested structure.
+   * Run a callback based on the case of the [[Maybe]].
    *
-   * @param m a nested [[Maybe]] to flatten.
-   * @returns a flattened structure.
+   * ```ts
+   * Maybe.Just("foo").matchCase({
+   *     just: x => x.toUpperCase(),
+   *     nothing: () => "got nothing"); // "FOO"
+   *
+   * Maybe.Nothing().matchCase({
+   *     just: x => x.toUpperCase(),
+   *     nothing: () => "got nothing"); // "got nothing"
+   * ```
+   *
+   * @param cases an object containing callbacks that scrutinize the structure of this [[Maybe]]
+   * @returns the result of calling the appropriate callback in `cases`.
    */
-  join<A>(m: Maybe<Maybe<A>>): Maybe<A> {
-    return m.chain(id);
-  },
-};
+  matchCase<value2>(cases: MaybeCaseScrutinizer<value, value2>): value2 {
+    return cases[this.data.tag](this.data.value as any);
+  }
+
+  /**
+   * Pick this @Maybe if it has a value otherwise pick the other.
+   *
+   * ```ts
+   * Maybe.Just("bob").or(Just("sue")).toString(); // "Just (bob)"
+   * Maybe.Nothing().or(Just("sue")).toString(); // "Just (sue)"
+   * Maybe.Nothing().or(Maybe.Nothing()).toString(); // "Nothing"
+   * ```
+   *
+   * @param other a [[Maybe]] to chose if this one is [[Nothing]].
+   * @returns the first of `this, other` which has a value, else [[Nothing]].
+   */
+  or(other: Maybe<value>): Maybe<value> {
+    return this.data.tag === "Just" ? this : other;
+  }
+
+  /**
+   * Replace the value in this [[Maybe]] with another [[Maybe]].
+   *
+   * ```ts
+   * Maybe.Just("bob").replace(Just("sue")).toString(); // "Just (sue)"
+   * Maybe.Just("bob").replace(Maybe.Nothing()).toString(); // "Nothing"
+   * Maybe.Nothing().replace(Just("sue")).toString(); // "Nothing"
+   * Maybe.Nothing().replace(Maybe.Nothing()).toString(); // "Nothing"
+   * ```
+   *
+   * @param m The [[Maybe]] to replace this one with if it has a value.
+   * @returns `m` if this has a value, else [[Nothing]].
+   */
+  replace<value2>(m: Maybe<value2>): Maybe<value2> {
+    return this.data.tag === "Just" ? m : Maybe.staticNothing;
+  }
+
+  /**
+   * Replace the value in this [[Maybe]] with a new value.
+   *
+   * ```ts
+   * Maybe.Just("bob").replace(42).toString(); // "Just (42)"
+   * Maybe.Nothing().replace(42).toString(); // "Nothing"
+   * ```
+   *
+   * @param b the value to replace the contents of this [[Maybe]] with.
+   * @returns A [[Maybe]] containing `b` if this has a value, else [[Nothing]].
+   */
+  replacePure<value2>(b: value2): Maybe<value2> {
+    return this.data.tag === "Just" ? Maybe.Just(b) : Maybe.staticNothing;
+  }
+
+  /**
+   * Convert this [[Maybe]] to an array with either one or
+   * zero elements.
+   *
+   * ```ts
+   * Maybe.Just("bob").toArray(); // [42]
+   * Maybe.Nothing().toArray(); // []
+   * ```
+   *
+   * @returns A one-element array containing the value contained by this [[Maybe]], else an empty array.
+   */
+  toArray(): [] | [value] {
+    return this.data.tag === "Just" ? [this.data.value] : [];
+  }
+
+  /**
+   * Pretty-print this [[Maybe]]
+   *
+   * @returns a string formatted `"Just (...)"` or `"Nothing"`.
+   */
+  toString(): string {
+    return this.data.tag === "Just" ? `Just (${this.data.value})` : "Nothing";
+  }
+
+  /**
+   * Pretty-print this [[Maybe]]
+   *
+   * @returns a string formatted `"Just (...)"` or `"Nothing"`.
+   */
+  toJSON(): any {
+    return this.data.tag === "Just" ? this.data.value : null;
+  }
+
+  /**
+   * Discard any value contained by this [[Maybe]]
+   *
+   * @returns A [[Maybe]] with an empty array in it, or [[Nothing]] if this is [[Nothing]].
+   */
+  voidOut(): Maybe<void> {
+    return this.replacePure(undefined);
+  }
+}
+
+/**
+ * Defines the set of functions required to scrutinize the cases of a [[Maybe]].
+ */
+interface MaybeCaseScrutinizer<A, value2> {
+  /**
+   * Callback which is called in the case a [[Maybe]] has a value.
+   */
+  Just(a: A): value2;
+
+  /**
+   * Callback which is called in the case a [[Maybe]] has no value.
+   */
+  Nothing(): value2;
+}

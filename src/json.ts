@@ -1,7 +1,6 @@
 import { Result } from "./result";
 import { Maybe } from "./maybe";
 import {
-  absurd,
   constant,
   id,
   objectFromEntries,
@@ -10,7 +9,6 @@ import {
   Union,
   UnionMember,
 } from "./prelude";
-import { Schema } from "./schema";
 import { StructuredError } from "./structuredError";
 
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -94,59 +92,6 @@ export class Decoder<a> {
         Ok: Result.Ok,
       }),
     );
-  }
-
-  public static schema<a>(schema: Schema<a, any>): Decoder<a> {
-    switch (schema.tag) {
-      case "Array":
-        return schema.value((_schema, iso) => Decoder.array(Decoder.schema(_schema)).map(iso.to));
-
-      case "Bool":
-        return Decoder.boolean.map(schema.value.to);
-
-      case "Combine":
-        return schema.value((schema1, schema2, iso) =>
-          Decoder.tuple(Decoder.schema(schema1), Decoder.schema(schema2)).map(iso.to),
-        );
-
-      case "Date":
-        return Decoder.date.map(schema.value.to);
-
-      case "Field":
-        return Decoder.field(schema.value.field, Decoder.schema(schema.value.schema));
-
-      case "Map":
-        return schema.value((f, _schema) => Decoder.schema(_schema).map(f));
-
-      case "Null":
-        return Decoder.null.map(schema.value.to);
-
-      case "Number":
-        return Decoder.number.map(schema.value.to);
-
-      case "Only":
-        return Decoder.only(schema.value);
-
-      case "Or":
-        return Decoder.schema(schema.value[0]).or(Decoder.schema(schema.value[1]));
-
-      case "Pure":
-        return Decoder.succeed(schema.value);
-
-      case "String":
-        return Decoder.string.map(schema.value.to);
-
-      case "Optional":
-        return schema.value((_schema, iso) =>
-          Decoder.optional(Decoder.schema(_schema)).map(iso.to),
-        );
-
-      case "Undefined":
-        return Decoder.fail("JSON values cannot be undefined");
-
-      default:
-        return absurd(schema);
-    }
   }
 
   public static string = new Decoder<string>(x =>

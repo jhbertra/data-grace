@@ -58,13 +58,11 @@ export const StructuredError = {
       case "Failure":
       case "Multiple":
       case "Or":
-        return Maybe.when(path.isEmpty()).replacePure(error);
+        return path.isEmpty() ? Maybe.Just(error) : Maybe.Nothing();
 
       case "Path":
         return Maybe.unCons(path).chain(([k, ks]) =>
-          Maybe.when(k === error.value.key).replace(
-            StructuredError.query(error.value.error, ...ks),
-          ),
+          k === error.value.key ? StructuredError.query(error.value.error, ...ks) : Maybe.Nothing(),
         );
     }
   },

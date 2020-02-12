@@ -4,7 +4,5 @@ export * from "./form";
 export * from "./json";
 export * from "./lazy";
 export * from "./maybe";
-export * from "./promise";
-export * from "./schema";
 export * from "./structuredError";
 export * from "./utilityTypes";

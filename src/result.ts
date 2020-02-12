@@ -67,8 +67,8 @@ export class Result<value, error> {
    */
   static fromMaybe<value, error>(maybe: Maybe<value>, error: error): Result<value, error> {
     return maybe.matchCase({
-      just: (b: value) => Result.Ok(b),
-      nothing: () => Result.Error(error),
+      Just: (b: value) => Result.Ok(b),
+      Nothing: () => Result.Error(error),
     });
   }
 
@@ -278,7 +278,7 @@ export class Result<value, error> {
    * @returns A [[Maybe]] containing the [[Error]] value contained by this [[Result]], else [[Nothing]].
    */
   get maybeError(): Maybe<error> {
-    return Maybe.dataToMaybe("Error", this.data);
+    return Maybe.fromData(this.data, "Error");
   }
 
   /**
@@ -292,7 +292,7 @@ export class Result<value, error> {
    * @returns A [[Maybe]] containing the [[Ok]] value contained by this [[Result]], else [[Nothing]].
    */
   get maybeValue(): Maybe<value> {
-    return Maybe.dataToMaybe("Value", this.data);
+    return Maybe.fromData(this.data, "Value");
   }
 
   /**
