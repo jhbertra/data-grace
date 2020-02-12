@@ -380,5 +380,5 @@ function traverseObject<a extends object, b extends { [k in keyof a]: b[k] }>(
 }
 
 function simplify(x: any): any {
-  return JSON.parse(JSON.stringify(x));
+  return typeof x.toJSON === "function" ? x.toJSON() : JSON.parse(JSON.stringify(x));
 }

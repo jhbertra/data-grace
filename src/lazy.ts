@@ -8,10 +8,12 @@ export interface Lazy<a> {
 export const Lazy = {
   delay<a>(valueFactory: () => a): Lazy<a> {
     let a: a;
+    let isSet = false;
     return {
       force() {
-        if (!a) {
+        if (!isSet) {
           a = valueFactory();
+          isSet = true;
         }
         return a;
       },
