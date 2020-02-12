@@ -40,7 +40,7 @@ interface ConstructorPrototypes {
   [tag: string]: Constructor;
 }
 
-type ConstructorFn<tag extends string, value = undefined> = undefined extends value
+type ConstructorFn<tag extends string, value = undefined> = value extends undefined
   ? () => Data<tag>
   : (value: value) => Data<tag, value>;
 

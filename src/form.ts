@@ -89,6 +89,10 @@ export class Form<input, a = input> {
     return new Form(false as boolean, validate);
   }
 
+  public static fail<a, b>(value: a, error: FormError): Form<a, b> {
+    return new Form(value, constant(Either.Left(error)));
+  }
+
   public static options<a, b>(validate: FormValidator<a[], b>): Form<a[], b> {
     return new Form<a[], b>([], validate);
   }
@@ -132,6 +136,10 @@ export class Form<input, a = input> {
 
   public static slider<a>(validate: FormValidator<number, a>): Form<number, a> {
     return new Form(0 as number, validate);
+  }
+
+  public static succeed<a, b>(value: a, result: b): Form<a, b> {
+    return new Form(value, constant(Either.Right(result)));
   }
 
   public static text<a>(validate: FormValidator<string, a>): Form<string, a> {

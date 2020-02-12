@@ -786,3 +786,6 @@ describe("IEither", () => {
     });
   });
 });
+
+export const arbitraryEither = <a, b>(arbA: fc.Arbitrary<a>, arbB: fc.Arbitrary<b>) =>
+  fc.oneof(arbA.map<Either<a, b>>(Either.Left), arbB.map<Either<a, b>>(Either.Right));
