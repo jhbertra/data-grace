@@ -1,4 +1,4 @@
-import { Either } from "./either";
+import { Result } from "./result";
 import { Maybe } from "./maybe";
 import {
   absurd,
@@ -16,11 +16,11 @@ import { StructuredError } from "./structuredError";
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
 export const Json = {
-  decodeString<a>(decoder: Decoder<a>, value: string): Either<DecoderError, a> {
+  decodeString<a>(decoder: Decoder<a>, value: string): Result<a, DecoderError> {
     try {
       return decoder.decode(JSON.parse(value));
     } catch (e) {
-      return Either.Left(DecoderError.Failure({ message: "Expected a JSON string", value }));
+      return Result.Error(DecoderError.Failure({ message: "Expected a JSON string", value }));
     }
   },
   encodeString<a>(encoder: Encoder<a>, value: a): string {
@@ -60,38 +60,38 @@ export const DecoderError = Constructors({
   Path: Constructor<{ key: JsonPathKey; error: DecoderError }>(),
 });
 
-export class Decoder<T> {
-  constructor(readonly decode: (json: Json) => Either<DecoderError, T>) {}
+export class Decoder<a> {
+  constructor(readonly decode: (json: Json) => Result<a, DecoderError>) {}
 
-  public map<T2>(mapping: (t: T) => T2): Decoder<T2> {
+  public map<b>(mapping: (a: a) => b): Decoder<b> {
     return new Decoder(x => this.decode(x).map(mapping));
   }
 
-  public chain<T2>(getNextDecoder: (t: T) => Decoder<T2>): Decoder<T2> {
+  public chain<b>(getNextDecoder: (a: a) => Decoder<b>): Decoder<b> {
     return new Decoder(x => this.decode(x).chain(y => getNextDecoder(y).decode(x)));
   }
 
-  public filter(message: string, p: (t: T) => boolean): Decoder<T> {
+  public filter(message: string, p: (a: a) => boolean): Decoder<a> {
     return new Decoder(x =>
       this.decode(x).chain(y =>
-        p(y) ? Either.Right(y) : Either.Left(DecoderError.Failure({ message, value: x })),
+        p(y) ? Result.Ok(y) : Result.Error(DecoderError.Failure({ message, value: x })),
       ),
     );
   }
 
-  public or<T2>(alt: Decoder<T2>): Decoder<T | T2> {
+  public or<b>(alt: Decoder<b>): Decoder<a | b> {
     return new Decoder(json =>
-      this.decode(json).matchCase<Either<DecoderError, T | T2>>({
-        left: error1 =>
+      this.decode(json).matchCase<Result<a | b, DecoderError>>({
+        Error: error1 =>
           alt
             .decode(json)
-            .mapLeft(error2 =>
+            .mapError(error2 =>
               DecoderError.Or([
                 ...(error1.tag === "Or" ? error1.value : [error1]),
                 ...(error2.tag === "Or" ? error2.value : [error2]),
               ]),
             ),
-        right: Either.Right,
+        Ok: Result.Ok,
       }),
     );
   }
@@ -151,8 +151,8 @@ export class Decoder<T> {
 
   public static string = new Decoder<string>(x =>
     typeof x === "string"
-      ? Either.Right(x)
-      : Either.Left(
+      ? Result.Ok(x)
+      : Result.Error(
           StructuredError.Failure({
             message: "Expected a string",
             value: x,
@@ -162,8 +162,8 @@ export class Decoder<T> {
 
   public static boolean = new Decoder<boolean>(x =>
     typeof x === "boolean"
-      ? Either.Right(x)
-      : Either.Left(
+      ? Result.Ok(x)
+      : Result.Error(
           StructuredError.Failure({
             message: "Expected a boolean",
             value: x,
@@ -173,8 +173,8 @@ export class Decoder<T> {
 
   public static date = new Decoder<Date>(x =>
     typeof x === "number"
-      ? Either.Right(new Date(x))
-      : Either.Left(
+      ? Result.Ok(new Date(x))
+      : Result.Error(
           StructuredError.Failure({
             message: "Expected a number convertible to a date",
             value: x,
@@ -184,8 +184,8 @@ export class Decoder<T> {
 
   public static number = new Decoder<number>(x =>
     typeof x === "number"
-      ? Either.Right(x)
-      : Either.Left(
+      ? Result.Ok(x)
+      : Result.Error(
           StructuredError.Failure({
             message: "Expected a number",
             value: x,
@@ -195,8 +195,8 @@ export class Decoder<T> {
 
   public static null = new Decoder<null>(x =>
     typeof x === "object" && x === null
-      ? Either.Right(x)
-      : Either.Left(
+      ? Result.Ok(x)
+      : Result.Error(
           StructuredError.Failure({
             message: "Expected a null",
             value: x,
@@ -206,7 +206,7 @@ export class Decoder<T> {
 
   public static nullable<T>(valueDecoder: Decoder<T>): Decoder<Maybe<T>> {
     return new Decoder(x =>
-      x === null ? Either.Right(Maybe.Nothing()) : valueDecoder.decode(x).map(Maybe.Just),
+      x === null ? Result.Ok(Maybe.Nothing()) : valueDecoder.decode(x).map(Maybe.Just),
     );
   }
 
@@ -214,15 +214,15 @@ export class Decoder<T> {
     return new Decoder(x => {
       if (Array.isArray(x)) {
         const results = x.map((x, i) =>
-          valueDecoder.decode(x).mapLeft(error => StructuredError.Path(i, error)),
+          valueDecoder.decode(x).mapError(error => StructuredError.Path(i, error)),
         );
-        const errors = Either.lefts(results);
+        const errors = Result.errors(results);
 
         return errors.isEmpty()
-          ? Either.Right(Either.rights(results))
-          : Either.Left(DecoderError.Multiple(errors));
+          ? Result.Ok(Result.oks(results))
+          : Result.Error(DecoderError.Multiple(errors));
       } else {
-        return Either.Left(
+        return Result.Error(
           StructuredError.Failure({
             message: "Expected an array",
             value: x,
@@ -236,15 +236,15 @@ export class Decoder<T> {
     return new Decoder(x => {
       if (x !== null && !Array.isArray(x) && typeof x === "object") {
         return x.hasOwnProperty(name)
-          ? valueDecoder.decode(x[name]).mapLeft(error => StructuredError.Path(name, error))
-          : Either.Left(
+          ? valueDecoder.decode(x[name]).mapError(error => StructuredError.Path(name, error))
+          : Result.Error(
               StructuredError.Failure({
                 message: `Expected a field called ${name}`,
                 value: x,
               }),
             );
       } else {
-        return Either.Left(
+        return Result.Error(
           StructuredError.Failure({
             message: "Expected an object",
             value: x,
@@ -259,15 +259,15 @@ export class Decoder<T> {
       if (Array.isArray(x)) {
         // tslint:disable-next-line: strict-type-predicates
         return x[index] !== undefined
-          ? valueDecoder.decode(x[index]).mapLeft(error => StructuredError.Path(index, error))
-          : Either.Left(
+          ? valueDecoder.decode(x[index]).mapError(error => StructuredError.Path(index, error))
+          : Result.Error(
               StructuredError.Failure({
                 message: `Expected index ${index} to exist`,
                 value: x,
               }),
             );
       } else {
-        return Either.Left(
+        return Result.Error(
           StructuredError.Failure({
             message: "Expected an array",
             value: x,
@@ -279,17 +279,17 @@ export class Decoder<T> {
 
   public static optional<T>(valueDecoder: Decoder<T>): Decoder<Maybe<T>> {
     return new Decoder(x =>
-      x === null ? Either.Right(Maybe.Nothing()) : valueDecoder.decode(x).map(Maybe.Just),
+      x === null ? Result.Ok(Maybe.Nothing()) : valueDecoder.decode(x).map(Maybe.Just),
     );
   }
 
-  public static value = new Decoder(Either.Right);
+  public static value = new Decoder(Result.Ok);
 
   public static only<T>(value: T): Decoder<T> {
     return new Decoder(x =>
       (x as any) === value
-        ? Either.Right(value)
-        : Either.Left(
+        ? Result.Ok(value)
+        : Result.Error(
             StructuredError.Failure({
               message: `Expected ${value}`,
               value: x,
@@ -301,8 +301,8 @@ export class Decoder<T> {
   public static enumOf<T>(...values: T[]): Decoder<T> {
     return new Decoder(x =>
       values.contains(x as any)
-        ? Either.Right(x as any)
-        : Either.Left(
+        ? Result.Ok(x as any)
+        : Result.Error(
             StructuredError.Failure({
               message: `Expected one of ${JSON.stringify(values)}`,
               value: x,
@@ -313,7 +313,7 @@ export class Decoder<T> {
 
   public static fail(message: string): Decoder<any> {
     return new Decoder(value =>
-      Either.Left(
+      Result.Error(
         StructuredError.Failure({
           message,
           value,
@@ -323,7 +323,7 @@ export class Decoder<T> {
   }
 
   public static succeed<T>(value: T): Decoder<T> {
-    return new Decoder(constant(Either.Right(value)));
+    return new Decoder(constant(Result.Ok(value)));
   }
 
   public static record<T extends Record<string, any>>(
@@ -334,13 +334,13 @@ export class Decoder<T> {
         const results = objectToEntries(spec).map(([key, decoder]) =>
           decoder.decode(json).map<[keyof T, T[keyof T]]>(x => [key, x]),
         );
-        const errors = Either.lefts(results);
+        const errors = Result.errors(results);
 
         return errors.isEmpty()
-          ? Either.Right(objectFromEntries(Either.rights(results)))
-          : Either.Left(DecoderError.Multiple(errors));
+          ? Result.Ok(objectFromEntries(Result.oks(results)))
+          : Result.Error(DecoderError.Multiple(errors));
       } else {
-        return Either.Left(
+        return Result.Error(
           StructuredError.Failure({
             message: "Expected an object",
             value: json,
@@ -354,13 +354,13 @@ export class Decoder<T> {
     return new Decoder(json => {
       if (Array.isArray(json)) {
         const results = decoders.map((decoder, i) => Decoder.index(i, decoder).decode(json));
-        const errors = Either.lefts(results);
+        const errors = Result.errors(results);
 
         return errors.isEmpty()
-          ? Either.Right(Either.rights(results) as any)
-          : Either.Left(DecoderError.Multiple(errors));
+          ? Result.Ok(Result.oks(results) as any)
+          : Result.Error(DecoderError.Multiple(errors));
       } else {
-        return Either.Left(
+        return Result.Error(
           StructuredError.Failure({
             message: "Expected an array",
             value: json,
@@ -374,11 +374,11 @@ export class Decoder<T> {
 export class Encoder<T> {
   constructor(readonly encode: (value: T) => Json) {}
 
-  public mapInput<T2>(mapping: (t: T2) => T): Encoder<T2> {
+  public mapInput<b>(mapping: (t: b) => T): Encoder<b> {
     return new Encoder(x => this.encode(mapping(x)));
   }
 
-  public or<T2>(divide: (input: T | T2) => input is T2, alt: Encoder<T2>): Encoder<T | T2> {
+  public or<b>(divide: (input: T | b) => input is b, alt: Encoder<b>): Encoder<T | b> {
     return new Encoder(input => (divide(input) ? alt.encode(input) : this.encode(input)));
   }
 

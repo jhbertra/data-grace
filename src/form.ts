@@ -1,4 +1,4 @@
-import { Either } from "./either";
+import { Result } from "./result";
 import { Maybe } from "./maybe";
 import { Lazy } from "./lazy";
 import {
@@ -20,10 +20,10 @@ export const FormError = Constructors({
   Path: Constructor<{ key: string | number; error: FormError }>(),
 });
 
-export type FormValidator<input, a> = (input: input) => Either<FormError, a>;
+export type FormValidator<input, a> = (input: input) => Result<a, FormError>;
 
 export class Form<input, a = input> {
-  private readonly result: Lazy<Either<FormError, a>>;
+  private readonly result: Lazy<Result<a, FormError>>;
 
   constructor(
     public readonly value: input,
@@ -41,7 +41,7 @@ export class Form<input, a = input> {
     );
   }
 
-  public getResult(): Either<FormError, a> {
+  public getResult(): Result<a, FormError> {
     return this.result.force();
   }
 
@@ -50,23 +50,21 @@ export class Form<input, a = input> {
   }
 
   public map<b>(f: (a: a) => b): Form<input, b> {
-    return this.chain(a => new Form(this.value, constant(Either.Right(f(a)))));
+    return this.chain(a => new Form(this.value, constant(Result.Ok(f(a)))));
   }
 
   public or(alt: Form<input, a>): Form<input, a> {
     return this.with({
       validate: input =>
         this.validate(input).matchCase({
-          left: () => alt.validate(input),
-          right: x => Either.Right(x),
+          Error: () => alt.validate(input),
+          Ok: x => Result.Ok(x),
         }),
     });
   }
 
   public queryError(...path: Array<string | number>): Maybe<FormError> {
-    return this.getResult()
-      .leftToMaybe()
-      .chain(x => StructuredError.query(x, ...path));
+    return this.getResult().maybeError.chain(x => StructuredError.query(x, ...path));
   }
 
   public setValue(value: input): Form<input, a> {
@@ -90,7 +88,7 @@ export class Form<input, a = input> {
   }
 
   public static fail<a, b>(value: a, error: FormError): Form<a, b> {
-    return new Form(value, constant(Either.Left(error)));
+    return new Form(value, constant(Result.Error(error)));
   }
 
   public static options<a, b>(validate: FormValidator<a[], b>): Form<a[], b> {
@@ -107,14 +105,14 @@ export class Form<input, a = input> {
           form
             .validate(input[key])
             .map(x => [key, x] as const)
-            .mapLeft(error => FormError.Path({ key: key as string, error })),
+            .mapError(error => FormError.Path({ key: key as string, error })),
         );
 
-        const errors = Either.lefts(results);
+        const errors = Result.errors(results);
 
         return errors.isEmpty()
-          ? Either.Right(objectFromEntries(Either.rights(results)))
-          : Either.Left(FormError.Multiple(errors));
+          ? Result.Ok(objectFromEntries(Result.oks(results)))
+          : Result.Error(FormError.Multiple(errors));
       },
     );
   }
@@ -139,7 +137,7 @@ export class Form<input, a = input> {
   }
 
   public static succeed<a, b>(value: a, result: b): Form<a, b> {
-    return new Form(value, constant(Either.Right(result)));
+    return new Form(value, constant(Result.Ok(result)));
   }
 
   public static text<a>(validate: FormValidator<string, a>): Form<string, a> {
@@ -151,14 +149,14 @@ export class Form<input, a = input> {
   ): Form<input, a> {
     return new Form(forms.map(x => x.value) as input, input => {
       const results = forms.map((form, i) =>
-        form.validate(input[i]).mapLeft(error => FormError.Path({ key: i, error })),
+        form.validate(input[i]).mapError(error => FormError.Path({ key: i, error })),
       );
 
-      const errors = Either.lefts(results);
+      const errors = Result.errors(results);
 
       return errors.isEmpty()
-        ? Either.Right(Either.rights(results) as any)
-        : Either.Left(FormError.Multiple(errors));
+        ? Result.Ok(Result.oks(results) as any)
+        : Result.Error(FormError.Multiple(errors));
     });
   }
 }

@@ -1,5 +1,5 @@
 export * from "./prelude";
-export * from "./either";
+export * from "./result";
 export * from "./form";
 export * from "./json";
 export * from "./lazy";
