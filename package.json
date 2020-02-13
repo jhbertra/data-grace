@@ -1,11 +1,11 @@
 {
   "name": "data-grace",
-  "version": "0.0.0-development",
+  "version": "1.0.0",
   "description": "",
   "keywords": [],
   "main": "dist/data-grace.umd.js",
   "module": "dist/data-grace.es5.js",
-  "typings": "dist/types/data-grace.d.ts",
+  "typings": "dist/types/index.d.ts",
   "files": [
     "dist"
   ],
