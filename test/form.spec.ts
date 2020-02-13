@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { Form, FormError, Result } from "../src";
+import { Form, FormError, Result, StructuredError } from "../src";
 import { simplify, constant } from "../src/prelude";
 import { arbitraryEither } from "./result.spec";
 
@@ -7,11 +7,11 @@ describe("chain", () => {
   it("short circuits if the first Form fails", () => {
     expect(
       simplify(
-        Form.fail(undefined, FormError.Failure("Fail"))
+        Form.fail(undefined, StructuredError.Failure("Fail"))
           .chain(constant(Form.succeed(undefined, "test")))
           .getResult(),
       ),
-    ).toEqual(simplify(Result.Error(FormError.Failure("Fail"))));
+    ).toEqual(simplify(Result.Error(StructuredError.Failure("Fail"))));
   });
   it("runs the second Form if the first Form fails", () => {
     expect(
@@ -63,14 +63,18 @@ describe("load", () => {
         expect(
           simplify(
             Form.text(x =>
-              x.length % 2 === 0 ? Result.Error(FormError.Failure("fail")) : Result.Ok("success"),
+              x.length % 2 === 0
+                ? Result.Error(StructuredError.Failure("fail"))
+                : Result.Ok("success"),
             )
               .load(value)
               .getResult(),
           ),
         ).toEqual(
           simplify(
-            value.length % 2 === 0 ? Result.Error(FormError.Failure("fail")) : Result.Ok("success"),
+            value.length % 2 === 0
+              ? Result.Error(StructuredError.Failure("fail"))
+              : Result.Ok("success"),
           ),
         );
       }),
@@ -78,14 +82,52 @@ describe("load", () => {
   });
 });
 
+describe("map", () => {
+  it("transforms the result", () => {
+    fc.assert(
+      fc.property(arbitraryEither(arbitraryFormError, fc.anything()), result => {
+        expect(
+          simplify(
+            Form.text(constant(result))
+              .map(x => typeof x === "string")
+              .getResult(),
+          ),
+        ).toEqual(simplify(result.map(x => typeof x === "string")));
+      }),
+    );
+  });
+});
+
+describe("or", () => {
+  it("picks the first successful form", () => {
+    fc.assert(
+      fc.property(
+        arbitraryEither(arbitraryFormError, fc.anything()),
+        arbitraryEither(arbitraryFormError, fc.anything()),
+        arbitraryEither(arbitraryFormError, fc.anything()),
+        (result1, result2, result3) => {
+          expect(
+            simplify(
+              Form.text(constant(result1))
+                .or(Form.text(constant(result2)))
+                .or(Form.text(constant(result3)))
+                .getResult(),
+            ),
+          ).toEqual(simplify(result1.or(result2).or(result3)));
+        },
+      ),
+    );
+  });
+});
+
 const arbitraryFormError: fc.Arbitrary<FormError> = fc.oneof<FormError>(
-  fc.string().map(FormError.Failure),
-  fc.array(fc.string().map(FormError.Failure)).map(FormError.Multiple),
-  fc.array(fc.string().map(FormError.Failure)).map(FormError.Or),
+  fc.string().map<FormError>(StructuredError.Failure),
+  fc.array(fc.string().map<FormError>(StructuredError.Failure)).map(StructuredError.Multiple),
+  fc.array(fc.string().map<FormError>(StructuredError.Failure)).map(StructuredError.Or),
   fc
-    .record({
-      key: fc.oneof<string | number>(fc.string(), fc.nat()),
-      error: fc.string().map(FormError.Failure),
-    })
-    .map(FormError.Path),
+    .tuple(
+      fc.oneof<string | number>(fc.string(), fc.nat()),
+      fc.string().map<FormError>(StructuredError.Failure),
+    )
+    .map(([path, error]) => StructuredError.Path(path, error)),
 );

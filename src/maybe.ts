@@ -406,9 +406,7 @@ export class Maybe<value> {
   }
 
   /**
-   * Pretty-print this [[Maybe]]
-   *
-   * @returns a string formatted `"Just (...)"` or `"Nothing"`.
+   * Used to control serialization via `JSON.stringify`.
    */
   toJSON(): any {
     return this.data.tag === "Just" ? this.data.value : null;

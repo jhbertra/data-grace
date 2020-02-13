@@ -1,24 +1,10 @@
 import { Result } from "./result";
 import { Maybe } from "./maybe";
 import { Lazy } from "./lazy";
-import {
-  constant,
-  objectFromEntries,
-  objectToEntries,
-  traverseObject,
-  Union,
-  UnionMember,
-} from "./prelude";
+import { constant, objectFromEntries, objectToEntries, traverseObject } from "./prelude";
 import { StructuredError } from "./structuredError";
 
 export type FormError = StructuredError<string | number, string>;
-
-export const FormError = Union({
-  Failure: UnionMember<string>(),
-  Multiple: UnionMember<FormError[]>(),
-  Or: UnionMember<FormError[]>(),
-  Path: UnionMember<{ key: string | number; error: FormError }>(),
-});
 
 export type FormValidator<input, a> = (input: input) => Result<a, FormError>;
 
@@ -64,7 +50,7 @@ export class Form<input, a = input> {
   }
 
   public queryError(...path: Array<string | number>): Maybe<FormError> {
-    return this.getResult().maybeError.chain(x => StructuredError.query(x, ...path));
+    return this.getResult().maybeError.chain(x => x.query(...path));
   }
 
   public setValue(value: input): Form<input, a> {
@@ -105,14 +91,14 @@ export class Form<input, a = input> {
           form
             .validate(input[key])
             .map(x => [key, x] as const)
-            .mapError(error => FormError.Path({ key: key as string, error })),
+            .mapError(error => StructuredError.Path(key as string, error)),
         );
 
         const errors = Result.errors(results);
 
         return errors.isEmpty()
           ? Result.Ok(objectFromEntries(Result.oks(results)))
-          : Result.Error(FormError.Multiple(errors));
+          : Result.Error(StructuredError.Multiple(errors));
       },
     );
   }
@@ -149,14 +135,14 @@ export class Form<input, a = input> {
   ): Form<input, a> {
     return new Form(forms.map(x => x.value) as input, input => {
       const results = forms.map((form, i) =>
-        form.validate(input[i]).mapError(error => FormError.Path({ key: i, error })),
+        form.validate(input[i]).mapError(error => StructuredError.Path(i, error)),
       );
 
       const errors = Result.errors(results);
 
       return errors.isEmpty()
         ? Result.Ok(Result.oks(results) as any)
-        : Result.Error(FormError.Multiple(errors));
+        : Result.Error(StructuredError.Multiple(errors));
     });
   }
 }

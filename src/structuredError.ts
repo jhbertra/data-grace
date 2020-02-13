@@ -2,86 +2,81 @@ import { replicate } from "./array";
 import { Maybe } from "./maybe";
 import { Data, id } from "./prelude";
 
-export type StructuredError<k, e> =
-  | Data<"Failure", e>
-  | Data<"Multiple", StructuredError<k, e>[]>
-  | Data<"Or", StructuredError<k, e>[]>
-  | Data<"Path", { key: k; error: StructuredError<k, e> }>;
+export type StructuredErrorData<key, error> =
+  | Data<"Failure", error>
+  | Data<"Multiple", StructuredError<key, error>[]>
+  | Data<"Or", StructuredError<key, error>[]>
+  | Data<"Path", { key: key; error: StructuredError<key, error> }>;
 
-export const StructuredError = {
-  Failure<k, e>(error: e): StructuredError<k, e> {
-    return { tag: "Failure", value: error };
-  },
-  Multiple<k, e>(errors: StructuredError<k, e>[]): StructuredError<k, e> {
-    return { tag: "Multiple", value: errors };
-  },
-  Or<k, e>(errors: StructuredError<k, e>[]): StructuredError<k, e> {
-    return { tag: "Or", value: errors };
-  },
-  Path<k, e>(key: k, error: StructuredError<k, e>): StructuredError<k, e> {
-    return { tag: "Path", value: { key, error } };
-  },
-  mapKeys<k1, k2, e>(f: (k: k1) => k2, error: StructuredError<k1, e>): StructuredError<k2, e> {
-    switch (error.tag) {
-      case "Failure":
-        return error;
+export class StructuredError<key, error> {
+  static Failure<key, error>(error: error): StructuredError<key, error> {
+    return new StructuredError({ tag: "Failure", value: error });
+  }
 
-      case "Multiple":
-        return StructuredError.Multiple(error.value.map(x => StructuredError.mapKeys(f, x)));
+  static Multiple<key, error>(errors: StructuredError<key, error>[]): StructuredError<key, error> {
+    return new StructuredError({ tag: "Multiple", value: errors });
+  }
 
-      case "Or":
-        return StructuredError.Or(error.value.map(x => StructuredError.mapKeys(f, x)));
-      case "Path":
-        return StructuredError.Path(
-          f(error.value.key),
-          StructuredError.mapKeys(f, error.value.error),
-        );
-    }
-  },
-  map<k, e1, e2>(f: (e: e1) => e2, error: StructuredError<k, e1>): StructuredError<k, e2> {
-    switch (error.tag) {
-      case "Failure":
-        return StructuredError.Failure(f(error.value));
+  static Or<key, error>(errors: StructuredError<key, error>[]): StructuredError<key, error> {
+    return new StructuredError({ tag: "Or", value: errors });
+  }
 
-      case "Multiple":
-        return StructuredError.Multiple(error.value.map(x => StructuredError.map(f, x)));
+  static Path<key, error>(
+    key: key,
+    error: StructuredError<key, error>,
+  ): StructuredError<key, error> {
+    return new StructuredError({ tag: "Path", value: { key, error } });
+  }
 
-      case "Or":
-        return StructuredError.Or(error.value.map(x => StructuredError.map(f, x)));
+  private constructor(readonly data: StructuredErrorData<key, error>) {}
 
-      case "Path":
-        return StructuredError.Path(error.value.key, StructuredError.map(f, error.value.error));
-    }
-  },
-  query<k, e>(error: StructuredError<k, e>, ...path: k[]): Maybe<StructuredError<k, e>> {
-    switch (error.tag) {
-      case "Failure":
-      case "Multiple":
-      case "Or":
-        return path.isEmpty() ? Maybe.Just(error) : Maybe.Nothing();
+  query(...path: key[]): Maybe<StructuredError<key, error>> {
+    return queryData(this.data, ...path).map(data => new StructuredError(data));
+  }
 
-      case "Path":
-        return Maybe.unCons(path).chain(([k, ks]) =>
-          k === error.value.key ? StructuredError.query(error.value.error, ...ks) : Maybe.Nothing(),
-        );
-    }
-  },
-  render<k, e>(
-    error: StructuredError<k, e>,
-    renderKey: (k: k) => string,
-    renderError: (e: e) => string[],
-  ): string[] {
-    return renderWithIndent(error, 0, renderKey, renderError).map(
+  render(renderKey: (key: key) => string, renderError: (error: error) => string[]): string[] {
+    return renderWithIndent(this.data, 0, renderKey, renderError).map(
       ([indent, line]) => String.fromCodePoint(...replicate(indent * 4, 32)) + line,
     );
-  },
-};
+  }
 
-function renderWithIndent<k, e>(
-  error: StructuredError<k, e>,
+  /**
+   * Pretty-print this [[StructuredError]]
+   */
+  toString(): string {
+    return `${this.data.tag} (${this.data.value})`;
+  }
+
+  /**
+   * Used to control serialization via `JSON.stringify`.
+   */
+  toJSON(): any {
+    return this.data;
+  }
+}
+
+function queryData<key, error>(
+  error: StructuredErrorData<key, error>,
+  ...path: key[]
+): Maybe<StructuredErrorData<key, error>> {
+  switch (error.tag) {
+    case "Failure":
+    case "Multiple":
+    case "Or":
+      return path.isEmpty() ? Maybe.Just(error) : Maybe.Nothing();
+
+    case "Path":
+      return Maybe.unCons(path).chain(([key, ks]) =>
+        key === error.value.key ? queryData(error.value.error.data, ...ks) : Maybe.Nothing(),
+      );
+  }
+}
+
+function renderWithIndent<key, error>(
+  error: StructuredErrorData<key, error>,
   indent: number,
-  renderKey: (k: k) => string,
-  renderError: (e: e) => string[],
+  renderKey: (key: key) => string,
+  renderError: (error: error) => string[],
 ): [number, string][] {
   switch (error.tag) {
     case "Failure":
@@ -89,7 +84,7 @@ function renderWithIndent<k, e>(
 
     case "Multiple":
       return error.value
-        .map(x => renderWithIndent(x, indent, renderKey, renderError))
+        .map(x => renderWithIndent(x.data, indent, renderKey, renderError))
         .intersperse([[0, ""]])
         .chain(id);
 
@@ -99,14 +94,14 @@ function renderWithIndent<k, e>(
         [indent, "Several alternative decode attempts failed:"],
         ...error.value.chain<[number, string]>(x => [
           [indent + 1, `case ${i++}:`],
-          ...renderWithIndent(x, indent + 2, renderKey, renderError),
+          ...renderWithIndent(x.data, indent + 2, renderKey, renderError),
         ]),
       ];
 
     case "Path":
       return [
         [indent, `At ${renderKey(error.value.key)}:`],
-        ...renderWithIndent(error.value.error, indent + 1, renderKey, renderError),
+        ...renderWithIndent(error.value.error.data, indent + 1, renderKey, renderError),
       ];
   }
 }

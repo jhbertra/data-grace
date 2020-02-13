@@ -1,14 +1,6 @@
 import { Result } from "./result";
 import { Maybe } from "./maybe";
-import {
-  constant,
-  id,
-  objectFromEntries,
-  objectToEntries,
-  traverseObject,
-  Union,
-  UnionMember,
-} from "./prelude";
+import { constant, objectFromEntries, objectToEntries } from "./prelude";
 import { StructuredError } from "./structuredError";
 
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
@@ -18,11 +10,8 @@ export const Json = {
     try {
       return decoder.decode(JSON.parse(value));
     } catch (e) {
-      return Result.Error(DecoderError.Failure({ message: "Expected a JSON string", value }));
+      return Result.Error(StructuredError.Failure({ message: "Expected a JSON string", value }));
     }
-  },
-  encodeString<a>(encoder: Encoder<a>, value: a): string {
-    return JSON.stringify(encoder.encode(value));
   },
   isJson(a: unknown): a is Json {
     return (
@@ -38,25 +27,24 @@ export const Json = {
           .all(Json.isJson))
     );
   },
-  renderDecoderError(error: DecoderError): string[] {
-    return StructuredError.render(
-      error,
-      key => `${typeof key === "string" ? "property" : "index"} ${key}`,
-      ({ message, value }) => [message, `Offending value: ${JSON.stringify(value)}`],
-    );
+  renderDecoderError(error: DecoderError): string {
+    return error
+      .render(
+        key => `${typeof key === "string" ? "property" : "index"} ${key}`,
+        ({ message, value }) => [message, `Offending value: ${JSON.stringify(value)}`],
+      )
+      .join("\n");
   },
 };
 
 export type JsonPathKey = string | number;
 
-export type DecoderError = StructuredError<JsonPathKey, { message: string; value: Json }>;
+export interface JsonError {
+  readonly message: string;
+  readonly value: Json;
+}
 
-export const DecoderError = Union({
-  Failure: UnionMember<{ message: string; value: Json }>(),
-  Multiple: UnionMember<DecoderError[]>(),
-  Or: UnionMember<DecoderError[]>(),
-  Path: UnionMember<{ key: JsonPathKey; error: DecoderError }>(),
-});
+export type DecoderError = StructuredError<JsonPathKey, JsonError>;
 
 export class Decoder<a> {
   constructor(readonly decode: (json: Json) => Result<a, DecoderError>) {}
@@ -72,7 +60,7 @@ export class Decoder<a> {
   public filter(message: string, p: (a: a) => boolean): Decoder<a> {
     return new Decoder(x =>
       this.decode(x).chain(y =>
-        p(y) ? Result.Ok(y) : Result.Error(DecoderError.Failure({ message, value: x })),
+        p(y) ? Result.Ok(y) : Result.Error(StructuredError.Failure({ message, value: x })),
       ),
     );
   }
@@ -84,9 +72,9 @@ export class Decoder<a> {
           alt
             .decode(json)
             .mapError(error2 =>
-              DecoderError.Or([
-                ...(error1.tag === "Or" ? error1.value : [error1]),
-                ...(error2.tag === "Or" ? error2.value : [error2]),
+              StructuredError.Or([
+                ...(error1.data.tag === "Or" ? error1.data.value : [error1]),
+                ...(error2.data.tag === "Or" ? error2.data.value : [error2]),
               ]),
             ),
         Ok: Result.Ok,
@@ -165,7 +153,7 @@ export class Decoder<a> {
 
         return errors.isEmpty()
           ? Result.Ok(Result.oks(results))
-          : Result.Error(DecoderError.Multiple(errors));
+          : Result.Error(StructuredError.Multiple(errors));
       } else {
         return Result.Error(
           StructuredError.Failure({
@@ -224,7 +212,12 @@ export class Decoder<a> {
 
   public static optional<T>(valueDecoder: Decoder<T>): Decoder<Maybe<T>> {
     return new Decoder(x =>
-      x === null ? Result.Ok(Maybe.Nothing()) : valueDecoder.decode(x).map(Maybe.Just),
+      Result.Ok(
+        valueDecoder
+          .decode(x)
+          .map(Maybe.Just)
+          .defaultWith(Maybe.Nothing()),
+      ),
     );
   }
 
@@ -283,7 +276,7 @@ export class Decoder<a> {
 
         return errors.isEmpty()
           ? Result.Ok(objectFromEntries(Result.oks(results)))
-          : Result.Error(DecoderError.Multiple(errors));
+          : Result.Error(StructuredError.Multiple(errors));
       } else {
         return Result.Error(
           StructuredError.Failure({
@@ -303,7 +296,7 @@ export class Decoder<a> {
 
         return errors.isEmpty()
           ? Result.Ok(Result.oks(results) as any)
-          : Result.Error(DecoderError.Multiple(errors));
+          : Result.Error(StructuredError.Multiple(errors));
       } else {
         return Result.Error(
           StructuredError.Failure({
@@ -313,45 +306,5 @@ export class Decoder<a> {
         );
       }
     });
-  }
-}
-
-export class Encoder<T> {
-  constructor(readonly encode: (value: T) => Json) {}
-
-  public mapInput<b>(mapping: (t: b) => T): Encoder<b> {
-    return new Encoder(x => this.encode(mapping(x)));
-  }
-
-  public or<b>(divide: (input: T | b) => input is b, alt: Encoder<b>): Encoder<T | b> {
-    return new Encoder(input => (divide(input) ? alt.encode(input) : this.encode(input)));
-  }
-
-  public static value = new Encoder<Json>(id);
-
-  public static nullable<T>(valueEncoder: Encoder<T>): Encoder<Maybe<T>> {
-    return new Encoder(x => x.matchCase({ Nothing: () => null, Just: valueEncoder.encode }));
-  }
-
-  public static array<T>(valueEncoder: Encoder<T>): Encoder<T[]> {
-    return new Encoder(x => x.map(valueEncoder.encode));
-  }
-
-  public static field<T>(name: string, valueEncoder: Encoder<T>): Encoder<T> {
-    return new Encoder(x => ({ [name]: valueEncoder.encode(x) }));
-  }
-
-  public static record<T extends Record<string, any>>(
-    spec: { [K in keyof T]: Encoder<T[K]> },
-  ): Encoder<T> {
-    return new Encoder(
-      value => traverseObject(spec, (key, encoder) => encoder.encode(value[key]) as any) as Json,
-    );
-  }
-
-  public static tuple<T extends any[]>(
-    ...encoders: { [K in keyof T]: K extends number ? Encoder<T[K]> : never }
-  ): Encoder<T> {
-    return new Encoder(value => encoders.map((encoder, i) => encoder.encode(value[i])));
   }
 }
