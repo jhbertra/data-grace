@@ -80,7 +80,7 @@ function renderWithIndent<key, error>(
 ): [number, string][] {
   switch (error.tag) {
     case "Failure":
-      return renderError(error.value).map(x => [indent + 1, x]);
+      return renderError(error.value).map(x => [indent, x]);
 
     case "Multiple":
       return error.value
@@ -91,7 +91,7 @@ function renderWithIndent<key, error>(
     case "Or":
       let i = 1;
       return [
-        [indent, "Several alternative decode attempts failed:"],
+        [indent, "Several alternatives failed:"],
         ...error.value.chain<[number, string]>(x => [
           [indent + 1, `case ${i++}:`],
           ...renderWithIndent(x.data, indent + 2, renderKey, renderError),

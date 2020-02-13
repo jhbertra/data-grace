@@ -16,7 +16,7 @@ export const Json = {
   isJson(a: unknown): a is Json {
     return (
       typeof a === "string" ||
-      typeof a === "number" ||
+      (typeof a === "number" && !isNaN(a)) ||
       typeof a === "boolean" ||
       a === null ||
       (Array.isArray(a) && a.all(Json.isJson)) ||

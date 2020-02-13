@@ -557,12 +557,12 @@ describe("IArrayExtensions", () => {
   });
 
   describe("startsWith", () => {
-    it("is the reverse of isSuffixOf", () => {
+    it("is the reverse of isPrefixOf", () => {
       fc.assert(
         fc.property(
           fc.array(fc.integer()),
           fc.array(fc.integer()),
-          (arr1, arr2) => arr1.startsWith(arr2) === arr2.isSuffixOf(arr1),
+          (arr1, arr2) => arr1.startsWith(arr2) === arr2.isPrefixOf(arr1),
         ),
       );
     });
