@@ -628,7 +628,7 @@ describe("enumOf", () => {
         fc
           .tuple(fc.array(fc.jsonObject(), 1, 10), fc.jsonObject())
           .filter(([values, value]) =>
-            values.all(x => JSON.stringify(x) !== JSON.stringify(value)),
+            values.every(x => JSON.stringify(x) !== JSON.stringify(value)),
           ) as fc.Arbitrary<[Json[], Json]>,
         ([values, value]) => {
           expect(Decoder.enumOf(...values).decode(value)).toEqual(

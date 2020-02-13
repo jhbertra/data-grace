@@ -19,32 +19,6 @@ export {
  */
 interface ArrayExtensions<A> {
   /**
-   * Determines whether all elements of the array satisfy a predicate.
-   *
-   * ```ts
-   * [1, 2, 3].all(x => x < 3) // false
-   * [1, 2, 3].all(x => x < 4) // true
-   * ```
-   *
-   * @param p The predicate to test the elements of the array against.
-   * @returns `true` if all elements satisfy the predicate, `false` otherwise.
-   */
-  all(p: (a: A) => boolean): boolean;
-
-  /**
-   * Determines whether any element of the array satisfies a predicate.
-   *
-   * ```ts
-   * [1, 2, 3].any(x => x < 3) // true
-   * [1, 2, 3].any(x => x < 1) // false
-   * ```
-   *
-   * @param p The predicate to test the elements of the array against.
-   * @returns `true` if any element satisfies the predicate, `false` otherwise.
-   */
-  any(p: (a: A) => boolean): boolean;
-
-  /**
    * Returns a tuple where first element is the longest prefix (possibly empty)
    * of this array whose elements do not satisfy p and the second element is the
    * remainder of the array.
@@ -83,19 +57,6 @@ interface ArrayExtensions<A> {
    * @param f The function which pulls a new array out of each element of this array.
    */
   chain<B>(f: (a: A) => B[]): B[];
-
-  /**
-   * Determines whether the array contains a.
-   *
-   * ```ts
-   * [1, 2, 3].contains(2) // true
-   * [1, 2, 3].contains(4) // false
-   * ```
-   *
-   * @param a The element to search for
-   * @returns `true` if `a` is in the array, `false` otherwise.
-   */
-  contains(a: A): boolean;
 
   /**
    * Determines if other is found anywhere in this array.
@@ -651,24 +612,6 @@ declare global {
   interface Array<T> extends ArrayExtensions<T> {}
 }
 
-Array.prototype.all = function allForArray(p) {
-  for (const elem of this) {
-    if (!p(elem)) {
-      return false;
-    }
-  }
-  return true;
-};
-
-Array.prototype.any = function anyForArray(p) {
-  for (const elem of this) {
-    if (p(elem)) {
-      return true;
-    }
-  }
-  return false;
-};
-
 Array.prototype.break = function breakForArray(p) {
   return this.span(x => !p(x));
 };
@@ -681,10 +624,6 @@ Array.prototype.chain = function chainForArray<B>(f: (t: any) => B[]): B[] {
     }
   }
   return result;
-};
-
-Array.prototype.contains = function containsForArray(a) {
-  return this.any(x => x === a);
 };
 
 Array.prototype.distinct = function distinctForArray() {
@@ -796,7 +735,7 @@ Array.prototype.isPrefixOf = function isPrefixOfForArray(other) {
   } else if (this.length > other.length) {
     return false;
   } else {
-    return this.zip(other).all(([a, b]) => a === b);
+    return this.zip(other).every(([a, b]) => a === b);
   }
 };
 
@@ -810,7 +749,7 @@ Array.prototype.isSuffixOf = function isSuffixOfForArray(other) {
   } else if (this.length > other.length) {
     return false;
   } else {
-    return this.zip(other.slice(other.length - this.length)).all(([a, b]) => a === b);
+    return this.zip(other.slice(other.length - this.length)).every(([a, b]) => a === b);
   }
 };
 

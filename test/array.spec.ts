@@ -149,7 +149,7 @@ describe("unzip", () => {
     fc.assert(
       fc.property(fc.nat(20), size => {
         const unzipped = unzip([] as any[][], size);
-        return unzipped.length === size && unzipped.all(x => x.isEmpty());
+        return unzipped.length === size && unzipped.every(x => x.isEmpty());
       }),
     );
   });
@@ -174,34 +174,6 @@ describe("unzip", () => {
 });
 
 describe("IArrayExtensions", () => {
-  describe("all", () => {
-    it("returns true for empty lists", () => {
-      expect([].all(() => false)).toEqual(true);
-    });
-    it("requires all elements to pass the predicate", () => {
-      fc.assert(
-        fc.property(
-          fc.array(fc.boolean()),
-          bools => bools.all(id) === bools.reduce((a, b) => a && b, true),
-        ),
-      );
-    });
-  });
-
-  describe("any", () => {
-    it("returns false for empty lists", () => {
-      expect([].any(() => true)).toEqual(false);
-    });
-    it("requires any elements to pass the predicate", () => {
-      fc.assert(
-        fc.property(
-          fc.array(fc.boolean()),
-          bools => bools.any(id) === bools.reduce((a, b) => a || b, false),
-        ),
-      );
-    });
-  });
-
   describe("break", () => {
     it("returns empty lists for empty lists", () => {
       expect([].break(() => true)).toEqual([[], []]);
@@ -228,18 +200,6 @@ describe("IArrayExtensions", () => {
             ([] as number[]).concat(...input.map(x => replicate(x, x))),
           );
         }),
-      );
-    });
-  });
-
-  describe("contains", () => {
-    it("depends on if the item exists in the array", () => {
-      fc.assert(
-        fc.property(
-          fc.array(fc.integer()),
-          fc.integer(),
-          (input, elem) => input.contains(elem) === !!input.find(x => x === elem),
-        ),
       );
     });
   });
@@ -321,7 +281,7 @@ describe("IArrayExtensions", () => {
   describe("group", () => {
     it("Produces arrays of arrays where all elements in elements are equal", () => {
       fc.assert(
-        fc.property(fc.array(fc.string()), arr => arr.group().all(g => g.all(x => x === g[0]))),
+        fc.property(fc.array(fc.string()), arr => arr.group().every(g => g.every(x => x === g[0]))),
       );
     });
     it("Produces arrays whose adjacent groups do not contain equal elements", () => {
@@ -334,7 +294,7 @@ describe("IArrayExtensions", () => {
               string[],
             ])
             .filter(x => !(x[0].isEmpty() || x[1].isEmpty()))
-            .all(([g, succ]) => g[0] !== succ[0]),
+            .every(([g, succ]) => g[0] !== succ[0]),
         ),
       );
     });
@@ -359,7 +319,7 @@ describe("IArrayExtensions", () => {
     it("Produces arrays of arrays where all elements in elements pass the equality test", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr =>
-          arr.groupBy(equals).all(g => g.all(x => equals(x, g[0]))),
+          arr.groupBy(equals).every(g => g.every(x => equals(x, g[0]))),
         ),
       );
     });
@@ -373,7 +333,7 @@ describe("IArrayExtensions", () => {
               string[],
             ])
             .filter(x => !(x[0].isEmpty() || x[1].isEmpty()))
-            .all(([g, succ]) => !equals(g[0], succ[0])),
+            .every(([g, succ]) => !equals(g[0], succ[0])),
         ),
       );
     });
@@ -407,7 +367,7 @@ describe("IArrayExtensions", () => {
     it("produces sets which all satisfy the same key", () => {
       fc.assert(
         fc.property(fc.array(fc.string()), arr =>
-          arr.groupByKey(x => x.length).all(([key, g]) => g.all(x => x.length === key)),
+          arr.groupByKey(x => x.length).every(([key, g]) => g.every(x => x.length === key)),
         ),
       );
     });
@@ -502,7 +462,7 @@ describe("IArrayExtensions", () => {
         fc.property(
           fc.integer(),
           fc.array(fc.integer()),
-          (elem, arr) => [elem].isInfixOf(arr) === arr.contains(elem),
+          (elem, arr) => [elem].isInfixOf(arr) === arr.includes(elem),
         ),
       );
     });

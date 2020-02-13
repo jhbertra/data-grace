@@ -19,12 +19,12 @@ export const Json = {
       (typeof a === "number" && !isNaN(a)) ||
       typeof a === "boolean" ||
       a === null ||
-      (Array.isArray(a) && a.all(Json.isJson)) ||
+      (Array.isArray(a) && a.every(Json.isJson)) ||
       (typeof a === "object" &&
         a !== null &&
         objectToEntries(a)
           .map(x => x[0])
-          .all(Json.isJson))
+          .every(Json.isJson))
     );
   },
   renderDecoderError(error: DecoderError): string {
@@ -238,7 +238,7 @@ export class Decoder<a> {
 
   public static enumOf<T>(...values: T[]): Decoder<T> {
     return new Decoder(x =>
-      values.contains(x as any)
+      values.includes(x as any)
         ? Result.Ok(x as any)
         : Result.Error(
             StructuredError.Failure({
