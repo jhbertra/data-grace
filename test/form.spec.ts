@@ -126,16 +126,105 @@ describe("queryError", () => {
     fc.assert(
       fc.property(arbitraryFormError, error => {
         expect(
-          simplify(
-            Form.text(constant(Result.Error(error))).queryError(
-              ...(error.data.tag === "Path" ? [error.data.value.key] : []),
-            ),
+          Form.text(constant(Result.Error(error))).queryError(
+            ...(error.data.tag === "Path" ? [error.data.value.key] : []),
           ),
-        ).toEqual(
-          simplify(error.query(...(error.data.tag === "Path" ? [error.data.value.key] : []))),
-        );
+        ).toEqual(error.query(...(error.data.tag === "Path" ? [error.data.value.key] : [])));
       }),
     );
+  });
+
+  it("Gets a root level failure", () => {
+    expect(Form.fail("", StructuredError.Failure("Fail")).queryError()).toEqual(Maybe.Just("Fail"));
+  });
+
+  it("Fails a root level failure with a path", () => {
+    expect(Form.fail("", StructuredError.Failure("Fail")).queryError("path")).toEqual(
+      Maybe.Nothing(),
+    );
+  });
+
+  it("Gets a nested failure", () => {
+    expect(
+      Form.fail("", StructuredError.Path("Level 1", StructuredError.Failure("Fail"))).queryError(
+        "Level 1",
+      ),
+    ).toEqual(Maybe.Just("Fail"));
+  });
+
+  it("Fails a nested failure with no path", () => {
+    expect(
+      Form.fail("", StructuredError.Path("Level 1", StructuredError.Failure("Fail"))).queryError(),
+    ).toEqual(Maybe.Nothing());
+  });
+
+  it("Fails a nested failure with path too long", () => {
+    expect(
+      Form.fail("", StructuredError.Path("Level 1", StructuredError.Failure("Fail"))).queryError(
+        "Level 1",
+        "Level 2",
+      ),
+    ).toEqual(Maybe.Nothing());
+  });
+
+  it("Gets one of many nested failures", () => {
+    expect(
+      Form.fail(
+        "",
+        StructuredError.Multiple([
+          StructuredError.Path("Level 1a", StructuredError.Failure("Fail")),
+          StructuredError.Path("Level 1b", StructuredError.Failure("Error")),
+        ]),
+      ).queryError("Level 1a"),
+    ).toEqual(Maybe.Just("Fail"));
+  });
+
+  it("Gets the first ORed failure if present in all cases", () => {
+    expect(
+      Form.fail(
+        "",
+        StructuredError.Or([
+          StructuredError.Path("Level 1", StructuredError.Failure("Fail")),
+          StructuredError.Path("Level 1", StructuredError.Failure("Error")),
+        ]),
+      ).queryError("Level 1"),
+    ).toEqual(Maybe.Just("Fail"));
+  });
+
+  it("Fails ORed failures if no present in all cases", () => {
+    expect(
+      Form.fail(
+        "",
+        StructuredError.Or([
+          StructuredError.Path("Level 1", StructuredError.Failure("Fail")),
+          StructuredError.Path("Level 2", StructuredError.Failure("Error")),
+        ]),
+      ).queryError("Level 1"),
+    ).toEqual(Maybe.Nothing());
+  });
+
+  it("Can drill down multiple levels", () => {
+    expect(
+      Form.fail(
+        "",
+        StructuredError.Multiple([
+          StructuredError.Path(
+            "Level 1a",
+            StructuredError.Multiple([
+              StructuredError.Path("Level 2a", StructuredError.Failure("Fail")),
+              StructuredError.Path("Level 2b", StructuredError.Failure("Error")),
+            ]),
+          ),
+          StructuredError.Path(
+            "Level 1b",
+            StructuredError.Multiple([
+              StructuredError.Path("Level 2a", StructuredError.Failure("Boom")),
+              StructuredError.Path("Level 2b", StructuredError.Failure("Explode")),
+            ]),
+          ),
+        ]),
+      ).queryError("Level 1b", "Level 2a"),
+    ).toEqual(Maybe.Just("Boom"));
   });
 });
 

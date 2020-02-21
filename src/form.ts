@@ -49,7 +49,7 @@ export class Form<input, a = input> {
     });
   }
 
-  public queryError(...path: Array<string | number>): Maybe<FormError> {
+  public queryError(...path: Array<string | number>): Maybe<string> {
     return this.getResult().maybeError.chain(x => x.query(...path));
   }
 

@@ -30,8 +30,8 @@ export class StructuredError<key, error> {
 
   private constructor(readonly data: StructuredErrorData<key, error>) {}
 
-  query(...path: key[]): Maybe<StructuredError<key, error>> {
-    return queryData(this.data, ...path).map(data => new StructuredError(data));
+  query(...path: key[]): Maybe<error> {
+    return queryData(this.data, ...path);
   }
 
   render(renderKey: (key: key) => string, renderError: (error: error) => string[]): string[] {
@@ -58,12 +58,18 @@ export class StructuredError<key, error> {
 function queryData<key, error>(
   error: StructuredErrorData<key, error>,
   ...path: key[]
-): Maybe<StructuredErrorData<key, error>> {
+): Maybe<error> {
   switch (error.tag) {
     case "Failure":
+      return path.isEmpty() ? Maybe.Just(error.value) : Maybe.Nothing();
+
     case "Multiple":
+      return Maybe.fromArray(Maybe.mapMaybe(e => queryData(e.data, ...path), error.value));
+
     case "Or":
-      return path.isEmpty() ? Maybe.Just(error) : Maybe.Nothing();
+      return Maybe.sequence(error.value.map(e => queryData(e.data, ...path))).chain(
+        Maybe.fromArray,
+      );
 
     case "Path":
       return Maybe.unCons(path).chain(([key, ks]) =>
