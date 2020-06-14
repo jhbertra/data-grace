@@ -1,5 +1,4 @@
-import { MapArray, unzip } from "./array";
-import { Data, id, objectFromEntries, objectToEntries } from "./prelude";
+import { Data, objectToEntries } from "./prelude";
 
 /*------------------------------
   DATA TYPES
@@ -410,6 +409,26 @@ export class Maybe<value> {
    */
   toJSON(): any {
     return this.data.tag === "Just" ? this.data.value : null;
+  }
+
+  /**
+   * Compare the values in both Maybes, assuming they both have values.
+   */
+  valueEquals(other: Maybe<value>, p?: (a: value, b: value) => boolean): boolean {
+    const eqFn = p ?? ((a, b) => a === b);
+    return (
+      this.data.tag === "Just" &&
+      other.data.tag === "Just" &&
+      eqFn(this.data.value, other.data.value)
+    );
+  }
+
+  /**
+   * Compare the value in this Maybe with a pure value, assuming it has a  value.
+   */
+  valueEqualsPure(other: value, p?: (a: value, b: value) => boolean): boolean {
+    const eqFn = p ?? ((a, b) => a === b);
+    return this.data.tag === "Just" && eqFn(this.data.value, other);
   }
 
   /**

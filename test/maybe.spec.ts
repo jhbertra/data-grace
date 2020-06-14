@@ -116,7 +116,7 @@ describe("mapMaybe", () => {
               ),
           ),
         ([strs, empties]) => {
-          const predicate = ([s, i]: [string, number]) => empties.find(x => x === i) === undefined;
+          const predicate = ([, i]: [string, number]) => empties.find(x => x === i) === undefined;
           expect(
             Maybe.mapMaybe(
               str => (predicate(str) ? Maybe.Just(str.length) : Maybe.Nothing()),
@@ -151,7 +151,7 @@ describe("sequence", () => {
               ),
           ),
         ([strs, empties]) => {
-          const predicate = ([s, i]: [string, number]) => empties.find(x => x === i) === undefined;
+          const predicate = ([, i]: [string, number]) => empties.find(x => x === i) === undefined;
           expect(
             simplify(
               Maybe.sequence(
@@ -457,6 +457,40 @@ describe("Maybe", () => {
           },
         ),
       );
+    });
+  });
+
+  describe("valueEquals", () => {
+    it("Returns false if either are Nothing", () => {
+      expect(Maybe.Just(1).valueEquals(Maybe.Nothing())).toEqual(false);
+      expect(Maybe.Nothing().valueEquals(Maybe.Just(1))).toEqual(false);
+      expect(Maybe.Nothing().valueEquals(Maybe.Nothing())).toEqual(false);
+    });
+    it("Returns true if equal", () => {
+      expect(Maybe.Just(1).valueEquals(Maybe.Just(1))).toEqual(true);
+    });
+    it("Returns false if not equal", () => {
+      expect(Maybe.Just(1).valueEquals(Maybe.Just(0))).toEqual(false);
+    });
+    it("Returns equality check result if predicate specified", () => {
+      expect(Maybe.Just(1).valueEquals(Maybe.Just(0), () => true)).toEqual(true);
+      expect(Maybe.Just(1).valueEquals(Maybe.Just(1), () => false)).toEqual(false);
+    });
+  });
+
+  describe("valueEqualsPure", () => {
+    it("Returns false if Nothing", () => {
+      expect(Maybe.Nothing().valueEqualsPure(1)).toEqual(false);
+    });
+    it("Returns true if equal", () => {
+      expect(Maybe.Just(1).valueEqualsPure(1)).toEqual(true);
+    });
+    it("Returns false if not equal", () => {
+      expect(Maybe.Just(1).valueEqualsPure(0)).toEqual(false);
+    });
+    it("Returns equality check result if predicate specified", () => {
+      expect(Maybe.Just(1).valueEqualsPure(0, () => true)).toEqual(true);
+      expect(Maybe.Just(1).valueEqualsPure(1, () => false)).toEqual(false);
     });
   });
 
