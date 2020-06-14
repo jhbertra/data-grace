@@ -305,11 +305,29 @@ export class Maybe<value> {
    * Maybe.Nothing().map(x => `${x}bar`); // Nothing
    * ```
    *
-   * @param f a that modifies the value within the [[Maybe]].
+   * @param f a function that modifies the value within the [[Maybe]].
    * @returns a [[Maybe]] with its contents transformed.
    */
   map<value2>(f: (value: value) => value2): Maybe<value2> {
     return this.data.tag === "Just" ? Maybe.Just(f(this.data.value)) : Maybe.staticNothing;
+  }
+
+  /**
+   * Pass the value contained by this [[Maybe]] to an imperitive callback.
+   *
+   * ```ts
+   * Maybe.Just("foo").do(x => { console.log(x); }); // Maybe.Just(foo)
+   * Maybe.Nothing().do(x => { console.log(x); }); // Nothing
+   * ```
+   *
+   * @param f an action that is run with the value within the [[Maybe]].
+   * @returns this Maybe.
+   */
+  do(f: (value: value) => void): Maybe<value> {
+    if (this.data.tag === "Just") {
+      f(this.data.value);
+    }
+    return this;
   }
 
   /**

@@ -326,6 +326,42 @@ export class Result<value, error> {
   }
 
   /**
+   * Pass the value contained by this [[Result]] to an imperitive callback.
+   *
+   * ```ts
+   * Result.Ok("foo").do(x => { console.log(x); }); // Result.Ok(foo) & prints "foo"
+   * Result.Error("bar").do(x => { console.log(x); }); // Result.Error("bar")
+   * ```
+   *
+   * @param f an action that is run with the value within the [[Result]].
+   * @returns this Result.
+   */
+  do(f: (value: value) => void): Result<value, error> {
+    if (this.data.tag === "Ok") {
+      f(this.data.value);
+    }
+    return this;
+  }
+
+  /**
+   * Pass the error contained by this [[Result]] to an imperitive callback.
+   *
+   * ```ts
+   * Result.Ok("foo").doError(x => { console.log(x); }); // Result.Ok(foo)
+   * Result.Error("bar").doError(x => { console.log(x); }); // Result.Error("bar") & prints "bar"
+   * ```
+   *
+   * @param f an action that is run with the value within the [[Result]].
+   * @returns this Result.
+   */
+  doError(f: (error: error) => void): Result<value, error> {
+    if (this.data.tag === "Error") {
+      f(this.data.value);
+    }
+    return this;
+  }
+
+  /**
    * Run a callback based on the case of the [[Result]]
    *
    * ```ts
