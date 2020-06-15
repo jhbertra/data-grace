@@ -86,9 +86,10 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: build-14.x
+        path: dist
 
     - name: Semantic Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: npx semantic-release
+      run: npx semantic-release --dry-run
