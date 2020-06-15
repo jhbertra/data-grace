@@ -41,7 +41,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v1
       with:
-        name: build
+        name: build-${{ matrix.node-version }}
         path: dist
 
     - name: Lint
@@ -70,6 +70,11 @@ jobs:
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v1
+      with:
+        name: build-14.x
 
     - name: Semantic Release
       run: yarn semantic-release
