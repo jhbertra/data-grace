@@ -26,7 +26,8 @@
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "test:prod": "yarn lint && yarn test -- --no-cache",
-    "deploy-docs": "ts-node tools/gh-pages-publish"
+    "deploy-docs": "ts-node tools/gh-pages-publish",
+    "semantic-release": "semantic-release"
   },
   "lint-staged": {
     "{src,test}/**/*.ts": [

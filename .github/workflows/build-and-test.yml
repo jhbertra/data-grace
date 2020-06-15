@@ -38,6 +38,12 @@ jobs:
     - name: Build library
       run: yarn build
 
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: build
+        path: dist
+
     - name: Lint
       run: yarn lint
 
@@ -53,10 +59,17 @@ jobs:
 
   finish:
     needs: build-and-test
+
     runs-on: ubuntu-latest
+
     steps:
+    - uses: actions/checkout@v1
+
     - name: Coveralls Finished
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.github_token }}
         parallel-finished: true
+
+    - name: Semantic Release
+      run: yarn semantic-release
