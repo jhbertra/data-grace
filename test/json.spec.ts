@@ -16,7 +16,7 @@ describe("decodeString", () => {
   it("Fails for invalid JSON", () => {
     fc.assert(
       fc.property(
-        fc.string().filter(x => {
+        fc.string().filter((x) => {
           try {
             JSON.parse(x);
             return false;
@@ -24,7 +24,7 @@ describe("decodeString", () => {
             return true;
           }
         }),
-        s => {
+        (s) => {
           expect(Json.decodeString(Decoder.value, s)).toEqual(
             Result.Error(StructuredError.Failure({ message: "Expected a JSON string", value: s })),
           );
@@ -34,7 +34,7 @@ describe("decodeString", () => {
   });
   it("Succeeds for valid JSON", () => {
     fc.assert(
-      fc.property(fc.json(), json => {
+      fc.property(fc.json(), (json) => {
         expect(Json.decodeString(Decoder.value, json)).toEqual(Result.Ok(JSON.parse(json)));
       }),
     );
@@ -44,14 +44,14 @@ describe("decodeString", () => {
 describe("isJson", () => {
   it("Returns true for valid JSON", () => {
     fc.assert(
-      fc.property(fc.jsonObject(), json => {
+      fc.property(fc.jsonObject(), (json) => {
         expect(Json.isJson(json)).toEqual(true);
       }),
     );
   });
   it("Returns false for functions", () => {
     fc.assert(
-      fc.property(fc.func(fc.anything()), fn => {
+      fc.property(fc.func(fc.anything()), (fn) => {
         expect(Json.isJson(fn)).toEqual(false);
       }),
     );
@@ -86,10 +86,10 @@ Offending value: ${JSON.stringify(value)}`,
             .record({ message: fc.string(), value: fc.jsonObject() as fc.Arbitrary<Json> })
             .map<DecoderError>(StructuredError.Failure),
         ),
-        errors => {
+        (errors) => {
           expect(Json.renderDecoderError(StructuredError.Multiple(errors))).toEqual(
             errors
-              .map(error => Json.renderDecoderError(error))
+              .map((error) => Json.renderDecoderError(error))
               .intersperse("")
               .join("\n"),
           );
@@ -105,7 +105,7 @@ Offending value: ${JSON.stringify(value)}`,
             .record({ message: fc.string(), value: fc.jsonObject() as fc.Arbitrary<Json> })
             .map<DecoderError>(StructuredError.Failure),
         ),
-        errors => {
+        (errors) => {
           expect(Json.renderDecoderError(StructuredError.Or(errors))).toEqual(
             [
               "Several alternatives failed:",
@@ -114,7 +114,7 @@ Offending value: ${JSON.stringify(value)}`,
                   `    case ${i + 1}:\n` +
                   Json.renderDecoderError(error)
                     .split("\n")
-                    .map(x => `        ${x}`)
+                    .map((x) => `        ${x}`)
                     .join("\n"),
               ),
             ].join("\n"),
@@ -126,7 +126,7 @@ Offending value: ${JSON.stringify(value)}`,
   it("Renders human-readable text for Paths", () => {
     fc.assert(
       fc.property(
-        fc.oneof<string | number>(fc.string(), fc.nat()),
+        fc.oneof(fc.string(), fc.nat()),
         fc.string(),
         fc.jsonObject() as fc.Arbitrary<Json>,
         (path, message, value) => {
@@ -165,7 +165,7 @@ describe("chain", () => {
 describe("decode", () => {
   it("returns the result of the validator fn", () => {
     fc.assert(
-      fc.property(arbitraryEither(arbitraryDecoderError, fc.anything()), x => {
+      fc.property(arbitraryEither(arbitraryDecoderError, fc.anything()), (x) => {
         expect(new Decoder(() => x).decode(null)).toEqual(x);
       }),
     );
@@ -175,9 +175,9 @@ describe("decode", () => {
 describe("map", () => {
   it("transforms the result", () => {
     fc.assert(
-      fc.property(arbitraryEither(arbitraryDecoderError, fc.anything()), result => {
-        expect(new Decoder(() => result).map(x => typeof x === "string").decode(null)).toEqual(
-          result.map(x => typeof x === "string"),
+      fc.property(arbitraryEither(arbitraryDecoderError, fc.anything()), (result) => {
+        expect(new Decoder(() => result).map((x) => typeof x === "string").decode(null)).toEqual(
+          result.map((x) => typeof x === "string"),
         );
       }),
     );
@@ -205,7 +205,7 @@ describe("or", () => {
                       result1.maybeError,
                       result2.maybeError,
                       result3.maybeError,
-                    ]).chain(error => (error.data.tag === "Or" ? error.data.value : [error])),
+                    ]).chain((error) => (error.data.tag === "Or" ? error.data.value : [error])),
                   ),
                 )
               : result1.or(result2).or(result3),
@@ -225,7 +225,7 @@ describe("record", () => {
           bar: fc.integer(),
           baz: fc.boolean(),
         }),
-        value => {
+        (value) => {
           expect(
             Decoder.record({
               foo: Decoder.field("foo", Decoder.string),
@@ -246,7 +246,7 @@ describe("record", () => {
           bar: fc.integer(),
           baz: fc.boolean(),
         }),
-        value => {
+        (value) => {
           expect(
             Decoder.record({
               foo: Decoder.field("foo", Decoder.fail("Foo failed")),
@@ -280,10 +280,10 @@ describe("record", () => {
       fc.property(
         fc
           .jsonObject()
-          .filter(x => x === null || Array.isArray(x) || typeof x !== "object") as fc.Arbitrary<
+          .filter((x) => x === null || Array.isArray(x) || typeof x !== "object") as fc.Arbitrary<
           Json
         >,
-        value => {
+        (value) => {
           expect(
             Decoder.record({
               foo: Decoder.field("foo", Decoder.fail("Foo failed")),
@@ -302,7 +302,7 @@ describe("record", () => {
 describe("tuple", () => {
   it("Constructs an object", () => {
     fc.assert(
-      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), value => {
+      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), (value) => {
         expect(
           Decoder.tuple(Decoder.string, Decoder.number, Decoder.boolean).decode(value),
         ).toEqual(Result.Ok(value));
@@ -312,7 +312,7 @@ describe("tuple", () => {
 
   it("Constructs errors", () => {
     fc.assert(
-      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), value => {
+      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), (value) => {
         expect(
           Decoder.tuple(
             Decoder.fail("Foo failed"),
@@ -342,11 +342,14 @@ describe("tuple", () => {
   });
   it("Fails for non-arrays", () => {
     fc.assert(
-      fc.property(fc.jsonObject().filter(x => !Array.isArray(x)) as fc.Arbitrary<Json>, value => {
-        expect(
-          Decoder.tuple(Decoder.string, Decoder.number, Decoder.boolean).decode(value),
-        ).toEqual(Result.Error(StructuredError.Failure({ message: "Expected an array", value })));
-      }),
+      fc.property(
+        fc.jsonObject().filter((x) => !Array.isArray(x)) as fc.Arbitrary<Json>,
+        (value) => {
+          expect(
+            Decoder.tuple(Decoder.string, Decoder.number, Decoder.boolean).decode(value),
+          ).toEqual(Result.Error(StructuredError.Failure({ message: "Expected an array", value })));
+        },
+      ),
     );
   });
 });
@@ -354,7 +357,7 @@ describe("tuple", () => {
 describe("boolean", () => {
   it("Decodes booleans", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.boolean.decode(value)).toEqual(
           typeof value === "boolean"
             ? Result.Ok(value)
@@ -368,7 +371,7 @@ describe("boolean", () => {
 describe("date", () => {
   it("Decodes unix timestamps", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.date.decode(value)).toEqual(
           typeof value === "number"
             ? Result.Ok(new Date(value))
@@ -387,7 +390,7 @@ describe("date", () => {
 describe("number", () => {
   it("Decodes numbers", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.number.decode(value)).toEqual(
           typeof value === "number"
             ? Result.Ok(value)
@@ -406,7 +409,7 @@ describe("number", () => {
 describe("null", () => {
   it("Decodes nulls", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.null.decode(value)).toEqual(
           value === null
             ? Result.Ok(value)
@@ -425,7 +428,7 @@ describe("null", () => {
 describe("string", () => {
   it("Decodes strings", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.string.decode(value)).toEqual(
           typeof value === "string"
             ? Result.Ok(value)
@@ -439,7 +442,7 @@ describe("string", () => {
 describe("nullable", () => {
   it("Decodes nulls", () => {
     fc.assert(
-      fc.property(arbitraryDecoder, decoder => {
+      fc.property(arbitraryDecoder, (decoder) => {
         expect(Decoder.nullable(decoder).decode(null)).toEqual(Result.Ok(Maybe.Nothing()));
       }),
     );
@@ -448,7 +451,7 @@ describe("nullable", () => {
     fc.assert(
       fc.property(
         arbitraryDecoder,
-        fc.jsonObject().filter(x => x !== null) as fc.Arbitrary<Json>,
+        fc.jsonObject().filter((x) => x !== null) as fc.Arbitrary<Json>,
         (decoder, value) => {
           expect(Decoder.nullable(decoder).decode(value)).toEqual(
             decoder.decode(value).map(Maybe.Just),
@@ -464,15 +467,10 @@ describe("optional", () => {
     fc.assert(
       fc.property(
         arbitraryDecoder,
-        fc.jsonObject().filter(x => x !== null) as fc.Arbitrary<Json>,
+        fc.jsonObject().filter((x) => x !== null) as fc.Arbitrary<Json>,
         (decoder, value) => {
           expect(Decoder.optional(decoder).decode(value)).toEqual(
-            Result.Ok(
-              decoder
-                .decode(value)
-                .map(Maybe.Just)
-                .defaultWith(Maybe.Nothing()),
-            ),
+            Result.Ok(decoder.decode(value).map(Maybe.Just).defaultWith(Maybe.Nothing())),
           );
         },
       ),
@@ -483,7 +481,7 @@ describe("optional", () => {
 describe("array", () => {
   it("Decodes empty arrays", () => {
     fc.assert(
-      fc.property(arbitraryDecoder, decoder => {
+      fc.property(arbitraryDecoder, (decoder) => {
         expect(Decoder.array(decoder).decode([])).toEqual(Result.Ok([]));
       }),
     );
@@ -492,11 +490,11 @@ describe("array", () => {
     fc.assert(
       fc.property(
         arbitraryDecoder,
-        fc.array(fc.jsonObject().filter(x => x !== null) as fc.Arbitrary<Json>),
+        fc.array(fc.jsonObject().filter((x) => x !== null) as fc.Arbitrary<Json>),
         (decoder, value) => {
           const results = value.map(decoder.decode);
           const errors = Result.errors(
-            results.map((result, i) => result.mapError(error => StructuredError.Path(i, error))),
+            results.map((result, i) => result.mapError((error) => StructuredError.Path(i, error))),
           );
           const values = Result.oks(results);
           expect(Decoder.array(decoder).decode(value)).toEqual(
@@ -510,7 +508,7 @@ describe("array", () => {
     fc.assert(
       fc.property(
         arbitraryDecoder,
-        fc.jsonObject().filter(x => !Array.isArray(x)) as fc.Arbitrary<Json>,
+        fc.jsonObject().filter((x) => !Array.isArray(x)) as fc.Arbitrary<Json>,
         (decoder, value) => {
           expect(Decoder.array(decoder).decode(value)).toEqual(
             Result.Error(StructuredError.Failure({ message: "Expected an array", value })),
@@ -524,7 +522,7 @@ describe("array", () => {
 describe("filter", () => {
   it("Fails if the predicate fails", () => {
     fc.assert(
-      fc.property(fc.boolean(), succeed => {
+      fc.property(fc.boolean(), (succeed) => {
         expect(Decoder.boolean.filter("Failure from predicate", id).decode(succeed)).toEqual(
           succeed
             ? Result.Ok(true)
@@ -546,7 +544,7 @@ describe("field", () => {
         fc.jsonObject() as fc.Arbitrary<Json>,
         (decoder, fieldName, value) => {
           expect(Decoder.field(fieldName, decoder).decode({ [fieldName]: value })).toEqual(
-            decoder.decode(value).mapError(error => StructuredError.Path(fieldName, error)),
+            decoder.decode(value).mapError((error) => StructuredError.Path(fieldName, error)),
           );
         },
       ),
@@ -570,7 +568,7 @@ describe("field", () => {
         fc.string(1, 10),
         fc
           .jsonObject()
-          .filter(x => x === null || Array.isArray(x) || typeof x !== "object") as fc.Arbitrary<
+          .filter((x) => x === null || Array.isArray(x) || typeof x !== "object") as fc.Arbitrary<
           Json
         >,
         (decoder, fieldName, value) => {
@@ -586,7 +584,7 @@ describe("field", () => {
 describe("only", () => {
   it("Decodes the value it is passed", () => {
     fc.assert(
-      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, value => {
+      fc.property(fc.jsonObject() as fc.Arbitrary<Json>, (value) => {
         expect(Decoder.only(value).decode(value)).toEqual(Result.Ok(value));
       }),
     );
@@ -615,7 +613,7 @@ describe("enumOf", () => {
       fc.property(
         fc
           .array(fc.jsonObject() as fc.Arbitrary<Json>, 1, 10)
-          .chain(values => fc.tuple(fc.constant(values), fc.integer(0, values.length - 1))),
+          .chain((values) => fc.tuple(fc.constant(values), fc.integer(0, values.length - 1))),
         ([values, index]) => {
           expect(Decoder.enumOf(...values).decode(values[index])).toEqual(Result.Ok(values[index]));
         },
@@ -628,7 +626,7 @@ describe("enumOf", () => {
         fc
           .tuple(fc.array(fc.jsonObject(), 1, 10), fc.jsonObject())
           .filter(([values, value]) =>
-            values.every(x => JSON.stringify(x) !== JSON.stringify(value)),
+            values.every((x) => JSON.stringify(x) !== JSON.stringify(value)),
           ) as fc.Arbitrary<[Json[], Json]>,
         ([values, value]) => {
           expect(Decoder.enumOf(...values).decode(value)).toEqual(
@@ -656,7 +654,7 @@ describe("index", () => {
           const array = new Array();
           array[index] = value;
           expect(Decoder.index(index, decoder).decode(array)).toEqual(
-            decoder.decode(value).mapError(error => StructuredError.Path(index, error)),
+            decoder.decode(value).mapError((error) => StructuredError.Path(index, error)),
           );
         },
       ),
@@ -681,7 +679,7 @@ describe("index", () => {
       fc.property(
         arbitraryDecoder,
         fc.nat(),
-        fc.jsonObject().filter(x => !Array.isArray(x)) as fc.Arbitrary<Json>,
+        fc.jsonObject().filter((x) => !Array.isArray(x)) as fc.Arbitrary<Json>,
         (decoder, index, value) => {
           expect(Decoder.index(index, decoder).decode(value)).toEqual(
             Result.Error(StructuredError.Failure({ message: "Expected an array", value: value })),
@@ -696,12 +694,12 @@ const arbitraryFailure = fc
   .record({ value: fc.jsonObject() as fc.Arbitrary<Json>, message: fc.string() })
   .map<DecoderError>(StructuredError.Failure);
 
-const arbitraryDecoderError: fc.Arbitrary<DecoderError> = fc.oneof<DecoderError>(
+const arbitraryDecoderError: fc.Arbitrary<DecoderError> = fc.oneof(
   arbitraryFailure,
   fc.array(arbitraryFailure).map(StructuredError.Multiple),
   fc.array(arbitraryFailure).map(StructuredError.Or),
   fc
-    .tuple(fc.oneof<string | number>(fc.string(), fc.nat()), arbitraryFailure)
+    .tuple(fc.oneof(fc.string(), fc.nat()), arbitraryFailure)
     .map(([path, error]) => StructuredError.Path(path, error)),
 );
 

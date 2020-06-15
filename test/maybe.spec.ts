@@ -13,7 +13,7 @@ describe("fromArray", () => {
   it("returns the first element when the input is not empty", () => {
     fc.assert(
       fc.property(
-        fc.array(fc.integer()).filter(x => x.length > 0),
+        fc.array(fc.integer()).filter((x) => x.length > 0),
         (xs: number[]) => {
           expect(simplify(Maybe.fromArray(xs))).toEqual(simplify(Maybe.Just(xs[0])));
         },
@@ -37,7 +37,7 @@ describe("build", () => {
           baz: fc.boolean(),
           qux: fc.string(),
         }),
-        r => {
+        (r) => {
           expect(
             simplify(
               Maybe.record<Foo>({
@@ -60,7 +60,7 @@ describe("build", () => {
         fc.array(fc.integer(0, 2), 1, 3),
         (bar: number, baz: boolean, qux: string, empties: number[]) => {
           function getComponent<T>(i: number, value: T): Maybe<T> {
-            return empties.find(x => x === i) !== undefined ? Maybe.Nothing() : Maybe.Just(value);
+            return empties.find((x) => x === i) !== undefined ? Maybe.Nothing() : Maybe.Just(value);
           }
           expect(
             simplify(
@@ -84,7 +84,7 @@ describe("catMaybes", () => {
         fc.array(fc.oneof(fc.constant(Maybe.Nothing<number>()), fc.integer().map(Maybe.Just))),
         (xs: Array<Maybe<number>>) => {
           expect(Maybe.catMaybes(xs)).toEqual(
-            xs.filter(x => x.isJust).map(x => (x as any).data.value),
+            xs.filter((x) => x.isJust).map((x) => (x as any).data.value),
           );
         },
       ),
@@ -96,8 +96,8 @@ describe("mapMaybe", () => {
   it("is equal to map for only pure results", () => {
     fc.assert(
       fc.property(fc.array(fc.string()), (strs: string[]) => {
-        expect(Maybe.mapMaybe(str => Maybe.Just(str.length), strs)).toEqual(
-          strs.map(str => str.length),
+        expect(Maybe.mapMaybe((str) => Maybe.Just(str.length), strs)).toEqual(
+          strs.map((str) => str.length),
         );
       }),
     );
@@ -107,22 +107,22 @@ describe("mapMaybe", () => {
       fc.property(
         fc
           .array(fc.string(), 1, 10)
-          .chain(strs =>
+          .chain((strs) =>
             fc
               .array(fc.integer(0, strs.length - 1), 1, strs.length)
               .map(
-                empties =>
+                (empties) =>
                   [strs.map((s, i) => [s, i]), empties] as [Array<[string, number]>, number[]],
               ),
           ),
         ([strs, empties]) => {
-          const predicate = ([, i]: [string, number]) => empties.find(x => x === i) === undefined;
+          const predicate = ([, i]: [string, number]) => empties.find((x) => x === i) === undefined;
           expect(
             Maybe.mapMaybe(
-              str => (predicate(str) ? Maybe.Just(str.length) : Maybe.Nothing()),
+              (str) => (predicate(str) ? Maybe.Just(str.length) : Maybe.Nothing()),
               strs,
             ),
-          ).toEqual(strs.filter(predicate).map(str => str.length));
+          ).toEqual(strs.filter(predicate).map((str) => str.length));
         },
       ),
     );
@@ -142,20 +142,20 @@ describe("sequence", () => {
       fc.property(
         fc
           .array(fc.string(), 1, 10)
-          .chain(strs =>
+          .chain((strs) =>
             fc
               .array(fc.integer(0, strs.length - 1), 1, strs.length)
               .map(
-                empties =>
+                (empties) =>
                   [strs.map((s, i) => [s, i]), empties] as [Array<[string, number]>, number[]],
               ),
           ),
         ([strs, empties]) => {
-          const predicate = ([, i]: [string, number]) => empties.find(x => x === i) === undefined;
+          const predicate = ([, i]: [string, number]) => empties.find((x) => x === i) === undefined;
           expect(
             simplify(
               Maybe.sequence(
-                strs.map(str => (predicate(str) ? Maybe.Just(str[0]) : Maybe.Nothing())),
+                strs.map((str) => (predicate(str) ? Maybe.Just(str[0]) : Maybe.Nothing())),
               ),
             ),
           ).toEqual(simplify(Maybe.Nothing()));
@@ -185,10 +185,10 @@ describe("Maybe", () => {
   it("obeys the left identity monad law", () => {
     const k = (s: string) =>
       Maybe.Just(s)
-        .filter(x => x.length < 4)
-        .map(x => x.length);
+        .filter((x) => x.length < 4)
+        .map((x) => x.length);
     fc.assert(
-      fc.property(fc.string(), s => {
+      fc.property(fc.string(), (s) => {
         expect(simplify(Maybe.Just(s).chain(k))).toEqual(simplify(k(s)));
       }),
     );
@@ -196,27 +196,30 @@ describe("Maybe", () => {
 
   it("obeys the right identity monad law", () => {
     fc.assert(
-      fc.property(fc.oneof(fc.constant(Maybe.Nothing()), fc.string().map(Maybe.Just)), m => {
-        expect(simplify(m.chain(Maybe.Just))).toEqual(simplify(m));
-      }),
+      fc.property(
+        fc.oneof(fc.constant(Maybe.Nothing<string>()), fc.string().map(Maybe.Just)),
+        (m) => {
+          expect(simplify(m.chain(Maybe.Just))).toEqual(simplify(m));
+        },
+      ),
     );
   });
 
   it("obeys the right monad associativity law", () => {
     const k = (s: string) =>
       Maybe.Just(s)
-        .filter(x => x.length < 4)
-        .map(x => x.length);
+        .filter((x) => x.length < 4)
+        .map((x) => x.length);
     const h = (n: number) =>
       Maybe.Just(n)
-        .filter(x => x % 2 === 0)
-        .map(x => x.toString());
+        .filter((x) => x % 2 === 0)
+        .map((x) => x.toString());
 
     fc.assert(
       fc.property(
         fc.oneof(fc.constant(Maybe.Nothing<string>()), fc.string().map(Maybe.Just)),
-        m => {
-          expect(simplify(m.chain(x => k(x).chain(h)))).toEqual(simplify(m.chain(k).chain(h)));
+        (m) => {
+          expect(simplify(m.chain((x) => k(x).chain(h)))).toEqual(simplify(m.chain(k).chain(h)));
         },
       ),
     );
@@ -225,7 +228,7 @@ describe("Maybe", () => {
   describe("defaultWith", () => {
     it("Returns payload when present", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(Maybe.Just(s).defaultWith("foo")).toEqual(s);
         }),
       );
@@ -238,15 +241,15 @@ describe("Maybe", () => {
   describe("filter", () => {
     it("Passes the value into predicate", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           // @ts-ignore
-          Maybe.Just(s).filter(x => expect(x).toEqual(s));
+          Maybe.Just(s).filter((x) => expect(x).toEqual(s));
         }),
       );
     });
     it("Erases the value when the predicate returns false", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).filter(constant(false)))).toEqual(
             simplify(Maybe.Nothing()),
           );
@@ -255,14 +258,14 @@ describe("Maybe", () => {
     });
     it("Leaves the value when the predicate returns true", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).filter(constant(true)))).toEqual(simplify(Maybe.Just(s)));
         }),
       );
     });
     it("Does not affect empty values", () => {
       fc.assert(
-        fc.property(fc.boolean(), b => {
+        fc.property(fc.boolean(), (b) => {
           expect(simplify(Maybe.Nothing().filter(constant(b)))).toEqual(simplify(Maybe.Nothing()));
         }),
       );
@@ -272,21 +275,21 @@ describe("Maybe", () => {
   describe("chain", () => {
     it("Passes the payload to the callback", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
-          Maybe.Just(s).chain(x => Maybe.Just(expect(x).toEqual(s)));
+        fc.property(fc.string(), (s) => {
+          Maybe.Just(s).chain((x) => Maybe.Just(expect(x).toEqual(s)));
         }),
       );
     });
     it("Returns the value returned by the callback", () => {
-      const k = (s: string) => Maybe.Just(s).filter(x => x.length < 5);
+      const k = (s: string) => Maybe.Just(s).filter((x) => x.length < 5);
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).chain(k))).toEqual(simplify(k(s)));
         }),
       );
     });
     it("Skips the callback on empty", () => {
-      const k = (s: string) => Maybe.Just(s).filter(x => x.length < 5);
+      const k = (s: string) => Maybe.Just(s).filter((x) => x.length < 5);
       expect(simplify(Maybe.Nothing<string>().chain(k))).toEqual(simplify(Maybe.Nothing()));
     });
   });
@@ -294,7 +297,7 @@ describe("Maybe", () => {
   describe("isJust", () => {
     it("Returns true for Just(s)", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).isJust)).toEqual(true);
         }),
       );
@@ -307,7 +310,7 @@ describe("Maybe", () => {
   describe("isNothing", () => {
     it("Returns false for Just(s)", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).isNothing)).toEqual(false);
         }),
       );
@@ -320,15 +323,15 @@ describe("Maybe", () => {
   describe("map", () => {
     it("Passes the payload to the callback", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
-          Maybe.Just(s).map(x => expect(x).toEqual(s));
+        fc.property(fc.string(), (s) => {
+          Maybe.Just(s).map((x) => expect(x).toEqual(s));
         }),
       );
     });
     it("Wraps the value returned by the callback", () => {
       const k = (s: string) => s.length;
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(simplify(Maybe.Just(s).map(k))).toEqual(simplify(Maybe.Just(k(s))));
         }),
       );
@@ -342,7 +345,7 @@ describe("Maybe", () => {
   describe("matchCase", () => {
     it("Passes the payload to the correct callback", () => {
       Maybe.Just("foo").matchCase({
-        Just: x => expect(x).toEqual("foo"),
+        Just: (x) => expect(x).toEqual("foo"),
         Nothing: () => fail("Not expected to be called"),
       });
       Maybe.Nothing().matchCase({
@@ -352,10 +355,10 @@ describe("Maybe", () => {
     });
     it("returns the correct value when a value is provided", () => {
       fc.assert(
-        fc.property(fc.string(), s => {
+        fc.property(fc.string(), (s) => {
           expect(
             Maybe.Just(s).matchCase({
-              Just: x => x.length,
+              Just: (x) => x.length,
               Nothing: () => s.length - 1,
             }),
           ).toEqual(s.length);
@@ -434,11 +437,7 @@ describe("Maybe", () => {
       expect(simplify(Maybe.Nothing().voidOut())).toEqual(simplify(Maybe.Nothing()));
     });
     it("Renders Just(s) as Just (s)", () => {
-      expect(
-        Maybe.Just("foo")
-          .voidOut()
-          .toJSON(),
-      ).toBeUndefined();
+      expect(Maybe.Just("foo").voidOut().toJSON()).toBeUndefined();
     });
   });
 
@@ -449,8 +448,8 @@ describe("Maybe", () => {
     it("Returns a tuple for non empty", () => {
       fc.assert(
         fc.property(
-          fc.array(fc.anything()).filter(arr => !arr.isEmpty()),
-          arr => {
+          fc.array(fc.anything()).filter((arr) => !arr.isEmpty()),
+          (arr) => {
             expect(simplify(Maybe.unCons(arr))).toEqual(
               simplify(Maybe.Just([arr[0], arr.slice(1)])),
             );
@@ -520,7 +519,7 @@ describe("Maybe", () => {
             tag: fc.string(),
             value: fc.anything(),
           }),
-          data => {
+          (data) => {
             expect(simplify(Maybe.fromData(data, data.tag))).toEqual(
               simplify(Maybe.Just(data.value)),
             );

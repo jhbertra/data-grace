@@ -28,7 +28,7 @@ describe("chain", () => {
 describe("getResult", () => {
   it("returns the result of the validator fn", () => {
     fc.assert(
-      fc.property(arbitraryEither(arbitraryFormError, fc.anything()), x => {
+      fc.property(arbitraryEither(arbitraryFormError, fc.anything()), (x) => {
         expect(simplify(Form.text(constant(x)).getResult())).toEqual(simplify(x));
       }),
     );
@@ -60,10 +60,10 @@ describe("load", () => {
   });
   it("updates the result", () => {
     fc.assert(
-      fc.property(fc.string(), value => {
+      fc.property(fc.string(), (value) => {
         expect(
           simplify(
-            Form.text(x =>
+            Form.text((x) =>
               x.length % 2 === 0
                 ? Result.Error(StructuredError.Failure("fail"))
                 : Result.Ok("success"),
@@ -86,14 +86,14 @@ describe("load", () => {
 describe("map", () => {
   it("transforms the result", () => {
     fc.assert(
-      fc.property(arbitraryEither(arbitraryFormError, fc.anything()), result => {
+      fc.property(arbitraryEither(arbitraryFormError, fc.anything()), (result) => {
         expect(
           simplify(
             Form.text(constant(result))
-              .map(x => typeof x === "string")
+              .map((x) => typeof x === "string")
               .getResult(),
           ),
-        ).toEqual(simplify(result.map(x => typeof x === "string")));
+        ).toEqual(simplify(result.map((x) => typeof x === "string")));
       }),
     );
   });
@@ -124,7 +124,7 @@ describe("or", () => {
 describe("queryError", () => {
   it("forwards to StructuredError.prototype.query", () => {
     fc.assert(
-      fc.property(arbitraryFormError, error => {
+      fc.property(arbitraryFormError, (error) => {
         expect(
           Form.text(constant(Result.Error(error))).queryError(
             ...(error.data.tag === "Path" ? [error.data.value.key] : []),
@@ -231,26 +231,22 @@ describe("queryError", () => {
 describe("setValue", () => {
   it("Sets the dirty flag", () => {
     fc.assert(
-      fc.property(fc.string(), value => {
+      fc.property(fc.string(), (value) => {
         expect(Form.text(Result.Ok).setValue(value).dirty).toBeTruthy();
       }),
     );
   });
   it("Sets the value", () => {
     fc.assert(
-      fc.property(fc.string(), value => {
+      fc.property(fc.string(), (value) => {
         expect(Form.text(Result.Ok).setValue(value).value).toBe(value);
       }),
     );
   });
   it("Updates the result", () => {
     fc.assert(
-      fc.property(fc.string(), value => {
-        expect(
-          Form.text(Result.Ok)
-            .setValue(value)
-            .getResult(),
-        ).toEqual(Result.Ok(value));
+      fc.property(fc.string(), (value) => {
+        expect(Form.text(Result.Ok).setValue(value).getResult()).toEqual(Result.Ok(value));
       }),
     );
   });
@@ -265,7 +261,7 @@ describe("record", () => {
           bar: fc.integer(),
           baz: fc.boolean(),
         }),
-        value => {
+        (value) => {
           expect(
             simplify(
               Form.record({
@@ -290,7 +286,7 @@ describe("record", () => {
           bar: fc.integer(),
           baz: fc.boolean(),
         }),
-        value => {
+        (value) => {
           expect(
             simplify(
               Form.record({
@@ -321,7 +317,7 @@ describe("record", () => {
 describe("tuple", () => {
   it("Constructs an object", () => {
     fc.assert(
-      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), value => {
+      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), (value) => {
         expect(
           simplify(
             Form.tuple(Form.text(Result.Ok), Form.slider(Result.Ok), Form.checkbox(Result.Ok))
@@ -335,7 +331,7 @@ describe("tuple", () => {
 
   it("Constructs errors", () => {
     fc.assert(
-      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), value => {
+      fc.property(fc.tuple(fc.string(), fc.integer(), fc.boolean()), (value) => {
         expect(
           simplify(
             Form.tuple(
@@ -395,9 +391,9 @@ describe("setField", () => {
 describe("checkbox", () => {
   it("Validates booleans", () => {
     fc.assert(
-      fc.property(fc.boolean(), value => {
+      fc.property(fc.boolean(), (value) => {
         expect(
-          Form.checkbox(x =>
+          Form.checkbox((x) =>
             x ? Result.Ok(x) : Result.Error(StructuredError.Failure("Expected true")),
           )
             .setValue(value)
@@ -413,9 +409,9 @@ describe("checkbox", () => {
 describe("options", () => {
   it("Validates arrays", () => {
     fc.assert(
-      fc.property(fc.array(fc.boolean()), values => {
+      fc.property(fc.array(fc.boolean()), (values) => {
         expect(
-          Form.options<boolean, boolean>(x =>
+          Form.options<boolean, boolean>((x) =>
             and(x) ? Result.Ok(and(x)) : Result.Error(StructuredError.Failure("Expected all true")),
           )
             .setValue(values)
@@ -435,9 +431,9 @@ describe("select", () => {
     fc.assert(
       fc.property(
         fc.oneof(fc.constant(Maybe.Nothing<boolean>()), fc.boolean().map(Maybe.Just)),
-        value => {
+        (value) => {
           expect(
-            Form.select<boolean, boolean>(x =>
+            Form.select<boolean, boolean>((x) =>
               Result.fromMaybe(x.filter(id), StructuredError.Failure("Expected Just true")),
             )
               .setValue(value)
@@ -454,9 +450,9 @@ describe("select", () => {
 describe("slider", () => {
   it("Validates numbers", () => {
     fc.assert(
-      fc.property(fc.double(-1, 2), value => {
+      fc.property(fc.double(-1, 2), (value) => {
         expect(
-          Form.slider(x =>
+          Form.slider((x) =>
             x >= 0 && x <= 1
               ? Result.Ok(x)
               : Result.Error(StructuredError.Failure("Expected 0 ≤ x ≤ 1")),
@@ -476,9 +472,9 @@ describe("slider", () => {
 describe("text", () => {
   it("Validates strings", () => {
     fc.assert(
-      fc.property(fc.string(), value => {
+      fc.property(fc.string(), (value) => {
         expect(
-          Form.text(x =>
+          Form.text((x) =>
             x.length === 0
               ? Result.Ok(x)
               : Result.Error(StructuredError.Failure("Expected non-empty")),
@@ -495,14 +491,11 @@ describe("text", () => {
   });
 });
 
-const arbitraryFormError: fc.Arbitrary<FormError> = fc.oneof<FormError>(
+const arbitraryFormError: fc.Arbitrary<FormError> = fc.oneof(
   fc.string().map<FormError>(StructuredError.Failure),
   fc.array(fc.string().map<FormError>(StructuredError.Failure)).map(StructuredError.Multiple),
   fc.array(fc.string().map<FormError>(StructuredError.Failure)).map(StructuredError.Or),
   fc
-    .tuple(
-      fc.oneof<string | number>(fc.string(), fc.nat()),
-      fc.string().map<FormError>(StructuredError.Failure),
-    )
+    .tuple(fc.oneof(fc.string(), fc.nat()), fc.string().map<FormError>(StructuredError.Failure))
     .map(([path, error]) => StructuredError.Path(path, error)),
 );
